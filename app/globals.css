@@ -1,26 +1,254 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ========================================================================
+   Dancing with the SARs — Revised Design System (Tailwind CSS v4)
+   Survey-document / topographic-chart aesthetic.
+   Light-first, editorial, grounded in real SAR visual vocabulary.
+   ======================================================================== */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── Color Palette ──────────────────────────────────────────────────── */
+  /* Paper & Ink */
+  --color-paper: #F1F0EC;
+  --color-paper-warm: #E8E6E1;
+  --color-ink: #1D2023;
+  --color-ink-light: #3A3D42;
+  --color-ink-muted: #6B6E73; /* kept for transition; prefer --color-text-secondary */
+
+  /* Text hierarchy — solid colors, no opacity tricks */
+  --color-text-primary: #1D2023;   /* headings + primary body */
+  --color-text-secondary: #4A4E52; /* captions, descriptions, footer — WCAG AA on #F1F0EC */
+  --color-text-caption: #6B6F74;   /* placeholders, mono identifiers — WCAG AA on #F1F0EC */
+
+  /* Survey Teal — primary accent, sparingly for data highlights / links */
+  --color-teal: #2C5C61;
+  --color-teal-light: #3A7A80;
+  --color-teal-faint: rgba(44, 92, 97, 0.08);
+
+  /* Annotation Rust — ONLY for flagged / changed-region indicators */
+  --color-rust: #A8462E;
+  --color-rust-light: #C05A3E;
+  --color-rust-faint: rgba(168, 70, 46, 0.08);
+
+  /* Hairline — borders, rules, grid lines */
+  --color-hairline: #C7C4BC;
+  --color-hairline-light: #D8D5CE;
+  --color-hairline-dark: #A9A69F;
+
+  /* Status (muted, documentary) */
+  --color-success: #3B7A57;
+  --color-warning: #A8462E;
+  --color-error: #8B2E2E;
+  --color-info: #2C5C61;
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  --font-headline: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-body: "Public Sans", system-ui, -apple-system, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+
+  /* Font Sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+
+  /* ── Spacing (4px base) ─────────────────────────────────────────────── */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-20: 80px;
+  --spacing-24: 96px;
+
+  /* ── Border Radius — sharp, survey-document aesthetic ───────────────── */
+  --radius-none: 0px;
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-full: 2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base Styles ──────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
+}
+
+/* Mono — ONLY for numeric stats, coordinates, dates */
+.font-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Links ────────────────────────────────────────────────────────────── */
+a {
+  text-decoration-skip-ink: auto;
+}
+
+/* ── Selection ────────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--color-teal-faint);
+  color: var(--color-ink);
+}
+
+/* ── Scrollbar (clean, minimal) ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-hairline-dark);
+}
+
+/* ── Focus Styles (accessibility) ─────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Dark Mode (toggle-only, not default) ─────────────────────────────── */
+[data-theme="dark"] {
+  --color-paper: #141618;
+  --color-paper-warm: #1C1E21;
+  --color-ink: #EDEBE6;
+  --color-ink-light: #C8C5BE;
+  --color-ink-muted: #8A877F;
+  /* Solid dark-mode text tokens — WCAG AA on #141618 */
+  --color-text-primary: #EDEBE6;   /* ~14:1 on dark bg */
+  --color-text-secondary: #AEAAA3; /* ~6:1 on dark bg */
+  --color-text-caption: #8A877F;   /* ~4.6:1 on dark bg */
+  --color-hairline: #2E3035;
+  --color-hairline-light: #252729;
+  --color-hairline-dark: #3E4045;
+  --color-teal-faint: rgba(44, 92, 97, 0.15);
+  --color-rust-faint: rgba(168, 70, 46, 0.15);
+}
+
+/* ── Graticule / Coordinate Grid ──────────────────────────────────────── */
+.graticule-frame {
+  position: relative;
+  border: 1px solid var(--color-hairline);
+}
+
+.graticule-frame::before,
+.graticule-frame::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Top tick marks */
+.graticule-frame::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-hairline-dark) 0px,
+    var(--color-hairline-dark) 1px,
+    transparent 1px,
+    transparent 60px
+  );
+  background-size: 60px 6px;
+  background-repeat: repeat-x;
+  background-position: top left;
+  border: none;
+  height: 6px;
+}
+
+/* Left tick marks */
+.graticule-frame::after {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--color-hairline-dark) 0px,
+    var(--color-hairline-dark) 1px,
+    transparent 1px,
+    transparent 60px
+  );
+  background-size: 6px 60px;
+  background-repeat: repeat-y;
+  background-position: top left;
+  width: 6px;
+}
+
+/* ── Leaflet Overrides ────────────────────────────────────────────────── */
+.leaflet-control-attribution {
+  color: var(--color-text-secondary) !important;
+  font-family: var(--font-body) !important;
+  background-color: rgba(241, 240, 236, 0.8) !important; /* paper with some transparency */
+}
+
+[data-theme="dark"] .leaflet-control-attribution {
+  background-color: rgba(20, 22, 24, 0.8) !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--color-teal) !important;
+  text-decoration: none;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline;
 }

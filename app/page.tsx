@@ -1,69 +1,128 @@
-import Image from "next/image";
+// ========================================================================
+// Landing Page — Dancing with the SARs
+// Route: /
+// Left-aligned, editorial — reads like a technical brief, not a marketing page.
+// ========================================================================
 
-export default function Home() {
+'use client';
+
+import { Badge } from '@/components/ui/Badge';
+import { GraticuleFrame } from '@/components/layout/GraticuleFrame';
+import { motion, useReducedMotion } from 'framer-motion';
+
+export default function HomePage() {
+  const shouldReduceMotion = useReducedMotion();
+
+  // Single orchestrated entrance sequence for the hero section
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: 'easeOut' as const,
+      },
+    },
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <div className="mx-auto max-w-5xl px-6 py-16">
+      {/* Hero Section with staggered entrance */}
+      <motion.div
+        initial={shouldReduceMotion ? 'visible' : 'hidden'}
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div variants={itemVariants}>
+          <Badge variant="teal">NASA Space Apps 2026</Badge>
+        </motion.div>
+
+        <motion.h1
+          variants={itemVariants}
+          className="mt-6 text-4xl md:text-5xl font-headline font-semibold text-(--color-text-primary) leading-tight"
+        >
+          Dancing with the SARs
+        </motion.h1>
+
+        <motion.p
+          variants={itemVariants}
+          className="mt-4 text-lg text-(--color-text-secondary) max-w-xl leading-relaxed"
+        >
+          A platform that compares before/after SAR satellite images to detect
+          and explain surface change — floods, land-cover shifts — with
+          scientific precision and AI-narrated insight, fully usable offline.
+        </motion.p>
+
+        <motion.div variants={itemVariants} className="mt-8 flex gap-3">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/explore"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium bg-(--color-teal) text-(--color-paper) hover:underline hover:underline-offset-4 transition-all duration-150"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
+            Open explorer
           </a>
           <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/how-it-works"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-(--color-teal) border border-(--color-teal) hover:border-(--color-teal-light) hover:text-(--color-teal-light) transition-colors duration-150"
           >
-            Documentation
+            How it works
           </a>
+        </motion.div>
+      </motion.div>
+
+      {/* Overview specimen - Static, no entrance animation on scroll */}
+      <GraticuleFrame className="mt-16">
+        <div className="p-6">
+          <span className="block text-xs text-(--color-text-caption) font-data mb-4">
+            Project overview — SAR change detection pipeline
+          </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="border-t border-(--color-hairline) pt-4">
+              <h3 className="text-base font-headline font-semibold text-(--color-text-primary)">
+                SAR acquisition
+              </h3>
+              <p className="mt-2 text-sm text-(--color-text-secondary)">
+                Sentinel-1 C-band and NISAR L-band data from ASF DAAC, capturing
+                surface conditions across two observation dates.
+              </p>
+            </div>
+
+            <div className="border-t border-(--color-hairline) pt-4">
+              <h3 className="text-base font-headline font-semibold text-(--color-text-primary)">
+                Change detection
+              </h3>
+              <p className="mt-2 text-sm text-(--color-text-secondary)">
+                Deterministic processing — calibration, speckle filtering,
+                log-ratio differencing — produces a change map and statistics.
+                No AI in the science loop.
+              </p>
+            </div>
+
+            <div className="border-t border-(--color-hairline) pt-4">
+              <h3 className="text-base font-headline font-semibold text-(--color-text-primary)">
+                AI narration
+              </h3>
+              <p className="mt-2 text-sm text-(--color-text-secondary)">
+                An explanation layer translates the deterministic results into
+                plain-language insight. Clearly labeled, never the source of the
+                numbers. Cached for offline use.
+              </p>
+            </div>
+          </div>
         </div>
-      </main>
+      </GraticuleFrame>
     </div>
   );
 }
