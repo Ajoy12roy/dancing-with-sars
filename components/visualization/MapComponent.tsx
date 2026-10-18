@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, ImageOverlay, useMap } from 'react-leaflet';
+import type { TileErrorEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface MapComponentProps {
@@ -39,7 +40,7 @@ export default function MapComponent({ center, bounds, zoom, changeMapImage, aoi
         <TileLayer
           url={`/tiles/${aoiId}/{z}/{x}/{y}.png`}
           eventHandlers={{
-            tileerror: (error: any) => {
+            tileerror: (error: TileErrorEvent) => {
               const tile = error.tile;
               if (tile && tile.src && tile.src.includes('/tiles/')) {
                 const match = tile.src.match(/\/tiles\/[^\/]+\/(\d+)\/(\d+)\/(\d+)\.png/);

@@ -1,0 +1,8 @@
+{
+  "changeMapUrl": "sylhet_change_map.png",
+  "percentChanged": 33.1,
+  "affectedAreaKm2": 80.15,
+  "confidence": 100.0,
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

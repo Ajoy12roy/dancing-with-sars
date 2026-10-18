@@ -1,0 +1,8 @@
+{
+  "changeMapUrl": "amazon_change_map.png",
+  "percentChanged": 1.17,
+  "affectedAreaKm2": 5.82,
+  "confidence": 60.87,
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

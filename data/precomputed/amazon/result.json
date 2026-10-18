@@ -3,12 +3,24 @@
   "name": "Amazon Deforestation",
   "dateBefore": "2021-01-01",
   "dateAfter": "2023-01-01",
-  "percentChanged": 12.3,
-  "affectedAreaKm2": 1500.5,
-  "confidence": 88.7,
+  "percentChanged": 1.17,
+  "affectedAreaKm2": 5.82,
+  "confidence": 60.87,
   "chartData": [
-    { "category": "Forest", "value": -1400.0 },
-    { "category": "Agriculture", "value": 1200.5 },
-    { "category": "Bare Soil", "value": 200.0 }
-  ]
+    {
+      "category": "Forest",
+      "value": -1400.0
+    },
+    {
+      "category": "Agriculture",
+      "value": 1200.5
+    },
+    {
+      "category": "Bare Soil",
+      "value": 200.0
+    }
+  ],
+  "changeMapUrl": "amazon_change_map.png",
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
 }

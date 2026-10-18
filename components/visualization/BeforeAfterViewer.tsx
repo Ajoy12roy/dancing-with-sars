@@ -17,6 +17,27 @@ export default function BeforeAfterViewer({
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [showChangeMap, setShowChangeMap] = useState(false);
+  const [prevBeforeImage, setPrevBeforeImage] = useState(beforeImage);
+  const [beforeError, setBeforeError] = useState(false);
+  if (beforeImage !== prevBeforeImage) {
+    setPrevBeforeImage(beforeImage);
+    setBeforeError(false);
+  }
+
+  const [prevAfterImage, setPrevAfterImage] = useState(afterImage);
+  const [afterError, setAfterError] = useState(false);
+  if (afterImage !== prevAfterImage) {
+    setPrevAfterImage(afterImage);
+    setAfterError(false);
+  }
+
+  const [prevChangeMapImage, setPrevChangeMapImage] = useState(changeMapImage);
+  const [changeMapError, setChangeMapError] = useState(false);
+  if (changeMapImage !== prevChangeMapImage) {
+    setPrevChangeMapImage(changeMapImage);
+    setChangeMapError(false);
+  }
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMove = React.useCallback((clientX: number) => {
@@ -92,18 +113,26 @@ export default function BeforeAfterViewer({
       >
         {/* Background / After Image */}
         <div className="absolute inset-0">
-          <Image
-            src={afterImage}
-            alt="After"
-            fill
-            className="object-cover"
-            priority
-            unoptimized
-          />
+          {afterError ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-(--color-paper-dark) text-(--color-ink-dark) p-4 text-center">
+              <span className="font-data text-sm tracking-wide uppercase font-semibold">After Imagery</span>
+              <span className="text-xs text-(--color-hairline) mt-1">SAR data placeholder</span>
+            </div>
+          ) : (
+            <Image
+              src={afterImage}
+              alt="After"
+              fill
+              className="object-cover"
+              priority
+              unoptimized
+              onError={() => setAfterError(true)}
+            />
+          )}
         </div>
 
         {/* Change Map Overlay (conditionally shown over After image) */}
-        {showChangeMap && (
+        {showChangeMap && !changeMapError && (
           <div className="absolute inset-0 opacity-70 mix-blend-screen pointer-events-none">
             <Image
               src={changeMapImage}
@@ -111,6 +140,7 @@ export default function BeforeAfterViewer({
               fill
               className="object-cover"
               unoptimized
+              onError={() => setChangeMapError(true)}
             />
           </div>
         )}
@@ -120,14 +150,22 @@ export default function BeforeAfterViewer({
           className="absolute inset-0"
           style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
         >
-          <Image
-            src={beforeImage}
-            alt="Before"
-            fill
-            className="object-cover"
-            priority
-            unoptimized
-          />
+          {beforeError ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-(--color-paper-dark) text-(--color-ink-dark) p-4 text-center">
+              <span className="font-data text-sm tracking-wide uppercase font-semibold">Before Imagery</span>
+              <span className="text-xs text-(--color-hairline) mt-1">SAR data placeholder</span>
+            </div>
+          ) : (
+            <Image
+              src={beforeImage}
+              alt="Before"
+              fill
+              className="object-cover"
+              priority
+              unoptimized
+              onError={() => setBeforeError(true)}
+            />
+          )}
         </div>
 
         {/* Slider Handle */}

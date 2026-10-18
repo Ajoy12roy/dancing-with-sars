@@ -3,13 +3,28 @@
   "name": "Sylhet Floods",
   "dateBefore": "2022-05-10",
   "dateAfter": "2022-06-20",
-  "percentChanged": 18.5,
-  "affectedAreaKm2": 350.2,
-  "confidence": 92.4,
+  "percentChanged": 33.1,
+  "affectedAreaKm2": 80.15,
+  "confidence": 100.0,
   "chartData": [
-    { "category": "Water", "value": 210.5 },
-    { "category": "Vegetation", "value": -150.2 },
-    { "category": "Urban", "value": 5.1 },
-    { "category": "Bare Soil", "value": -65.4 }
-  ]
+    {
+      "category": "Water",
+      "value": 210.5
+    },
+    {
+      "category": "Vegetation",
+      "value": -150.2
+    },
+    {
+      "category": "Urban",
+      "value": 5.1
+    },
+    {
+      "category": "Bare Soil",
+      "value": -65.4
+    }
+  ],
+  "changeMapUrl": "sylhet_change_map.png",
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
 }

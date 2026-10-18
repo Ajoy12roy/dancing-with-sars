@@ -21,7 +21,7 @@ export default function AboutPage() {
           NASA Space Apps Challenge
         </h2>
         <p className="mt-3 text-(--color-text-secondary) max-w-3xl">
-          This project was developed for the NASA International Space Apps Challenge. Our goal is to make SAR data accessible, interpretable, and actionable for monitoring deforestation, floods, and structural changes on the Earth's surface without relying on opaque machine learning models.
+          This project was developed for the NASA International Space Apps Challenge. Our goal is to make SAR data accessible, interpretable, and actionable for monitoring deforestation, floods, and structural changes on the Earth&apos;s surface without relying on opaque machine learning models.
         </p>
       </section>
 
