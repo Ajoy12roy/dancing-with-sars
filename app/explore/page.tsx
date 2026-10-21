@@ -262,7 +262,7 @@ export default function ExplorePage() {
                   Upload SAR GeoTIFF Files
                 </h2>
                 <p className="text-(--color-text-secondary) text-sm mt-1 font-sans">
-                  Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 250 MB each) to compute radar backscatter changes.
+                  Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 250 MB each) to compute radar backscatter changes. Requires local Python runtime; precomputed case studies in Quick Demo work without Python.
                 </p>
               </div>
 

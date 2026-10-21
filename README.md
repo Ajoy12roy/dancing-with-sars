@@ -44,61 +44,168 @@ The platform provides a browser-based upload interface on the `/explore` page al
 
 ### Prerequisites
 
-- **Node.js**: 18.x or later
-- **npm**: 9.x or later
-- **Python**: 3.10+ (for processing custom GeoTIFF uploads and reproducing rasters)
+- **Node.js**: `20.9.0` or later (as required by Next.js 16 in `package.json` engines and [`.nvmrc`](.nvmrc)).
+- **npm**: `9.x` or later.
+- **Python**: Tested with Python 3.14 on Windows; **Python 3.11 or 3.12 is strongly recommended** (specified in [`.python-version`](.python-version)) to ensure pre-compiled binary wheels for `rasterio` and its underlying GDAL bindings are readily available across Windows, macOS, and Linux without requiring local C++ compilation.
 
-### 1. Web Application Setup
-
-```bash
-# Clone the repository
-cd dancing-with-sars
-
-# Install frontend dependencies
-npm install
-
-# Start Next.js development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### 2. Python Service Setup (Windows)
-
-To enable the custom GeoTIFF upload processor or run the offline processing pipeline on Windows:
-
-```powershell
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment (Windows PowerShell)
-.venv\Scripts\activate
-
-# Install required geospatial and scientific dependencies
-pip install -r python-service/requirements.txt
-```
-
-*(On Linux / macOS, activate with `source .venv/bin/activate`)*.
+> [!CAUTION]
+> **Security Notice**: The custom GeoTIFF Upload feature executes local Python processes on uploaded files and is strictly intended for local / workstation analysis. **Do not deploy or expose this upload endpoint publicly** on untrusted networks without sandboxed container environments and authentication.
 
 ---
 
-## Offline Demo ("Wi-Fi Off") Presentation
+### Quick Start
 
-This application is built for 100% reliable offline presentation:
+Clone the repository and run the single setup script for your platform:
 
-1. Turn off Wi-Fi or disconnect Ethernet on your computer.
-2. Launch the application:
-   ```bash
-   npm run dev
-   ```
-3. Open `http://localhost:3000` in your browser.
-4. Navigate to `/explore`:
-   - Inspect precomputed demo AOIs (Sylhet, Jamuna, Amazon, Tanguar).
-   - Observe that maps default to **Radar** mode with the SAR before imagery basemap, coordinate graticule in IBM Plex Mono, metric scale bar, and quiet `"Offline: showing radar basemap"` indicator.
-   - Click the **"Street map"** toggle to test fault-tolerant auto-recovery back to Radar mode.
-   - Click **"Explain with AI"** to see deterministic offline metrics and narrative generated without internet access.
+#### Windows (PowerShell)
+```powershell
+# 1. Clone repository
+git clone https://github.com/Ajoy12roy/dancing-with-sars.git
+cd dancing-with-sars
 
-For an exhaustive audit of network dependencies and offline strategies, see [`OFFLINE-CHECKLIST.md`](OFFLINE-CHECKLIST.md).
+# 2. Run setup script (creates python-service/.venv, installs dependencies, prepares .env.local)
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+
+# 3. Start development server
+npm run dev
+```
+
+#### macOS / Linux (Bash)
+```bash
+# 1. Clone repository
+git clone https://github.com/Ajoy12roy/dancing-with-sars.git
+cd dancing-with-sars
+
+# 2. Run setup script (creates python-service/.venv, installs dependencies, prepares .env.local)
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+
+# 3. Start development server
+npm run dev
+```
+
+Once running, open [http://localhost:3000](http://localhost:3000) in your web browser.
+
+---
+
+### What Works Offline
+
+This platform was built to work completely offline with zero network connectivity and zero external API keys:
+
+1. **No API Key Required (`GEMINI_API_KEY`)**:
+   - The application does not require a Google Gemini API key to run or build.
+   - When no `GEMINI_API_KEY` is provided in `.env.local` (or if your computer is offline), the AI interpretation panel automatically falls back to an **offline summary** generated deterministically from the real computed remote sensing metrics.
+2. **No Python Required for Quick Demo**:
+   - The **Quick Demo** tab on `/explore` works out-of-the-box without Python installed. It uses committed, precomputed assets (`result.json`, `change-map.png`, `before.png`, `after.png`) for all four demonstration areas (Sylhet, Jamuna, Amazon, Tanguar Haor).
+   - If Python is not installed, the **Upload Your Own** tab displays a clear informational notice and HTTP 503 explanation guiding you back to Quick Demo or advising how to install Python.
+3. **Radar Basemap Offline**:
+   - Defaults to the local SAR before-scene backscatter overlay with an SVG/polyline graticule (`IBM Plex Mono`) and metric scale bar, requiring no internet connection and no third-party tile downloads.
+   - For an exhaustive audit of network dependencies and offline strategies, see [`OFFLINE-CHECKLIST.md`](OFFLINE-CHECKLIST.md).
+
+---
+
+### Run the Checks
+
+To verify code formatting, type safety, production compilation, and Python unit tests:
+
+```bash
+# 1. Run ESLint checks
+npm run lint
+
+# 2. Validate Next.js production build (does NOT require GEMINI_API_KEY)
+npm run build
+
+# 3. Run Python change detection pipeline unit tests
+python -m pytest python-service/test_process_change.py
+```
+
+*(Alternatively, run `pytest` directly inside the `python-service/` directory after activating the virtual environment).*
+
+---
+
+### Regenerate a Demo Area
+
+The repository includes precomputed outputs for four case studies in `data/precomputed/`. To re-run the deterministic Python processing pipeline from raw GeoTIFF samples, download the imagery via Google Earth Engine (see [`scripts/gee/README.md`](scripts/gee/README.md) and [`data/README.md`](data/README.md)), place `image_a.tif` and `image_b.tif` in `data/samples/<aoi>/`, and execute:
+
+#### Sylhet Flood Inundation (`flood` mode)
+```bash
+python python-service/process_change.py \
+  --aoi sylhet \
+  --input-dir data/samples/sylhet \
+  --output-dir data/precomputed/sylhet \
+  --mode flood \
+  --date-a 2022-05-01 \
+  --date-b 2022-06-21 \
+  --water-threshold -16.0 \
+  --min-pixels 20
+```
+
+#### Jamuna River Bank Erosion (`river-erosion` mode)
+```bash
+python python-service/process_change.py \
+  --aoi jamuna \
+  --input-dir data/samples/jamuna \
+  --output-dir data/precomputed/jamuna \
+  --mode river-erosion \
+  --date-a 2019-02-15 \
+  --date-b 2024-02-15 \
+  --water-threshold -16.0 \
+  --river-buffer 5 \
+  --min-pixels 20
+```
+
+#### Amazon Forest Canopy Loss (`deforestation` mode)
+```bash
+python python-service/process_change.py \
+  --aoi amazon \
+  --input-dir data/samples/amazon \
+  --output-dir data/precomputed/amazon \
+  --mode deforestation \
+  --date-a 2021-01-01 \
+  --date-b 2023-01-01 \
+  --loss-threshold-db -3.0
+```
+
+#### Tanguar Haor Seasonal Water Dynamics (`surface-water` mode)
+```bash
+python python-service/process_change.py \
+  --aoi tanguar \
+  --input-dir data/samples/tanguar \
+  --output-dir data/precomputed/tanguar \
+  --mode surface-water \
+  --date-a 2023-02-15 \
+  --date-b 2023-08-15 \
+  --water-threshold -16.0 \
+  --min-pixels 20
+```
+
+---
+
+### Troubleshooting
+
+- **Python runtime not found**:
+  - Ensure Python is installed and added to your system PATH.
+  - On Windows, verify that the `python` or `py` launcher works in PowerShell (`python --version`).
+  - You can also explicitly specify your Python executable path via the environment variable `PYTHON_BIN=/path/to/python`.
+- **`rasterio` installation fails with C++ or GDAL compilation errors**:
+  - This typically happens on very recent Python versions (such as Python 3.13 or 3.14 pre-releases) where binary wheels are not yet available on PyPI.
+  - Install Python 3.11 or 3.12 (e.g. via `pyenv` or official installer), where pre-built binary wheels include GDAL and GEOS without compiling.
+- **Port 3000 is busy**:
+  - Another process is occupying port 3000. Start on a different port:
+    ```bash
+    PORT=3001 npm run dev
+    # or
+    npx next dev -p 3001
+    ```
+- **Custom upload returns HTTP 503**:
+  - HTTP 503 indicates that the backend could not invoke Python or is missing required scientific dependencies (`rasterio`, `numpy`, `scipy`, `pillow`, `affine`).
+  - Run `scripts/setup.ps1` (Windows) or `scripts/setup.sh` (macOS/Linux) to set up `python-service/.venv`, or manually execute:
+    ```bash
+    python -m venv python-service/.venv
+    # activate .venv and run:
+    pip install -r python-service/requirements.txt
+    ```
+  - Note that you can continue using the **Quick Demo** tab without installing Python.
 
 ---
 

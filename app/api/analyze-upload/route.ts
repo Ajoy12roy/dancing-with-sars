@@ -31,7 +31,7 @@ async function checkPythonExecutable(executable: string): Promise<boolean> {
   });
 }
 
-async function resolvePythonExecutable(): Promise<string> {
+async function resolvePythonExecutable(): Promise<string | null> {
   if (cachedPythonBin) {
     return cachedPythonBin;
   }
@@ -60,7 +60,7 @@ async function resolvePythonExecutable(): Promise<string> {
     }
   }
 
-  return 'python';
+  return null;
 }
 
 function isValidTiffBuffer(buf: Buffer): boolean {
@@ -256,6 +256,16 @@ export async function POST(request: Request) {
 
     const pythonServiceDir = path.join(process.cwd(), 'python-service');
     const pythonBin = await resolvePythonExecutable();
+    if (!pythonBin) {
+      await cleanupTempDir();
+      return NextResponse.json(
+        {
+          error:
+            'Python runtime is not available on this system. Please install Python (3.11 or 3.12 recommended) and dependencies in python-service to analyze custom uploads. The Quick Demo tab works without Python.',
+        },
+        { status: 503 }
+      );
+    }
 
     // Run the pipeline with child_process.spawn
     // Argument array only (no shell: true) to avoid command injection
@@ -324,11 +334,17 @@ export async function POST(request: Request) {
 
     if (exitCode !== 0) {
       await cleanupTempDir();
-      if (stderr.includes('ENOENT') || stderr.includes('spawn python') || stderr.includes('spawn python3')) {
+      if (
+        stderr.includes('ENOENT') ||
+        stderr.includes('spawn python') ||
+        stderr.includes('spawn python3') ||
+        stderr.includes('not recognized') ||
+        stderr.includes('not found')
+      ) {
         return NextResponse.json(
           {
             error:
-              'Python runtime is not available on this system. Please install Python and dependencies in python-service to analyze custom uploads.',
+              'Python runtime is not available on this system. Please install Python (3.11 or 3.12 recommended) and dependencies in python-service to analyze custom uploads. The Quick Demo tab works without Python.',
           },
           { status: 503 }
         );

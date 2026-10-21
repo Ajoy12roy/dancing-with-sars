@@ -1,6 +1,5 @@
-rasterio
-numpy
-scipy
-Pillow
-pytest
-affine
+rasterio==1.5.1
+numpy==2.5.3
+scipy==1.18.1
+pillow==12.3.0
+affine==3.0.1
