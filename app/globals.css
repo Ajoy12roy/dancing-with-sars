@@ -234,6 +234,14 @@ a {
 }
 
 /* ── Leaflet Overrides ────────────────────────────────────────────────── */
+.leaflet-container {
+  background-color: #F1F0EC !important;
+}
+
+[data-theme="dark"] .leaflet-container {
+  background-color: #141618 !important;
+}
+
 .leaflet-control-attribution {
   color: var(--color-text-secondary) !important;
   font-family: var(--font-body) !important;
@@ -251,4 +259,29 @@ a {
 
 .leaflet-control-attribution a:hover {
   text-decoration: underline;
+}
+
+.leaflet-control-scale-line {
+  border: 1px solid var(--color-hairline) !important;
+  border-top: none !important;
+  color: var(--color-text-secondary) !important;
+  background: rgba(241, 240, 236, 0.9) !important;
+  font-family: var(--font-data), monospace !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  padding: 1px 4px !important;
+  box-shadow: none !important;
+  border-radius: 0 0 1px 1px !important;
+}
+
+[data-theme="dark"] .leaflet-control-scale-line {
+  background: rgba(20, 22, 24, 0.9) !important;
+  color: var(--color-text-secondary) !important;
+  border-color: var(--color-hairline) !important;
+}
+
+.graticule-lat-label,
+.graticule-lon-label {
+  background: transparent !important;
+  border: none !important;
 }

@@ -1,26 +1,22 @@
-// ========================================================================
-// ChangeMap — Renders SAR change detection overlay on a base map
-// Uses Leaflet (dynamically imported to avoid SSR issues)
-// ========================================================================
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { ChangeData } from '@/hooks/useChangeData';
 import { AreaOfInterest } from '@/types';
+import { useAnalysisMode } from '@/context';
+import type { BasemapMode } from './MapComponent';
 
 interface ChangeMapProps {
   data: ChangeData;
-  aoi: AreaOfInterest;
+  aoi?: AreaOfInterest;
 }
 
-// Dynamically import the map to avoid SSR "window is not defined" error
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-(--color-paper-warm) border border-(--color-hairline)">
-      <div className="animate-pulse text-(--color-text-secondary) font-data text-sm">
+      <div className="text-(--color-text-secondary) font-data text-xs">
         Loading map tiles...
       </div>
     </div>
@@ -28,13 +24,38 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 });
 
 export function ChangeMap({ data, aoi }: ChangeMapProps) {
-  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const { mode: contextMode, modeInfo } = useAnalysisMode();
+  const activeMode = data?.mode || aoi?.mode || contextMode;
+
+  const isClientOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
+  const [basemapMode, setBasemapMode] = useState<BasemapMode>(() => (isClientOffline ? 'radar' : 'street'));
+  const [showOfflineNotice, setShowOfflineNotice] = useState(isClientOffline);
+
+  const handleAutoSwitchOffline = useCallback(() => {
+    setBasemapMode('radar');
+    setShowOfflineNotice(true);
+  }, []);
+
+  const handleManualModeChange = (mode: BasemapMode) => {
+    setBasemapMode(mode);
+    if (mode === 'street') {
+      setShowOfflineNotice(false);
+    } else {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setShowOfflineNotice(true);
+      } else {
+        setShowOfflineNotice(false);
+      }
+    }
+  };
 
   useEffect(() => {
-
-    
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      setShowOfflineNotice(false);
+    };
+    const handleOffline = () => {
+      handleAutoSwitchOffline();
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -43,45 +64,138 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [handleAutoSwitchOffline]);
+
+  // Prioritize result.bounds directly from Python result.json, fallback to aoi?.bounds
+  const rawBounds = data?.bounds || aoi?.bounds;
+  const hasValidBounds =
+    rawBounds &&
+    typeof rawBounds.south === 'number' &&
+    typeof rawBounds.north === 'number' &&
+    typeof rawBounds.west === 'number' &&
+    typeof rawBounds.east === 'number' &&
+    rawBounds.south !== rawBounds.north &&
+    rawBounds.west !== rawBounds.east;
+
+  const south = hasValidBounds ? Math.min(rawBounds.south, rawBounds.north) : 0;
+  const north = hasValidBounds ? Math.max(rawBounds.south, rawBounds.north) : 0;
+  const west = hasValidBounds ? Math.min(rawBounds.west, rawBounds.east) : 0;
+  const east = hasValidBounds ? Math.max(rawBounds.west, rawBounds.east) : 0;
+
+  const validBounds = hasValidBounds ? { south, north, west, east } : null;
+
+  // Center calculated dynamically from result.bounds - zero hardcoded coordinates
+  const centerLabel = validBounds
+    ? `${((validBounds.north + validBounds.south) / 2).toFixed(2)}°N, ${((validBounds.east + validBounds.west) / 2).toFixed(2)}°E`
+    : 'Geo-referenced';
+
+  const warnings = data?.warnings || [];
+
+  const effectiveBeforeImage =
+    data.beforeImage ||
+    (data.aoiId ? `/api/images?aoi=${data.aoiId}&type=before` : aoi?.id ? `/api/images?aoi=${aoi.id}&type=before` : '');
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      {/* Map Container */}
-      <div className="relative w-full h-[45vh] xl:h-[60vh] min-h-100">
-        {isOffline && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 backdrop-blur-sm border border-(--color-hairline)">
-            <p className="text-(--color-text-secondary) font-bold">
-              Offline Mode — Map tiles unavailable.
+    <div className="border border-(--color-hairline) bg-(--color-paper) rounded-[2px] flex flex-col h-130 xl:h-145 overflow-hidden w-full">
+      {/* Header bar (h-12) */}
+      <div className="h-12 px-4 border-b border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 gap-2">
+        <h3 className="font-bold font-headline text-base text-(--color-ink) shrink-0">Geospatial Classification</h3>
+        <div className="flex items-center gap-3">
+          {/* Manual Basemap Toggle */}
+          <div className="flex items-center gap-1 border border-(--color-hairline) rounded-[2px] p-0.5 bg-(--color-paper-warm)">
+            <button
+              id="changemap-basemap-radar"
+              type="button"
+              onClick={() => handleManualModeChange('radar')}
+              className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
+                basemapMode === 'radar'
+                  ? 'bg-(--color-paper) text-(--color-ink) font-semibold border border-(--color-hairline)'
+                  : 'text-(--color-text-secondary) hover:text-(--color-ink) border border-transparent'
+              }`}
+              aria-pressed={basemapMode === 'radar'}
+            >
+              Radar
+            </button>
+            <button
+              id="changemap-basemap-street"
+              type="button"
+              onClick={() => handleManualModeChange('street')}
+              className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
+                basemapMode === 'street'
+                  ? 'bg-(--color-paper) text-(--color-ink) font-semibold border border-(--color-hairline)'
+                  : 'text-(--color-text-secondary) hover:text-(--color-ink) border border-transparent'
+              }`}
+              aria-pressed={basemapMode === 'street'}
+            >
+              Street map
+            </button>
+          </div>
+          <span className="font-data text-xs text-(--color-text-secondary) hidden sm:inline shrink-0">
+            {centerLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* Map viewport (flex-1) */}
+      <div className="relative flex-1 w-full overflow-hidden bg-(--color-paper-warm)">
+        {validBounds ? (
+          <MapComponent
+            bounds={validBounds}
+            changeMapImage={data.changeMapImage}
+            beforeImage={effectiveBeforeImage}
+            aoiId={data.aoiId || aoi?.id}
+            opacity={0.85}
+            basemapMode={basemapMode}
+            onBasemapModeChange={setBasemapMode}
+            showOfflineNotice={showOfflineNotice}
+            onAutoSwitchOffline={handleAutoSwitchOffline}
+          />
+        ) : (
+          <div className="w-full h-full border border-(--color-hairline) bg-(--color-paper-warm) flex flex-col items-center justify-center p-6 text-center">
+            <span className="font-data text-xs text-(--color-ink) font-semibold uppercase tracking-wider">
+              Geographic Map Overlay Unavailable
+            </span>
+            <p className="text-xs text-(--color-text-secondary) mt-2 max-w-sm font-sans">
+              The uploaded imagery does not contain embedded geospatial coordinate reference data. Inspect backscatter changes using the SAR comparison viewer.
             </p>
           </div>
         )}
-        <MapComponent 
-          center={aoi.center}
-          bounds={aoi.bounds}
-          zoom={aoi.zoom}
-          changeMapImage={data.changeMapImage}
-          aoiId={aoi.id}
-        />
       </div>
 
-      {/* Legend Container */}
-      <div className="w-full border border-(--color-hairline) bg-(--color-paper) p-4 flex flex-col sm:flex-row gap-6 justify-between items-center rounded-none">
-        <div className="flex flex-col gap-1">
-          <span className="font-bold text-(--color-ink) text-sm uppercase tracking-wider">Change Detection Scale</span>
-          <span className="text-(--color-text-secondary) text-xs">Based on Sentinel-1 SAR backscatter analysis</span>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border border-(--color-hairline)" style={{ backgroundColor: 'var(--color-rust)' }}></div>
-            <span className="text-sm font-data text-(--color-ink)">Backscatter Decrease (e.g. Flooding)</span>
+      {/* Quiet notice block for result.warnings under the map */}
+      {warnings.length > 0 && (
+        <div className="border-t border-(--color-hairline) border-l-2 border-l-(--color-rust) bg-(--color-paper) px-4 py-2.5 text-xs text-(--color-text-secondary) font-sans shrink-0">
+          <div className="font-semibold text-(--color-ink) text-[11px] mb-0.5">
+            Observation Notice
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border border-(--color-hairline)" style={{ backgroundColor: 'var(--color-teal)' }}></div>
-            <span className="text-sm font-data text-(--color-ink)">Backscatter Increase (e.g. Urbanization)</span>
+          {warnings.map((w, idx) => (
+            <p key={idx} className="leading-snug">{w}</p>
+          ))}
+        </div>
+      )}
+
+      {/* Footer / Legend bar (h-11) */}
+      <div className="h-11 px-4 border-t border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 overflow-x-auto text-xs">
+        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 border border-(--color-hairline)" style={{ backgroundColor: 'var(--color-rust)' }}></div>
+            <span className="font-data text-xs text-(--color-ink)">{modeInfo.hazardLabel}</span>
+          </div>
+          {activeMode !== 'deforestation' && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 border border-(--color-hairline)" style={{ backgroundColor: 'var(--color-teal)' }}></div>
+              <span className="font-data text-xs text-(--color-ink)">{modeInfo.oppositeLabel}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 border border-(--color-hairline)" style={{ backgroundColor: 'rgba(125, 138, 146, 0.5)' }}></div>
+            <span className="font-data text-xs text-(--color-ink)">{modeInfo.persistentLabel}</span>
           </div>
         </div>
+
+        <span className="font-data text-[11px] text-(--color-text-secondary) hidden sm:inline shrink-0">
+          Sentinel-1 SAR
+        </span>
       </div>
     </div>
   );

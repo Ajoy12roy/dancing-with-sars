@@ -3,44 +3,348 @@ import numpy as np
 import pytest
 from rasterio.transform import from_origin
 from rasterio.crs import CRS
+from affine import Affine
 import rasterio
+from PIL import Image
 
-from process_change import run_change_detection, to_db
+from process_change import (
+    run_change_detection, 
+    to_db, 
+    calculate_pixel_area_km2,
+    get_band_and_polarization,
+    compute_water_mask,
+    compute_water_transition,
+    filter_small_components,
+    export_grayscale_png
+)
 
 def test_to_db_conversion():
     """Verify linear vs dB scale detection and conversion."""
-    # Has negative values, assuming already in dB
     db_data = np.array([100.0, 10.0, 1.0, 0.1, -1.0])
     res_db = to_db(db_data)
     np.testing.assert_array_equal(res_db, db_data)
     
-    # Strictly positive (with NaN), assuming linear power
     linear_data = np.array([100.0, 10.0, 1.0, 0.1, np.nan])
     res_linear = to_db(linear_data)
     expected = np.array([20.0, 10.0, 0.0, -10.0, np.nan])
     np.testing.assert_allclose(res_linear, expected, atol=1e-5, rtol=1e-5)
 
-def test_run_change_detection(tmpdir):
+def test_db_detection_automatic():
+    sar_db = np.array([[-18.5, -22.0, -12.0], [-35.0, 2.5, -16.0]], dtype=np.float32)
+    res_sar = to_db(sar_db)
+    np.testing.assert_array_equal(res_sar, sar_db)
+
+    linear_power = np.array([[0.01, 0.1], [1.0, 0.001]], dtype=np.float32)
+    res_linear = to_db(linear_power)
+    expected_db = np.array([[-20.0, -10.0], [0.0, -30.0]], dtype=np.float32)
+    np.testing.assert_allclose(res_linear, expected_db, atol=1e-4)
+
+    with_nodata = np.array([[-15.0, -9999.0], [np.inf, -25.0]], dtype=np.float32)
+    res_nodata = to_db(with_nodata, nodata=-9999.0)
+    assert np.isnan(res_nodata[0, 1])
+    assert np.isnan(res_nodata[1, 0])
+    assert res_nodata[0, 0] == -15.0
+    assert res_nodata[1, 1] == -25.0
+
+def test_pixel_area_equator_1deg():
+    transform_equator = Affine.translation(0, 1) @ Affine.scale(1.0, -1.0)
+    crs_geo = CRS.from_epsg(4326)
+    area_equator_km2 = calculate_pixel_area_km2(transform_equator, crs_geo, center_lat=0.0)
+
+    assert 12290.0 <= area_equator_km2 <= 12320.0
+    assert pytest.approx(area_equator_km2, abs=15.0) == 12308.9
+
+    area_60deg_km2 = calculate_pixel_area_km2(transform_equator, crs_geo, center_lat=60.0)
+    assert pytest.approx(area_60deg_km2, rel=1e-3) == (area_equator_km2 * 0.5)
+
+    transform_utm = Affine.translation(500000, 4000000) @ Affine.scale(500.0, -500.0)
+    crs_utm = CRS.from_epsg(32631)
+    area_utm_km2 = calculate_pixel_area_km2(transform_utm, crs_utm)
+    assert pytest.approx(area_utm_km2, abs=1e-5) == 0.25
+
+def test_band_selection(tmpdir):
+    transform = Affine.translation(0, 10) @ Affine.scale(1, -1)
+    crs = CRS.from_epsg(4326)
+
+    p2 = os.path.join(tmpdir, 'two_band.tif')
+    with rasterio.open(
+        p2, 'w', driver='GTiff',
+        height=10, width=10, count=2, dtype=np.float32,
+        crs=crs, transform=transform
+    ) as dst:
+        dst.write(np.full((10, 10), -15.0, dtype=np.float32), 1)
+        dst.write(np.full((10, 10), -22.0, dtype=np.float32), 2)
+
+    with rasterio.open(p2) as src:
+        b_vv, p_vv = get_band_and_polarization(src, requested_polarization="VV")
+        assert (b_vv, p_vv) == (1, "VV")
+        b_vh, p_vh = get_band_and_polarization(src, requested_polarization="VH")
+        assert (b_vh, p_vh) == (2, "VH")
+
+    p1 = os.path.join(tmpdir, 'one_band.tif')
+    with rasterio.open(
+        p1, 'w', driver='GTiff',
+        height=10, width=10, count=1, dtype=np.float32,
+        crs=crs, transform=transform
+    ) as dst:
+        dst.write(np.full((10, 10), -15.0, dtype=np.float32), 1)
+
+    with rasterio.open(p1) as src:
+        b_vv, p_vv = get_band_and_polarization(src, requested_polarization="VV")
+        assert (b_vv, p_vv) == (1, "VV")
+        b_vh, p_vh = get_band_and_polarization(src, requested_polarization="VH")
+        assert (b_vh, p_vh) == (1, "VV")
+
+def test_water_mask_and_noise_removal():
+    band_db = np.full((10, 10), -10.0, dtype=np.float32)
+    band_db[1:6, 1:6] = -20.0
+    band_db[7:9, 7:9] = -22.0
+    band_db[0, 9] = -25.0
+
+    mask = compute_water_mask(band_db, polarization="VV", water_threshold=-16.0, min_pixels=20, filter_size=1)
+
+    assert mask.dtype == np.uint8
+    assert np.sum(mask == 1) == 25
+    assert np.sum(mask == 0) == 75
+    assert np.all(mask[1:6, 1:6] == 1)
+    assert np.all(mask[7:9, 7:9] == 0)
+    assert mask[0, 9] == 0
+
+def test_water_transition():
+    mask_a = np.array([
+        [1, 1, 0, 0],
+        [1, 1, 0, 0],
+        [1, 1, 0, 0],
+        [0, 0, 0, 0]
+    ], dtype=np.uint8)
+
+    mask_b = np.array([
+        [1, 1, 1, 0],
+        [1, 1, 1, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ], dtype=np.uint8)
+
+    transition = compute_water_transition(mask_a, mask_b)
+
+    assert transition.dtype == np.uint8
+    assert np.sum(transition == 0) == 8
+    assert np.sum(transition == 1) == 4
+    assert np.sum(transition == 2) == 2
+    assert np.sum(transition == 3) == 2
+    assert transition.size == 16
+
+def test_mode_flood(tmpdir):
     """
-    Test the core change detection math using a small synthetic numpy array pair.
-    This avoids needing real satellite data to verify correctness.
+    Test 'flood' mode:
+    10x10 raster, UTM 1000m x 1000m pixels (1 pixel = 1 km^2).
+    Image A: 10 pixels water (-20 dB), 90 pixels land (-10 dB).
+    Image B: 10 persistent water + 25 new water pixels (-20 dB).
+    Hand-computed:
+      flooded area = 25.0 km^2
+      persistent water = 10.0 km^2
+      percentChanged = 25.0%
     """
-    # Image A: 10x10 array of constant value -10.0 (in dB)
-    data_a = np.full((10, 10), -10.0, dtype=np.float32)
-    
-    # Image B: 10x10 array. Let's make a 5x5 region in the center change to -5.0
-    data_b = np.full((10, 10), -10.0, dtype=np.float32)
-    data_b[2:7, 2:7] = -5.0  # Difference is 5.0 (which is > 3.0 threshold)
-    
-    # Use a projected CRS for simple math (UTM) and a 1000m x 1000m pixel size
-    # So 1 pixel = 1 km^2
-    from affine import Affine
     transform = Affine.translation(0, 10000) @ Affine.scale(1000, -1000)
     crs = CRS.from_epsg(32631)
-    
+
+    data_a = np.full((10, 10), -10.0, dtype=np.float32)
+    data_a[0:2, 0:5] = -20.0  # 10 water pixels
+
+    data_b = np.full((10, 10), -10.0, dtype=np.float32)
+    data_b[0:2, 0:5] = -20.0  # 10 persistent water
+    data_b[3:8, 3:8] = -20.0  # 25 new water pixels
+
+    p_a = os.path.join(tmpdir, 'flood_a.tif')
+    p_b = os.path.join(tmpdir, 'flood_b.tif')
+    for path, d in [(p_a, data_a), (p_b, data_b)]:
+        with rasterio.open(path, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(d, 1)
+
+    out_png = os.path.join(tmpdir, 'flood.png')
+    out_json = os.path.join(tmpdir, 'flood.json')
+
+    res = run_change_detection(
+        p_a, p_b,
+        mode="flood",
+        filter_size=1,
+        water_threshold=-16.0,
+        min_pixels=1,
+        output_png=out_png,
+        output_json=out_json
+    )
+
+    assert res['mode'] == 'flood'
+    assert res['affectedAreaKm2'] == 25.0
+    assert res['metrics']['floodedAreaKm2'] == 25.0
+    assert res['metrics']['persistentWaterKm2'] == 10.0
+    assert res['metrics']['recededWaterKm2'] == 0.0
+    assert res['percentChanged'] == 25.0
+    assert res['totalAreaKm2'] == 100.0
+    assert len(res['categories']) == 3
+    assert os.path.exists(out_png)
+    assert os.path.exists(out_json)
+
+def test_mode_surface_water(tmpdir):
+    """
+    Test 'surface-water' mode:
+    10x10 raster, 1 km^2 per pixel.
+    Image A: 20 pixels water.
+    Image B: 10 persistent, 10 lost, 15 new.
+    Hand-computed:
+      waterAreaAKm2 = 20.0 km^2
+      waterAreaBKm2 = 25.0 km^2
+      waterDeltaKm2 = 5.0 km^2
+      waterDeltaPercent = 25.0%
+      affectedAreaKm2 = 15 + 10 = 25.0 km^2
+    """
+    transform = Affine.translation(0, 10000) @ Affine.scale(1000, -1000)
+    crs = CRS.from_epsg(32631)
+
+    data_a = np.full((10, 10), -10.0, dtype=np.float32)
+    data_a[0:4, 0:5] = -20.0  # 20 water pixels
+
+    data_b = np.full((10, 10), -10.0, dtype=np.float32)
+    data_b[0:2, 0:5] = -20.0  # 10 persistent
+    data_b[4:7, 0:5] = -20.0  # 15 new water
+
+    p_a = os.path.join(tmpdir, 'sw_a.tif')
+    p_b = os.path.join(tmpdir, 'sw_b.tif')
+    for path, d in [(p_a, data_a), (p_b, data_b)]:
+        with rasterio.open(path, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(d, 1)
+
+    res = run_change_detection(p_a, p_b, mode="surface-water", filter_size=1, water_threshold=-16.0, min_pixels=1)
+
+    assert res['mode'] == 'surface-water'
+    assert res['metrics']['waterAreaAKm2'] == 20.0
+    assert res['metrics']['waterAreaBKm2'] == 25.0
+    assert res['metrics']['waterDeltaKm2'] == 5.0
+    assert res['metrics']['waterDeltaPercent'] == 25.0
+    assert res['affectedAreaKm2'] == 25.0
+    assert res['metrics']['newWaterKm2'] == 15.0
+    assert res['metrics']['lostWaterKm2'] == 10.0
+    assert res['metrics']['persistentWaterKm2'] == 10.0
+
+def test_mode_river_erosion(tmpdir):
+    """
+    Test 'river-erosion' mode:
+    River is col 5 (10 pixels, 10 km^2).
+    Buffer = 2 pixels.
+    Erosion: (2, 4) is adjacent to river (1 km^2).
+    Accretion: (5, 6) is adjacent to river (1 km^2).
+    Other new water: (0, 0) is distant (1 km^2).
+    Other lost water: (9, 0) is distant (1 km^2).
+    Dates: 2022-01-01 to 2024-01-01 (730 days).
+    """
+    transform = Affine.translation(0, 10000) @ Affine.scale(1000, -1000)
+    crs = CRS.from_epsg(32631)
+
+    data_a = np.full((10, 10), -10.0, dtype=np.float32)
+    data_a[:, 5] = -20.0   # River
+    data_a[5, 6] = -20.0   # Accretion candidate (water in A)
+    data_a[9, 0] = -20.0   # Distant lost water
+
+    data_b = np.full((10, 10), -10.0, dtype=np.float32)
+    data_b[:, 5] = -20.0   # Persistent River
+    data_b[2, 4] = -20.0   # Erosion (new water adjacent to river)
+    data_b[0, 0] = -20.0   # Distant new water
+
+    p_a = os.path.join(tmpdir, 'river_a.tif')
+    p_b = os.path.join(tmpdir, 'river_b.tif')
+    for path, d in [(p_a, data_a), (p_b, data_b)]:
+        with rasterio.open(path, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(d, 1)
+
+    res = run_change_detection(
+        p_a, p_b,
+        mode="river-erosion",
+        filter_size=1,
+        water_threshold=-16.0,
+        min_pixels=1,
+        river_buffer=2,
+        date_a="2022-01-01",
+        date_b="2024-01-01"
+    )
+
+    assert res['mode'] == 'river-erosion'
+    assert res['metrics']['erosionAreaKm2'] == 1.0
+    assert res['metrics']['accretionAreaKm2'] == 1.0
+    assert res['metrics']['netLandChangeKm2'] == 0.0
+    assert res['metrics']['riverAreaKm2'] == 10.0
+    assert res['metrics']['otherNewWaterAreaKm2'] == 1.0
+    assert res['metrics']['otherLostWaterAreaKm2'] == 1.0
+    assert res['affectedAreaKm2'] == 1.0
+    assert res['dates']['days'] == 730
+    assert pytest.approx(res['metrics']['erosionRateKm2PerYear'], abs=1e-3) == (1.0 / (730 / 365.25))
+
+def test_mode_deforestation(tmpdir):
+    """
+    Test 'deforestation' mode:
+    2-band raster: band 1 = VV (-15 dB), band 2 = VH (-15 dB).
+    Deforestation mode automatically selects band 2 (VH).
+    Image A: VH = -15 dB everywhere.
+    Image B: 20 pixels drop to -20 dB (diff = -5.0 dB <= -3.0 dB threshold).
+             4 pixels drop to -20 dB (filtered out because < min_pixels=10).
+    Hand-computed:
+      forestLossKm2 = 20.0 km^2
+    """
+    transform = Affine.translation(0, 10000) @ Affine.scale(1000, -1000)
+    crs = CRS.from_epsg(32631)
+
+    data_a = np.full((10, 10), -15.0, dtype=np.float32)
+    data_b = np.full((10, 10), -15.0, dtype=np.float32)
+    data_b[1:5, 1:6] = -20.0  # 4x5 = 20 pixels loss
+    data_b[7:9, 7:9] = -20.0  # 2x2 = 4 pixels noise
+
+    p_a = os.path.join(tmpdir, 'defor_a.tif')
+    p_b = os.path.join(tmpdir, 'defor_b.tif')
+
+    for path, d in [(p_a, data_a), (p_b, data_b)]:
+        with rasterio.open(path, 'w', driver='GTiff', height=10, width=10, count=2, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(np.full((10, 10), -12.0, dtype=np.float32), 1)  # VV
+            dst.write(d, 2)  # VH
+
+    res = run_change_detection(
+        p_a, p_b,
+        mode="deforestation",
+        filter_size=1,
+        loss_threshold_db=-3.0,
+        min_pixels=10
+    )
+
+    assert res['mode'] == 'deforestation'
+    assert res['band'] == 2
+    assert res['polarization'] == 'VH'
+    assert res['affectedAreaKm2'] == 20.0
+    assert res['metrics']['forestLossKm2'] == 20.0
+    assert res['percentChanged'] == 20.0
+    assert len(res['warnings']) == 0
+
+    # Test single band fallback warning
+    p_single = os.path.join(tmpdir, 'single_band.tif')
+    with rasterio.open(p_single, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+        dst.write(data_a, 1)
+
+    res_single = run_change_detection(p_single, p_single, mode="deforestation", filter_size=1)
+    assert res_single['polarization'] == 'VV'
+    assert len(res_single['warnings']) > 0
+    assert "VV-only input" in res_single['warnings'][0]
+
+def test_run_change_detection(tmpdir):
+    """
+    Test generic change detection mode.
+    """
+    data_a = np.full((10, 10), -10.0, dtype=np.float32)
+    data_b = np.full((10, 10), -10.0, dtype=np.float32)
+    data_b[2:7, 2:7] = -5.0
+
+    transform = Affine.translation(0, 10000) @ Affine.scale(1000, -1000)
+    crs = CRS.from_epsg(32631)
+
     path_a = os.path.join(tmpdir, 'image_a.tif')
     path_b = os.path.join(tmpdir, 'image_b.tif')
-    
+
     for path, data in [(path_a, data_a), (path_b, data_b)]:
         with rasterio.open(
             path, 'w', driver='GTiff',
@@ -49,44 +353,27 @@ def test_run_change_detection(tmpdir):
             crs=crs, transform=transform
         ) as dst:
             dst.write(data, 1)
-            
+
     out_png = os.path.join(tmpdir, 'out.png')
     out_json = os.path.join(tmpdir, 'out.json')
-    
-    # Run pipeline with a 1x1 filter to avoid smoothing out our distinct 5x5 block 
-    # for the exact deterministic test math.
+
     res = run_change_detection(
         path_a, 
         path_b, 
         threshold=3.0, 
         filter_size=1, 
         output_png=out_png, 
-        output_json=out_json
+        output_json=out_json,
+        mode="change"
     )
-    
-    # Math expectations:
-    # Total pixels = 100
-    # Changed pixels = 25 (the 5x5 block)
-    # Percent changed = 25.0%
+
     assert res['percentChanged'] == 25.0
-    
-    # Affected area: 25 pixels * 1 km^2 = 25.0 km^2
     assert res['affectedAreaKm2'] == 25.0
-    
-    # Confidence: Mean change is 5.0. Threshold is 3.0.
-    # Formula: min(100, (5.0 / 3.0) * 50) = min(100, 1.666 * 50) = min(100, 83.333) = 83.33
     assert res['confidence'] == 83.33
-    
-    # Assert output files were generated
     assert os.path.exists(out_png)
     assert os.path.exists(out_json)
 
 def test_export_grayscale_png(tmpdir):
-    from process_change import export_grayscale_png
-    from PIL import Image
-
-    # Test 1: Clipping and Normalization (-25 dB to 0 dB)
-    # Input values: -30 (clipped to -25 -> 0), -25 (0), -12.5 (127 or 128), 0 (255), +5 (clipped to 0 -> 255)
     test_data = np.array([[-30.0, -25.0], [-12.5, 0.0], [5.0, np.nan]], dtype=np.float32)
     out_path = os.path.join(tmpdir, 'norm_test.png')
     export_grayscale_png(test_data, out_path, min_db=-25.0, max_db=0.0)
@@ -95,24 +382,22 @@ def test_export_grayscale_png(tmpdir):
     with Image.open(out_path) as img:
         assert img.mode == 'L'
         arr = np.array(img)
-        assert arr[0, 0] == 0       # -30 clipped to -25 -> 0
-        assert arr[0, 1] == 0       # -25 -> 0
-        assert arr[1, 0] == 127     # -12.5 -> round(127.5) = 127
-        assert arr[1, 1] == 255     # 0 -> 255
-        assert arr[2, 0] == 255     # +5 clipped to 0 -> 255
-        assert arr[2, 1] == 0       # NaN -> 0
+        assert arr[0, 0] == 0
+        assert arr[0, 1] == 0
+        assert arr[1, 0] == 127
+        assert arr[1, 1] == 255
+        assert arr[2, 0] == 255
+        assert arr[2, 1] == 0
 
-    # Test 2: Downscaling when width > 1600px
     wide_data = np.full((1000, 2000), -15.0, dtype=np.float32)
     wide_out = os.path.join(tmpdir, 'wide_test.png')
     export_grayscale_png(wide_data, wide_out, max_width=1600)
 
     with Image.open(wide_out) as img:
         assert img.width == 1600
-        assert img.height == 800  # 1000 * (1600 / 2000) = 800
+        assert img.height == 800
         assert img.mode == 'L'
 
-    # Test 3: No downscale when width <= 1600px
     normal_data = np.full((600, 800), -15.0, dtype=np.float32)
     normal_out = os.path.join(tmpdir, 'normal_test.png')
     export_grayscale_png(normal_data, normal_out, max_width=1600)
@@ -123,9 +408,6 @@ def test_export_grayscale_png(tmpdir):
         assert img.mode == 'L'
 
 def test_run_change_detection_with_before_after(tmpdir):
-    from PIL import Image
-    from affine import Affine
-
     data_a = np.full((10, 10), -20.0, dtype=np.float32)
     data_b = np.full((10, 10), -5.0, dtype=np.float32)
 
@@ -155,7 +437,8 @@ def test_run_change_detection_with_before_after(tmpdir):
         output_png=out_png,
         output_json=out_json,
         output_before_png=before_png,
-        output_after_png=after_png
+        output_after_png=after_png,
+        mode="change"
     )
 
     assert os.path.exists(before_png)
@@ -170,4 +453,3 @@ def test_run_change_detection_with_before_after(tmpdir):
     with Image.open(after_png) as img_b:
         assert img_b.mode == 'L'
         assert img_b.size == (10, 10)
-

@@ -1,0 +1,70 @@
+{
+  "mode": "surface-water",
+  "changeMapUrl": "tanguar_change_map.png",
+  "percentChanged": 62.83,
+  "affectedAreaKm2": 262.88,
+  "confidence": 93.06,
+  "signalStrength": 93.06,
+  "totalAreaKm2": 418.4,
+  "bounds": {
+    "south": 25.0497911922581,
+    "west": 90.97975500811373,
+    "north": 25.220111770127158,
+    "east": 91.20020157883665
+  },
+  "dates": {
+    "a": "2023-02-15",
+    "b": "2023-08-15",
+    "days": 181
+  },
+  "categories": [
+    {
+      "id": "new_water",
+      "label": "New Surface Water",
+      "areaKm2": 262.6,
+      "kind": "gain"
+    },
+    {
+      "id": "lost_water",
+      "label": "Lost Surface Water",
+      "areaKm2": 0.28,
+      "kind": "loss"
+    },
+    {
+      "id": "persistent_water",
+      "label": "Persistent Water",
+      "areaKm2": 35.71,
+      "kind": "persistent"
+    }
+  ],
+  "metrics": {
+    "waterAreaAKm2": 35.99,
+    "waterAreaBKm2": 298.31,
+    "waterDeltaKm2": 262.32,
+    "waterDeltaPercent": 728.87,
+    "newWaterKm2": 262.6,
+    "lostWaterKm2": 0.28,
+    "persistentWaterKm2": 35.71
+  },
+  "params": {
+    "mode": "surface-water",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [],
+  "band": 1,
+  "polarization": "VV",
+  "center": [
+    25.13495148119263,
+    91.08997829347518
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

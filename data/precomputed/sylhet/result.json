@@ -3,8 +3,8 @@
   "name": "Sylhet Floods",
   "dateBefore": "2022-05-10",
   "dateAfter": "2022-06-20",
-  "percentChanged": 33.1,
-  "affectedAreaKm2": 80.15,
+  "percentChanged": 17.05,
+  "affectedAreaKm2": 37.19,
   "confidence": 100.0,
   "chartData": [
     {
@@ -26,5 +26,63 @@
   ],
   "changeMapUrl": "sylhet_change_map.png",
   "beforeImageUrl": "before.png",
-  "afterImageUrl": "after.png"
+  "afterImageUrl": "after.png",
+  "mode": "flood",
+  "signalStrength": 100.0,
+  "totalAreaKm2": 218.1,
+  "bounds": {
+    "south": 24.8499160415415,
+    "west": 91.79991686251485,
+    "north": 24.98017175773883,
+    "east": 91.95011517801963
+  },
+  "dates": {
+    "a": "2022-05-01",
+    "b": "2022-06-21",
+    "days": 51
+  },
+  "categories": [
+    {
+      "id": "flooded",
+      "label": "Flooded Area",
+      "areaKm2": 37.19,
+      "kind": "loss"
+    },
+    {
+      "id": "persistent_water",
+      "label": "Persistent Water",
+      "areaKm2": 2.82,
+      "kind": "persistent"
+    },
+    {
+      "id": "receded_water",
+      "label": "Receded Water",
+      "areaKm2": 0.34,
+      "kind": "gain"
+    }
+  ],
+  "metrics": {
+    "floodedAreaKm2": 37.19,
+    "persistentWaterKm2": 2.82,
+    "recededWaterKm2": 0.34
+  },
+  "params": {
+    "mode": "flood",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [],
+  "band": 1,
+  "polarization": "VV",
+  "center": [
+    24.915043899640168,
+    91.87501602026724
+  ]
 }

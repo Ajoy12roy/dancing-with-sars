@@ -1,0 +1,82 @@
+{
+  "mode": "river-erosion",
+  "changeMapUrl": "jamuna_change_map.png",
+  "percentChanged": 5.65,
+  "affectedAreaKm2": 47.59,
+  "confidence": 86.03,
+  "signalStrength": 86.03,
+  "totalAreaKm2": 842.38,
+  "bounds": {
+    "south": 24.299787761546707,
+    "west": 89.64979922997478,
+    "north": 24.550148231230818,
+    "east": 89.95001619792752
+  },
+  "dates": {
+    "a": "2019-02-15",
+    "b": "2024-02-15",
+    "days": 1826
+  },
+  "categories": [
+    {
+      "id": "erosion",
+      "label": "River Bank Erosion",
+      "areaKm2": 47.59,
+      "kind": "loss"
+    },
+    {
+      "id": "accretion",
+      "label": "River Accretion / Deposition",
+      "areaKm2": 42.38,
+      "kind": "gain"
+    },
+    {
+      "id": "persistent_river",
+      "label": "Persistent River Channel",
+      "areaKm2": 64.95,
+      "kind": "persistent"
+    },
+    {
+      "id": "other_new_water",
+      "label": "Other New Water",
+      "areaKm2": 2.58,
+      "kind": "other"
+    },
+    {
+      "id": "other_lost_water",
+      "label": "Other Lost Water",
+      "areaKm2": 2.03,
+      "kind": "other"
+    }
+  ],
+  "metrics": {
+    "erosionAreaKm2": 47.59,
+    "accretionAreaKm2": 42.38,
+    "netLandChangeKm2": -5.21,
+    "erosionRateKm2PerYear": 9.5193,
+    "riverAreaKm2": 64.95,
+    "otherNewWaterAreaKm2": 2.58,
+    "otherLostWaterAreaKm2": 2.03
+  },
+  "params": {
+    "mode": "river-erosion",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": 5,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [],
+  "band": 1,
+  "polarization": "VV",
+  "center": [
+    24.424967996388762,
+    89.79990771395114
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

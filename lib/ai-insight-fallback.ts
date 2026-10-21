@@ -1,0 +1,124 @@
+// ========================================================================
+// AI Insight Fallback Template Generator — Dancing with the SARs
+// Generates deterministic per-mode summary text strictly from real computed numbers.
+// Never uses hardcoded scientific values.
+// ========================================================================
+
+import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
+
+export interface InsightPayload {
+  mode: string;
+  aoiName?: string;
+  aoiId?: string;
+  percentChanged?: number;
+  affectedAreaKm2?: number;
+  confidence?: number;
+  signalStrength?: number;
+  totalAreaKm2?: number;
+  metrics?: ResultMetrics;
+  categories?: ResultCategory[];
+  dates?: ResultDates;
+  warnings?: string[];
+}
+
+export function generateFallbackInsight(payload: InsightPayload): string {
+  const mode = payload.mode || 'flood';
+  const metrics = payload.metrics || {};
+  const dates = payload.dates;
+  const warnings = payload.warnings || [];
+  const percentChanged = payload.percentChanged ?? 0;
+  const affectedAreaKm2 = payload.affectedAreaKm2 ?? 0;
+  const confidence = payload.confidence ?? payload.signalStrength ?? 0;
+
+  const dateA = dates?.a || 'the baseline date';
+  const dateB = dates?.b || 'the follow-up date';
+
+  switch (mode) {
+    case 'river-erosion': {
+      const erosionAreaKm2 = ((metrics.erosionAreaKm2 as number) ?? affectedAreaKm2).toFixed(2);
+      const accretionAreaKm2 = ((metrics.accretionAreaKm2 as number) ?? 0).toFixed(2);
+      const netLandChange = (
+        (metrics.netLandChangeKm2 as number) ??
+        (Number(accretionAreaKm2) - Number(erosionAreaKm2))
+      ).toFixed(2);
+      const rate =
+        metrics.erosionRateKm2PerYear != null
+          ? `${Number(metrics.erosionRateKm2PerYear).toFixed(2)} km² per year`
+          : 'an uncalculated annual rate pending multi-date inputs';
+
+      const s1 = `Between ${dateA} and ${dateB}, about ${erosionAreaKm2} km² of riverbank turned to water, an average of ${rate}.`;
+      const s2 = `Concurrently, sediment deposition formed ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
+      const s3 =
+        warnings.length > 0
+          ? `Notice: ${warnings[0]}`
+          : `Persistent river channels occupied ${
+              metrics.riverAreaKm2 != null ? `${Number(metrics.riverAreaKm2).toFixed(2)} km²` : 'the channel corridor'
+            } throughout the observation interval.`;
+
+      return `${s1} ${s2} ${s3}`;
+    }
+
+    case 'flood': {
+      const floodedAreaKm2 = affectedAreaKm2.toFixed(2);
+      const pct = percentChanged.toFixed(2);
+      const signal = confidence.toFixed(1);
+
+      const s1 = `Between ${dateA} and ${dateB}, radar backscatter analysis detected ${floodedAreaKm2} km² of newly inundated ground.`;
+      const s2 = `This inundation spans ${pct}% of the surveyed scene with a backscatter change signal strength of ${signal}%.`;
+      const s3 =
+        warnings.length > 0
+          ? `Notice: ${warnings[0]}`
+          : `The drop in radar return is characteristic of specular reflection over flooded low-lying terrain.`;
+
+      return `${s1} ${s2} ${s3}`;
+    }
+
+    case 'deforestation': {
+      const forestLossKm2 = ((metrics.forestLossKm2 as number) ?? affectedAreaKm2).toFixed(2);
+      const pct = percentChanged.toFixed(2);
+      const signal = confidence.toFixed(1);
+
+      const s1 = `Between ${dateA} and ${dateB}, SAR backscatter analysis identified ${forestLossKm2} km² of forest canopy disturbance.`;
+      const s2 = `The detected canopy loss encompasses ${pct}% of the analyzed footprint with a signal intensity of ${signal}%.`;
+      const s3 =
+        warnings.length > 0
+          ? `Notice: ${warnings[0]}`
+          : `Reduced volume scattering indicates localized tree removal and structural loss of vegetative crown cover.`;
+
+      return `${s1} ${s2} ${s3}`;
+    }
+
+    case 'surface-water': {
+      const waterA = ((metrics.waterAreaAKm2 as number) ?? 0).toFixed(2);
+      const waterB = ((metrics.waterAreaBKm2 as number) ?? 0).toFixed(2);
+      const deltaNum = (metrics.waterDeltaKm2 as number) ?? affectedAreaKm2;
+      const deltaKm2 = deltaNum >= 0 ? `+${deltaNum.toFixed(2)}` : deltaNum.toFixed(2);
+      const deltaPctNum = (metrics.waterDeltaPercent as number) ?? percentChanged;
+      const deltaPct = deltaPctNum >= 0 ? `+${deltaPctNum.toFixed(1)}` : deltaPctNum.toFixed(1);
+
+      const s1 = `Between ${dateA} and ${dateB}, open surface water transitioned from ${waterA} km² to ${waterB} km².`;
+      const s2 = `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;
+      const s3 =
+        warnings.length > 0
+          ? `Notice: ${warnings[0]}`
+          : `The observed transition captures seasonal hydrologic surface expansion across the wetland system.`;
+
+      return `${s1} ${s2} ${s3}`;
+    }
+
+    default: {
+      const area = affectedAreaKm2.toFixed(2);
+      const pct = percentChanged.toFixed(2);
+      const signal = confidence.toFixed(1);
+
+      const s1 = `Between ${dateA} and ${dateB}, SAR analysis detected ${area} km² of ground surface change.`;
+      const s2 = `The detected changes cover ${pct}% of the analyzed area with a signal strength of ${signal}%.`;
+      const s3 =
+        warnings.length > 0
+          ? `Notice: ${warnings[0]}`
+          : `Radar backscatter shifts reflect structural modifications to ground cover across the observation interval.`;
+
+      return `${s1} ${s2} ${s3}`;
+    }
+  }
+}

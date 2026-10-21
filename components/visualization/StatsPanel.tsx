@@ -1,94 +1,156 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ChartDataPoint } from '@/hooks/useChangeData';
-import dynamic from 'next/dynamic';
-
-const StatsChart = dynamic(() => import('./StatsChart'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-(--color-paper-warm) border border-(--color-hairline)">
-      <div className="animate-pulse text-(--color-text-secondary) font-data text-sm">
-        Loading chart...
-      </div>
-    </div>
-  ),
-});
+import { useAnalysisMode } from '@/context';
+import { MODE_METRICS_CONFIG, MetricConfig } from '@/constants';
+import type { ChangeData } from '@/hooks/useChangeData';
+import type { ResultMetrics, ResultCategory } from '@/types';
 
 interface StatsPanelProps {
-  percentChanged: number;
-  affectedAreaKm2: number;
-  confidence: number;
-  chartData: ChartDataPoint[];
+  data?: ChangeData;
+  percentChanged?: number;
+  affectedAreaKm2?: number;
+  confidence?: number;
+  totalAreaKm2?: number;
+  metrics?: ResultMetrics;
+  categories?: ResultCategory[];
+  mode?: string;
 }
 
-const AnimatedCounter = ({ value, suffix = '', decimals = 1 }: { value: number, suffix?: string, decimals?: number }) => {
-  const [count, setCount] = useState(0);
-  
-  useEffect(() => {
-    const start = 0;
-    const end = value;
-    const duration = 1500; // ms
-    const startTime = performance.now();
-    
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing out function
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      setCount(start + (end - start) * easeOut);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setCount(end);
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  }, [value]);
+interface DisplayedMetricCard {
+  id: string;
+  label: string;
+  value: string;
+  unit?: string;
+  description?: string;
+  isNullText?: boolean;
+}
 
-  return <span>{count.toFixed(decimals)}{suffix}</span>;
-};
+function getValueByKey(obj: Record<string, unknown> | undefined, key: string): unknown {
+  if (!obj) return undefined;
+  const parts = key.split('.');
+  let curr: unknown = obj;
+  for (const part of parts) {
+    if (curr === null || curr === undefined || typeof curr !== 'object') return undefined;
+    curr = (curr as Record<string, unknown>)[part];
+  }
+  return curr;
+}
 
 export default function StatsPanel({
+  data,
   percentChanged,
   affectedAreaKm2,
   confidence,
-  chartData
+  totalAreaKm2,
+  metrics,
+  mode: propMode,
 }: StatsPanelProps) {
+  const { mode: contextMode } = useAnalysisMode();
+  const activeMode = propMode || data?.mode || contextMode;
+
+  // Consolidate data source from data object or fallback props
+  const source: Record<string, unknown> = (data as unknown as Record<string, unknown>) || {
+    percentChanged,
+    affectedAreaKm2,
+    confidence,
+    signalStrength: confidence,
+    totalAreaKm2,
+    metrics,
+  };
+
+  const metricConfigs: MetricConfig[] =
+    MODE_METRICS_CONFIG[activeMode] || MODE_METRICS_CONFIG['flood'] || [];
+
+  const cards: DisplayedMetricCard[] = [];
+
+  for (const cfg of metricConfigs) {
+    let rawVal = getValueByKey(source, cfg.resultKey);
+    if ((rawVal === undefined || rawVal === null) && cfg.fallbackKey) {
+      rawVal = getValueByKey(source, cfg.fallbackKey);
+    }
+
+    if (rawVal === null || rawVal === undefined) {
+      // If nullText is defined, show the note (e.g. "needs both dates" for erosion rate)
+      if (cfg.nullText) {
+        cards.push({
+          id: cfg.id,
+          label: cfg.label,
+          value: cfg.nullText,
+          unit: undefined,
+          description: cfg.description,
+          isNullText: true,
+        });
+      }
+      // Otherwise, rule 6: "Do not show a metric whose value is null or missing"
+      continue;
+    }
+
+    const num = Number(rawVal);
+    if (!isNaN(num)) {
+      cards.push({
+        id: cfg.id,
+        label: cfg.label,
+        value: num.toFixed(cfg.decimals ?? 2),
+        unit: cfg.unit,
+        description: cfg.description,
+        isNullText: false,
+      });
+    }
+  }
+
+  if (cards.length === 0) {
+    return null;
+  }
+
+  // Determine desktop column count based on active visible cards
+  const desktopColsClass =
+    cards.length === 1
+      ? 'lg:grid-cols-1'
+      : cards.length === 2
+      ? 'lg:grid-cols-2'
+      : cards.length === 3
+      ? 'lg:grid-cols-3'
+      : cards.length === 5
+      ? 'lg:grid-cols-5'
+      : 'lg:grid-cols-4';
+
   return (
-    <div className="bg-(--color-paper) p-6 h-full flex flex-col gap-6 border border-(--color-hairline) rounded-none">
-      <h3 className="text-xl font-bold border-b border-(--color-hairline) pb-2 text-(--color-ink)">Analysis Results</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="border border-(--color-hairline) p-4 rounded-none flex flex-col items-center justify-center text-center">
-          <span className="text-(--color-text-secondary) text-sm uppercase tracking-wider mb-1 font-bold">Percent Changed</span>
-          <span className="text-3xl font-data text-(--color-teal)">
-            <AnimatedCounter value={percentChanged} suffix="%" />
-          </span>
-        </div>
+    <div className={`w-full grid gap-6 grid-cols-1 sm:grid-cols-2 ${desktopColsClass}`}>
+      {cards.map((card) => (
+        <div
+          key={card.id}
+          className="border border-(--color-hairline) bg-(--color-paper) p-4 rounded-[2px] flex flex-col justify-between h-full min-h-26"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-sans text-xs text-(--color-text-secondary) font-medium">
+              {card.label}
+            </span>
+          </div>
 
-        <div className="border border-(--color-hairline) p-4 rounded-none flex flex-col items-center justify-center text-center">
-          <span className="text-(--color-text-secondary) text-sm uppercase tracking-wider mb-1 font-bold">Affected Area</span>
-          <span className="text-3xl font-data text-(--color-teal)">
-            <AnimatedCounter value={affectedAreaKm2} suffix=" km²" />
-          </span>
-        </div>
+          <div className="flex items-baseline gap-1.5 mt-2 whitespace-nowrap overflow-hidden">
+            <span
+              className={`font-data leading-none shrink-0 ${
+                card.isNullText
+                  ? 'text-sm lg:text-base text-(--color-text-secondary) font-normal italic'
+                  : 'text-2xl lg:text-3xl font-medium text-(--color-teal)'
+              }`}
+            >
+              {card.value}
+            </span>
+            {card.unit && !card.isNullText && (
+              <span className="font-data text-xs lg:text-sm text-(--color-text-secondary) font-normal leading-none shrink-0">
+                {card.unit}
+              </span>
+            )}
+          </div>
 
-        <div className="border border-(--color-hairline) p-4 rounded-none flex flex-col items-center justify-center text-center">
-          <span className="text-(--color-text-secondary) text-sm uppercase tracking-wider mb-1 font-bold">AI Confidence</span>
-          <span className="text-3xl font-data text-(--color-teal)">
-            <AnimatedCounter value={confidence} suffix="%" />
-          </span>
+          {card.description && (
+            <p className="font-sans text-[11px] text-(--color-text-secondary) mt-2 truncate">
+              {card.description}
+            </p>
+          )}
         </div>
-      </div>
-
-      <div className="flex-1 min-h-62.5 border border-(--color-hairline) p-4 rounded-none">
-        <h4 className="text-sm text-(--color-text-secondary) uppercase tracking-wider mb-4 text-center font-bold">Class Area Change</h4>
-        <StatsChart data={chartData} />
-      </div>
+      ))}
     </div>
   );
 }

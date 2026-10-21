@@ -7,12 +7,16 @@ interface BeforeAfterViewerProps {
   beforeImage: string;
   afterImage: string;
   changeMapImage: string;
+  dateBefore?: string;
+  dateAfter?: string;
 }
 
 export default function BeforeAfterViewer({
   beforeImage,
   afterImage,
   changeMapImage,
+  dateBefore,
+  dateAfter,
 }: BeforeAfterViewerProps) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -83,14 +87,16 @@ export default function BeforeAfterViewer({
   }, [isDragging, handleMove]);
 
   return (
-    <div className="relative w-full flex flex-col gap-4">
-      <div className="flex justify-between items-center bg-transparent border border-(--color-hairline) border-b-0 text-(--color-ink) p-3 rounded-none">
-        <h3 className="font-bold text-lg">SAR Imagery Comparison</h3>
+    <div className="border border-(--color-hairline) bg-(--color-paper) rounded-[2px] flex flex-col h-130 xl:h-145 overflow-hidden w-full">
+      {/* Header bar (h-12) */}
+      <div className="h-12 px-4 border-b border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0">
+        <h3 className="font-bold font-headline text-base text-(--color-ink)">SAR Imagery Comparison</h3>
         <button
-          className={`px-3 py-1 rounded-none text-sm transition-colors border ${
+          type="button"
+          className={`px-3 py-1 rounded-[2px] text-xs font-medium transition-colors border cursor-pointer ${
             showChangeMap 
               ? 'bg-(--color-teal) text-white border-(--color-teal) hover:bg-(--color-teal-light)' 
-              : 'bg-transparent text-(--color-ink) border-(--color-hairline) hover:border-(--color-ink) hover:text-(--color-ink)'
+              : 'bg-transparent text-(--color-ink) border-(--color-hairline) hover:border-(--color-ink)'
           }`}
           onClick={() => setShowChangeMap(!showChangeMap)}
           aria-pressed={showChangeMap}
@@ -99,9 +105,10 @@ export default function BeforeAfterViewer({
         </button>
       </div>
 
+      {/* Viewer viewport (flex-1) */}
       <div
         ref={containerRef}
-        className="relative w-full h-[45vh] xl:h-[60vh] min-h-100 max-h-200 bg-black rounded-none overflow-hidden cursor-crosshair border border-(--color-hairline)"
+        className="relative flex-1 w-full bg-black overflow-hidden cursor-crosshair select-none"
         onMouseDown={(e: ReactMouseEvent) => {
           setIsDragging(true);
           handleMove(e.clientX);
@@ -115,7 +122,7 @@ export default function BeforeAfterViewer({
         <div className="absolute inset-0">
           {afterError ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-(--color-paper-dark) text-(--color-ink-dark) p-4 text-center">
-              <span className="font-data text-sm tracking-wide uppercase font-semibold">After Imagery</span>
+              <span className="font-data text-sm tracking-wide font-semibold">After Imagery</span>
               <span className="text-xs text-(--color-hairline) mt-1">SAR data placeholder</span>
             </div>
           ) : (
@@ -131,7 +138,7 @@ export default function BeforeAfterViewer({
           )}
         </div>
 
-        {/* Change Map Overlay (conditionally shown over After image) */}
+        {/* Change Map Overlay */}
         {showChangeMap && !changeMapError && (
           <div className="absolute inset-0 opacity-70 mix-blend-screen pointer-events-none">
             <Image
@@ -152,7 +159,7 @@ export default function BeforeAfterViewer({
         >
           {beforeError ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-(--color-paper-dark) text-(--color-ink-dark) p-4 text-center">
-              <span className="font-data text-sm tracking-wide uppercase font-semibold">Before Imagery</span>
+              <span className="font-data text-sm tracking-wide font-semibold">Before Imagery</span>
               <span className="text-xs text-(--color-hairline) mt-1">SAR data placeholder</span>
             </div>
           ) : (
@@ -174,7 +181,7 @@ export default function BeforeAfterViewer({
           style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
         >
           <div 
-            className="w-8 h-8 bg-(--color-paper) border border-(--color-hairline) rounded-none flex items-center justify-center pointer-events-auto focus:outline-none focus:ring-2 focus:ring-(--color-teal)"
+            className="w-7 h-7 bg-(--color-paper) border border-(--color-hairline) rounded-[2px] flex items-center justify-center pointer-events-auto focus:outline-none focus:border-(--color-teal)"
             tabIndex={0}
             role="slider"
             aria-valuenow={sliderPosition}
@@ -196,12 +203,24 @@ export default function BeforeAfterViewer({
           </div>
         </div>
 
-        {/* Labels */}
-        <div className="absolute bottom-4 left-4 bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) px-2 py-1 rounded-none text-sm pointer-events-none font-bold">
+        {/* Floating Viewport Labels */}
+        <div className="absolute bottom-3 left-3 bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) px-2 py-0.5 rounded-[2px] text-xs pointer-events-none font-medium">
           Before
         </div>
-        <div className="absolute bottom-4 right-4 bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) px-2 py-1 rounded-none text-sm pointer-events-none font-bold">
+        <div className="absolute bottom-3 right-3 bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) px-2 py-0.5 rounded-[2px] text-xs pointer-events-none font-medium">
           After
+        </div>
+      </div>
+
+      {/* Footer bar (h-11) */}
+      <div className="h-11 px-4 border-t border-(--color-hairline) flex items-center justify-between text-xs text-(--color-text-secondary) font-data bg-(--color-paper) shrink-0">
+        <div className="flex items-center gap-1.5 truncate">
+          <span className="text-(--color-text-secondary)">Before:</span>
+          <span className="text-(--color-ink) font-medium">{dateBefore || 'Scene A'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 truncate">
+          <span className="text-(--color-text-secondary)">After:</span>
+          <span className="text-(--color-ink) font-medium">{dateAfter || 'Scene B'}</span>
         </div>
       </div>
     </div>

@@ -5,6 +5,8 @@ export interface ChartDataPoint {
   value: number;
 }
 
+import type { AnalysisMode, ResultBounds, ResultCategory, ResultDates, ResultMetrics, ResultParams } from '@/types';
+
 export interface ChangeData {
   aoiId: string;
   name: string;
@@ -17,7 +19,20 @@ export interface ChangeData {
   beforeImage: string;
   afterImage: string;
   changeMapImage: string;
+  bounds?: ResultBounds | { north: number; south: number; east: number; west: number };
+  center?: [number, number];
+  zoom?: number;
+  mode?: AnalysisMode | 'change' | string;
+  signalStrength?: number;
+  totalAreaKm2?: number;
+  dates?: ResultDates;
+  categories?: ResultCategory[];
+  metrics?: ResultMetrics;
+  params?: ResultParams;
+  warnings?: string[];
 }
+
+export { useUploadChangeData } from './useUploadChangeData';
 
 export function useChangeData(aoiId: string | null) {
   const [data, setData] = useState<ChangeData | null>(null);

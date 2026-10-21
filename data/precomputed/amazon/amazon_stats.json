@@ -1,8 +1,55 @@
 {
+  "mode": "deforestation",
   "changeMapUrl": "amazon_change_map.png",
-  "percentChanged": 1.17,
-  "affectedAreaKm2": 5.82,
-  "confidence": 60.87,
+  "percentChanged": 0.13,
+  "affectedAreaKm2": 0.62,
+  "confidence": 35.69,
+  "signalStrength": 35.69,
+  "totalAreaKm2": 485.21,
+  "bounds": {
+    "south": -10.350029377511479,
+    "west": -62.200068924662965,
+    "north": -10.14988473220965,
+    "east": -61.99992427936114
+  },
+  "dates": {
+    "a": null,
+    "b": null,
+    "days": null
+  },
+  "categories": [
+    {
+      "id": "forest_loss",
+      "label": "Forest Canopy Loss",
+      "areaKm2": 0.62,
+      "kind": "loss"
+    }
+  ],
+  "metrics": {
+    "forestLossKm2": 0.62,
+    "lossThresholdDb": -3.0
+  },
+  "params": {
+    "mode": "deforestation",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": -3.0,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [
+    "VV-only input is less sensitive to forest loss when only one band is present. Cross-polarization (VH) provides superior volume scattering sensitivity."
+  ],
+  "band": 1,
+  "polarization": "VV",
+  "center": [
+    -10.249957054860564,
+    -62.099996602012055
+  ],
   "beforeImageUrl": "before.png",
   "afterImageUrl": "after.png"
 }
