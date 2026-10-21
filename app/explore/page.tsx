@@ -402,7 +402,6 @@ export default function ExplorePage() {
                     <div className="h-56 w-full">
                       <CategoryBreakdownChart
                         categories={displayData.categories}
-                        chartData={displayData.chartData}
                       />
                     </div>
 

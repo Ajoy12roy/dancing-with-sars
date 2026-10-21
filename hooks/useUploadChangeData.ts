@@ -61,14 +61,6 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
         percentChanged: typeof result.percentChanged === 'number' ? result.percentChanged : 0,
         affectedAreaKm2: typeof result.affectedAreaKm2 === 'number' ? result.affectedAreaKm2 : 0,
         confidence: typeof result.confidence === 'number' ? result.confidence : 0,
-        chartData: Array.isArray(result.chartData)
-          ? result.chartData
-          : (Array.isArray(result.categories)
-            ? result.categories.map((c: { label?: string; id?: string; kind?: string; areaKm2?: number }) => ({
-                category: c.label || c.id || 'Category',
-                value: c.kind === 'loss' ? -(c.areaKm2 ?? 0) : (c.areaKm2 ?? 0),
-              }))
-            : []),
         beforeImage: result.beforeImage || '',
         afterImage: result.afterImage || '',
         changeMapImage: result.changeMapImage || '',

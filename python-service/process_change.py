@@ -407,7 +407,8 @@ def run_change_detection(
     water_threshold=None,
     min_pixels=20,
     river_buffer=5,
-    loss_threshold_db=-3.0
+    loss_threshold_db=-3.0,
+    aoi_id=None
 ):
     """
     Runs deterministic SAR change-detection pipeline.
@@ -484,57 +485,63 @@ def run_change_detection(
             bounds_dict = None
             center_coords = None
             
+    # Check for decimation resolution scaling on Image A
+    scale_y_a = orig_shape_a[0] / float(data_a.shape[0])
+    scale_x_a = orig_shape_a[1] / float(data_a.shape[1])
+    if scale_x_a != 1.0 or scale_y_a != 1.0:
+        from affine import Affine
+        eff_transform_a = transform_a * Affine.scale(scale_x_a, scale_y_a)
+        eff_dx = abs(eff_transform_a.a)
+        eff_dy = abs(eff_transform_a.e)
+        print(f"Decimation: Computing areas using effective resolution: {eff_dx:.6f} x {eff_dy:.6f}.")
+    else:
+        eff_transform_a = transform_a
+
     with rasterio.open(image_b_path) as src_b:
         nodata_b = src_b.nodata
         band_b, pol_b = get_band_and_polarization(src_b, requested_polarization=requested_pol, requested_band=band)
         data_b = read_raster_windowed(src_b, band=band_b)
+        orig_shape_b = (src_b.height, src_b.width)
+
+        # Check for decimation resolution scaling on Image B
+        scale_y_b = orig_shape_b[0] / float(data_b.shape[0])
+        scale_x_b = orig_shape_b[1] / float(data_b.shape[1])
+        if scale_x_b != 1.0 or scale_y_b != 1.0:
+            from affine import Affine
+            eff_transform_b = src_b.transform * Affine.scale(scale_x_b, scale_y_b)
+        else:
+            eff_transform_b = src_b.transform
         
         # Check if CRS, transform, and extent match
-        if (src_b.crs != crs_a) or (src_b.transform != transform_a) or (data_b.shape != data_a.shape):
-            # Reproject image_b to match image_a's grid
+        if (src_b.crs != crs_a) or (eff_transform_b != eff_transform_a) or (data_b.shape != data_a.shape):
+            # Reproject image_b to match image_a's grid using effective (scaled) transforms
             data_b_reproj = np.empty_like(data_a)
             reproject(
                 source=data_b,
                 destination=data_b_reproj,
-                src_transform=src_b.transform,
+                src_transform=eff_transform_b,
                 src_crs=src_b.crs,
                 src_nodata=nodata_b,
-                dst_transform=transform_a,
+                dst_transform=eff_transform_a,
                 dst_crs=crs_a,
                 dst_nodata=np.nan,
                 resampling=Resampling.bilinear
             )
             data_b = data_b_reproj
 
-    # Check for decimation resolution scaling
-    scale_y_a = orig_shape_a[0] / float(data_a.shape[0])
-    scale_x_a = orig_shape_a[1] / float(data_a.shape[1])
-    if scale_x_a != 1.0 or scale_y_a != 1.0:
-        from affine import Affine
-        eff_dx = abs(transform_a.a) * scale_x_a
-        eff_dy = abs(transform_a.e) * scale_y_a
-        eff_transform = Affine(eff_dx, transform_a.b, transform_a.c, transform_a.d, -eff_dy, transform_a.f)
-        print(f"Decimation: Computing areas using effective resolution: {eff_dx:.6f} x {eff_dy:.6f}.")
-    else:
-        eff_transform = transform_a
+    eff_transform = eff_transform_a
 
-    # Export before and after 8-bit grayscale PNGs if requested (keep if they already exist)
+    # Export before and after 8-bit grayscale PNGs if requested (always regenerate on every run)
     if output_before_png:
-        if not os.path.exists(output_before_png):
-            export_grayscale_png(
-                data_a, output_before_png, min_db=min_db, max_db=max_db, max_width=max_width,
-                src_transform=transform_a, src_crs=crs_a, src_bounds=bounds_a
-            )
-        else:
-            print(f"Preview: Keeping existing {output_before_png}")
+        export_grayscale_png(
+            data_a, output_before_png, min_db=min_db, max_db=max_db, max_width=max_width,
+            src_transform=eff_transform, src_crs=crs_a, src_bounds=bounds_a
+        )
     if output_after_png:
-        if not os.path.exists(output_after_png):
-            export_grayscale_png(
-                data_b, output_after_png, min_db=min_db, max_db=max_db, max_width=max_width,
-                src_transform=transform_a, src_crs=crs_a, src_bounds=bounds_a
-            )
-        else:
-            print(f"Preview: Keeping existing {output_after_png}")
+        export_grayscale_png(
+            data_b, output_after_png, min_db=min_db, max_db=max_db, max_width=max_width,
+            src_transform=eff_transform, src_crs=crs_a, src_bounds=bounds_a
+        )
 
     # Convert to dB scale with auto-detection and nodata masking
     data_a_db, scale_a = to_db(data_a, nodata=nodata_a, return_scale=True)
@@ -687,8 +694,14 @@ def run_change_detection(
         if days is not None and days > 0:
             erosion_rate = round(float(erosion_km2 / (days / 365.25)), 4)
 
+        warnings.append(
+            "Erosion is estimated as land-to-water change connected to the persistent river channel. "
+            "It also includes flow-stage differences and sandbar migration between the two dates, "
+            "so it should be validated against optical imagery."
+        )
+
         categories = [
-            {"id": "erosion", "label": "River Bank Erosion", "areaKm2": erosion_km2, "kind": "loss"},
+            {"id": "erosion", "label": "Bank erosion (land-to-water near channel)", "areaKm2": erosion_km2, "kind": "loss"},
             {"id": "accretion", "label": "River Accretion / Deposition", "areaKm2": accretion_km2, "kind": "gain"},
             {"id": "persistent_river", "label": "Persistent River Channel", "areaKm2": river_area_km2, "kind": "persistent"},
             {"id": "other_new_water", "label": "Other New Water", "areaKm2": other_new_km2, "kind": "other"},
@@ -817,7 +830,7 @@ def run_change_detection(
     # Export JSON
     result_dict = {
         "mode": mode,
-        "changeMapUrl": os.path.basename(output_png) if output_png else "",
+        "changeMapUrl": os.path.basename(output_png) if output_png else "change-map.png",
         "percentChanged": percent_changed,
         "affectedAreaKm2": affected_area_km2,
         "confidence": confidence,
@@ -832,6 +845,8 @@ def run_change_detection(
         "band": band_a,
         "polarization": pol_a,
     }
+    if aoi_id:
+        result_dict["aoiId"] = aoi_id
     if bounds_dict is not None and center_coords is not None:
         result_dict["center"] = center_coords
     if output_before_png:
@@ -886,9 +901,7 @@ if __name__ == "__main__":
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    out_png = os.path.join(args.output_dir, f"{args.aoi}_change_map.png")
     change_map_png = os.path.join(args.output_dir, "change-map.png")
-    out_json = os.path.join(args.output_dir, f"{args.aoi}_stats.json")
     result_json = os.path.join(args.output_dir, "result.json")
     before_png = os.path.join(args.output_dir, "before.png")
     after_png = os.path.join(args.output_dir, "after.png")
@@ -903,8 +916,8 @@ if __name__ == "__main__":
         image_a, 
         image_b, 
         threshold=args.threshold, 
-        output_png=out_png, 
-        output_json=out_json,
+        output_png=change_map_png, 
+        output_json=result_json,
         output_before_png=before_png,
         output_after_png=after_png,
         mode=args.mode,
@@ -915,26 +928,9 @@ if __name__ == "__main__":
         water_threshold=args.water_threshold,
         min_pixels=args.min_pixels,
         river_buffer=args.river_buffer,
-        loss_threshold_db=args.loss_threshold_db
+        loss_threshold_db=args.loss_threshold_db,
+        aoi_id=args.aoi
     )
-
-    # Save change-map.png as well
-    if os.path.abspath(out_png) != os.path.abspath(change_map_png):
-        shutil.copy2(out_png, change_map_png)
-
-    # Save / update result.json preserving any existing UI attributes (name, dates, chartData)
-    if os.path.abspath(out_json) != os.path.abspath(result_json):
-        if os.path.exists(result_json):
-            try:
-                with open(result_json, "r") as f:
-                    combined = json.load(f)
-                combined.update(res)
-                with open(result_json, "w") as f:
-                    json.dump(combined, f, indent=2)
-            except Exception:
-                shutil.copy2(out_json, result_json)
-        else:
-            shutil.copy2(out_json, result_json)
 
     print("Processing complete. Results:")
     print(json.dumps(res, indent=2))

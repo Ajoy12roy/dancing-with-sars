@@ -14,15 +14,12 @@ import type { ResultCategory } from '@/types';
 
 interface CategoryBreakdownChartProps {
   categories?: ResultCategory[];
-  chartData?: Array<{ category: string; value: number }>;
 }
 
 export default function CategoryBreakdownChart({
   categories,
-  chartData,
 }: CategoryBreakdownChartProps) {
-  // Build chart items from result.categories (areaKm2 per category)
-  // Fallback to chartData if categories not yet available
+  // Build chart items derived directly from result.categories (areaKm2 per category)
   const items =
     categories && categories.length > 0
       ? categories.map((cat) => {
@@ -47,12 +44,7 @@ export default function CategoryBreakdownChart({
             kind: cat.kind,
           };
         })
-      : (chartData || []).map((entry) => ({
-          name: entry.category,
-          areaKm2: Number(Math.abs(entry.value).toFixed(2)),
-          color: entry.value >= 0 ? '#2C5C61' : '#A8462E',
-          kind: entry.value >= 0 ? 'gain' : 'loss',
-        }));
+      : [];
 
   if (items.length === 0) {
     return (

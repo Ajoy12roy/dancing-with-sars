@@ -45,6 +45,15 @@ next-env.d.ts
 # Large media files
 *.tif
 
-# Python
+# Python & Virtual Environments
+venv/
+.venv/
 __pycache__/
 *.pyc
+python-service/__pycache__/
+.pytest_cache/
+python-service/.pytest_cache/
+
+# Tiles cache
+public/tiles/
+

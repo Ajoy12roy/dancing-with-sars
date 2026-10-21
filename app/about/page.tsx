@@ -37,7 +37,7 @@ export default function AboutPage() {
             This project is open-source and licensed under the Apache License 2.0, adhering to the default rules of the NASA Space Apps Challenge.
           </p>
           <div className="mt-5 text-xs text-(--color-text-caption) font-data p-4 bg-(--color-paper) border border-(--color-hairline) rounded-[2px] whitespace-pre-wrap">
-{`Copyright 2026 Dancing with the SARs Team
+{`Copyright 2026 Ajoy Roy
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

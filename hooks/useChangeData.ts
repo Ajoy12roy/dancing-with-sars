@@ -15,7 +15,7 @@ export interface ChangeData {
   percentChanged: number;
   affectedAreaKm2: number;
   confidence: number;
-  chartData: ChartDataPoint[];
+  chartData?: ChartDataPoint[];
   beforeImage: string;
   afterImage: string;
   changeMapImage: string;

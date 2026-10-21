@@ -266,12 +266,12 @@ export default function DataSourcesPage() {
                 Project Software License
               </h3>
               <span className="text-xs font-data text-(--color-teal) px-2 py-0.5 bg-(--color-paper) border border-(--color-hairline)">
-                MIT License
+                Apache License 2.0
               </span>
             </div>
             <p className="text-xs text-(--color-text-secondary) leading-relaxed">
               This application and its companion Python processing service (<code className="font-data text-xs">python-service/process_change.py</code>)
-              are released under the <strong className="text-(--color-text-primary)">MIT License</strong>. You are free to inspect,
+              are released under the <strong className="text-(--color-text-primary)">Apache License 2.0</strong>. You are free to inspect,
               modify, distribute, and utilize the code for academic research, humanitarian disaster management, and commercial applications.
             </p>
           </div>

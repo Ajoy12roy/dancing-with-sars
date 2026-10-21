@@ -64,7 +64,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-6 pt-4 border-t border-(--color-hairline-light) text-xs text-(--color-text-secondary)">
-          © {new Date().getFullYear()} {APP_CONFIG.team}. Data: NASA, ESA Copernicus. Open source under MIT.
+          © {new Date().getFullYear()} {APP_CONFIG.team}. Data: NASA, ESA Copernicus. Open source under Apache 2.0.
         </div>
       </div>
     </footer>

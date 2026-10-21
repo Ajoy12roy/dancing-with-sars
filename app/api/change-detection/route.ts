@@ -20,22 +20,12 @@ export async function GET(request: Request) {
     const fileContent = fs.readFileSync(dataPath, 'utf-8');
     const data = JSON.parse(fileContent);
 
-    const derivedChartData = Array.isArray(data.chartData)
-      ? data.chartData
-      : (Array.isArray(data.categories)
-        ? data.categories.map((c: { label?: string; id?: string; kind?: string; areaKm2?: number }) => ({
-            category: c.label || c.id || 'Category',
-            value: c.kind === 'loss' ? -(c.areaKm2 ?? 0) : (c.areaKm2 ?? 0),
-          }))
-        : []);
-
     // Provide URLs to images assuming they are served via our API, passing all new fields unchanged
     return NextResponse.json({
       aoiId: data.aoiId || cleanAoi,
       name: data.name || cleanAoi,
       dateBefore: data.dateBefore || (data.dates?.a ? data.dates.a : 'Before Scene'),
       dateAfter: data.dateAfter || (data.dates?.b ? data.dates.b : 'After Scene'),
-      chartData: derivedChartData,
       ...data,
       beforeImage: `/api/images?aoi=${cleanAoi}&type=before`,
       afterImage: `/api/images?aoi=${cleanAoi}&type=after`,

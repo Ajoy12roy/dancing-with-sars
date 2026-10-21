@@ -277,6 +277,9 @@ def test_mode_river_erosion(tmpdir):
     assert res['affectedAreaKm2'] == 1.0
     assert res['dates']['days'] == 730
     assert pytest.approx(res['metrics']['erosionRateKm2PerYear'], abs=1e-3) == (1.0 / (730 / 365.25))
+    assert res['categories'][0]['id'] == 'erosion'
+    assert res['categories'][0]['label'] == 'Bank erosion (land-to-water near channel)'
+    assert any("Erosion is estimated as land-to-water change" in w for w in res['warnings'])
 
 def test_mode_deforestation(tmpdir):
     """
@@ -453,3 +456,128 @@ def test_run_change_detection_with_before_after(tmpdir):
     with Image.open(after_png) as img_b:
         assert img_b.mode == 'L'
         assert img_b.size == (10, 10)
+
+def test_previews_regenerated_on_second_run(tmpdir):
+    """
+    Verify before.png and after.png are regenerated on a second run,
+    not skipped when existing.
+    """
+    path_a = os.path.join(tmpdir, 'img_a.tif')
+    path_b = os.path.join(tmpdir, 'img_b.tif')
+    transform = Affine.translation(0, 10) @ Affine.scale(1, -1)
+    crs = CRS.from_epsg(4326)
+
+    # First run: initial images at -20 dB
+    data_1 = np.full((10, 10), -20.0, dtype=np.float32)
+    for p in [path_a, path_b]:
+        with rasterio.open(p, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(data_1, 1)
+
+    before_png = os.path.join(tmpdir, 'before.png')
+    after_png = os.path.join(tmpdir, 'after.png')
+
+    run_change_detection(path_a, path_b, output_before_png=before_png, output_after_png=after_png)
+    with Image.open(before_png) as img:
+        val_first = np.array(img)[0, 0]
+
+    # Second run: update GeoTIFFs to completely different value (0.0 dB)
+    data_2 = np.full((10, 10), 0.0, dtype=np.float32)
+    for p in [path_a, path_b]:
+        with rasterio.open(p, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(data_2, 1)
+
+    run_change_detection(path_a, path_b, output_before_png=before_png, output_after_png=after_png)
+    with Image.open(before_png) as img:
+        val_second = np.array(img)[0, 0]
+
+    assert val_first != val_second, "Preview image was not regenerated on second run!"
+
+def test_result_json_no_stale_keys(tmpdir):
+    """
+    Verify that result.json written by process_change contains no stale keys
+    beyond the fresh result (e.g. no merged placeholder keys like chartData or old names).
+    """
+    import subprocess
+    import json
+    import sys
+
+    input_dir = os.path.join(tmpdir, 'input')
+    output_dir = os.path.join(tmpdir, 'output')
+    os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+
+    path_a = os.path.join(input_dir, 'image_a.tif')
+    path_b = os.path.join(input_dir, 'image_b.tif')
+    transform = Affine.translation(0, 10) @ Affine.scale(1, -1)
+    crs = CRS.from_epsg(4326)
+
+    data = np.full((10, 10), -15.0, dtype=np.float32)
+    for p in [path_a, path_b]:
+        with rasterio.open(p, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(data, 1)
+
+    result_json_path = os.path.join(output_dir, 'result.json')
+    # Plant a stale result.json with old leftover keys
+    stale_data = {
+        "chartData": [{"category": "stale", "value": 999}],
+        "name": "Old Placeholder Name",
+        "dateBefore": "1999-01-01",
+        "stale_custom_key": "should_be_gone"
+    }
+    with open(result_json_path, 'w') as f:
+        json.dump(stale_data, f)
+
+    script_path = os.path.join(os.path.dirname(__file__), 'process_change.py')
+    cmd = [
+        sys.executable, script_path,
+        '--aoi', 'test_aoi',
+        '--input-dir', input_dir,
+        '--output-dir', output_dir,
+        '--mode', 'flood'
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 0, f"CLI failed: {res.stderr}"
+
+    with open(result_json_path, 'r') as f:
+        fresh_json = json.load(f)
+
+    # Verify stale keys were NOT merged
+    assert 'chartData' not in fresh_json
+    assert 'name' not in fresh_json
+    assert 'dateBefore' not in fresh_json
+    assert 'stale_custom_key' not in fresh_json
+
+    # Verify no duplicate files written
+    assert not os.path.exists(os.path.join(output_dir, 'test_aoi_stats.json'))
+    assert not os.path.exists(os.path.join(output_dir, 'test_aoi_change_map.png'))
+
+    # Verify fresh keys
+    assert fresh_json['mode'] == 'flood'
+    assert fresh_json['changeMapUrl'] == 'change-map.png'
+    assert fresh_json['aoiId'] == 'test_aoi'
+
+def test_river_erosion_warning_always_present(tmpdir):
+    """
+    Verify that river-erosion mode always includes honest label and warning.
+    """
+    path_a = os.path.join(tmpdir, 'img_a.tif')
+    path_b = os.path.join(tmpdir, 'img_b.tif')
+    transform = Affine.translation(0, 10) @ Affine.scale(1, -1)
+    crs = CRS.from_epsg(4326)
+
+    data = np.full((10, 10), -15.0, dtype=np.float32)
+    for p in [path_a, path_b]:
+        with rasterio.open(p, 'w', driver='GTiff', height=10, width=10, count=1, dtype=np.float32, crs=crs, transform=transform) as dst:
+            dst.write(data, 1)
+
+    res = run_change_detection(path_a, path_b, mode="river-erosion")
+
+    expected_warning = (
+        "Erosion is estimated as land-to-water change connected to the persistent river channel. "
+        "It also includes flow-stage differences and sandbar migration between the two dates, "
+        "so it should be validated against optical imagery."
+    )
+    assert expected_warning in res['warnings']
+    erosion_cat = next(c for c in res['categories'] if c['id'] == 'erosion')
+    assert erosion_cat['label'] == 'Bank erosion (land-to-water near channel)'
+
