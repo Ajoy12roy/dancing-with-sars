@@ -14,6 +14,8 @@
   --color-ink: #1D2023;
   --color-ink-light: #3A3D42;
   --color-ink-muted: #6B6E73; /* kept for transition; prefer --color-text-secondary */
+  --navy: #000E1C;
+  --color-navy: #000E1C;
 
   /* Text hierarchy — solid colors, no opacity tricks */
   --color-text-primary: #1D2023;   /* headings + primary body */
@@ -80,6 +82,11 @@
   --radius-lg: 2px;
   --radius-xl: 2px;
   --radius-full: 2px;
+}
+
+:root {
+  --navy: #000E1C;
+  --data-panel-border: #2C5C61;
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────── */
@@ -179,6 +186,13 @@ a {
   --color-hairline-dark: #3E4045;
   --color-teal-faint: rgba(44, 92, 97, 0.15);
   --color-rust-faint: rgba(168, 70, 46, 0.15);
+  --data-panel-border: #5FA3AB;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --data-panel-border: #5FA3AB;
+  }
 }
 
 /* ── Graticule / Coordinate Grid ──────────────────────────────────────── */

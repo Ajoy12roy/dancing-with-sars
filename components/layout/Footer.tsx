@@ -32,6 +32,12 @@ export function Footer() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href="/#about"
+                className="hover:text-(--color-text-primary) transition-colors"
+              >
+                About
+              </Link>
             </div>
             <div className="flex flex-col gap-1">
               <a
@@ -64,7 +70,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-6 pt-4 border-t border-(--color-hairline-light) text-xs text-(--color-text-secondary)">
-          © {new Date().getFullYear()} {APP_CONFIG.team}. Data: NASA, ESA Copernicus. Open source under Apache 2.0.
+          © {new Date().getFullYear()} TerraPulse. Data: NASA, ESA Copernicus. Open source under Apache 2.0.
         </div>
       </div>
     </footer>

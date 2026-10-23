@@ -6,6 +6,7 @@ import type { ChangeData } from '@/hooks/useChangeData';
 import { AreaOfInterest } from '@/types';
 import { useAnalysisMode } from '@/context';
 import type { BasemapMode } from './MapComponent';
+import { DataPanel } from '@/components/ui/DataPanel';
 
 interface ChangeMapProps {
   data: ChangeData;
@@ -96,10 +97,9 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
     (data.aoiId ? `/api/images?aoi=${data.aoiId}&type=before` : aoi?.id ? `/api/images?aoi=${aoi.id}&type=before` : '');
 
   return (
-    <div className="border border-(--color-hairline) bg-(--color-paper) rounded-[2px] flex flex-col h-130 xl:h-145 overflow-hidden w-full">
-      {/* Header bar (h-12) */}
-      <div className="h-12 px-4 border-b border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 gap-2">
-        <h3 className="font-bold font-headline text-base text-(--color-ink) shrink-0">Geospatial Classification</h3>
+    <DataPanel
+      title="Geospatial Classification"
+      rightSlot={
         <div className="flex items-center gap-3">
           {/* Manual Basemap Toggle */}
           <div className="flex items-center gap-1 border border-(--color-hairline) rounded-[2px] p-0.5 bg-(--color-paper-warm)">
@@ -134,7 +134,10 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
             {centerLabel}
           </span>
         </div>
-      </div>
+      }
+      className="h-130 xl:h-145 w-full"
+      noPadding
+    >
 
       {/* Map viewport (flex-1) */}
       <div className="relative flex-1 w-full overflow-hidden bg-(--color-paper-warm)">
@@ -149,6 +152,7 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
             onBasemapModeChange={setBasemapMode}
             showOfflineNotice={showOfflineNotice}
             onAutoSwitchOffline={handleAutoSwitchOffline}
+            scrollZoom={false}
           />
         ) : (
           <div className="w-full h-full border border-(--color-hairline) bg-(--color-paper-warm) flex flex-col items-center justify-center p-6 text-center">
@@ -197,6 +201,6 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
           Sentinel-1 SAR
         </span>
       </div>
-    </div>
+    </DataPanel>
   );
 }

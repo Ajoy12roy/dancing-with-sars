@@ -1,4 +1,4 @@
-# Dancing with the SARs — SAR Change Detection Platform
+# TerraPulse — SAR Change Detection Platform
 
 > **See the Earth change in radar's eyes.** A scientific geospatial platform that compares before/after Synthetic Aperture Radar (SAR) satellite imagery to detect, quantify, and explain surface changes — including floods, riverbank erosion, deforestation, and water body dynamics. Built for the NASA International Space Apps Challenge.
 

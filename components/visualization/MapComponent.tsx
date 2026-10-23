@@ -5,6 +5,8 @@ import { MapContainer, TileLayer, ImageOverlay, Polyline, Marker, useMap } from 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import { Plus, Minus } from 'lucide-react';
+
 // Ensure all default marker assets and layer controls resolve locally, not from unpkg or any CDN
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -33,6 +35,7 @@ export interface MapComponentProps {
   onBasemapModeChange?: (mode: BasemapMode) => void;
   showOfflineNotice?: boolean;
   onAutoSwitchOffline?: () => void;
+  scrollZoom?: boolean;
 }
 
 // Automatically fit map viewport to the provided geospatial bounds
@@ -67,6 +70,75 @@ function MetricScaleControl() {
     };
   }, [map]);
   return null;
+}
+
+// Dedicated Zoom Control with Plus/Minus buttons in top-left
+function CustomZoomControl() {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  const [minZoom, setMinZoom] = useState(() => map.getMinZoom());
+  const [maxZoom, setMaxZoom] = useState(() => map.getMaxZoom());
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateZoom = () => {
+      setZoom(map.getZoom());
+      setMinZoom(map.getMinZoom());
+      setMaxZoom(map.getMaxZoom());
+    };
+    map.on('zoomend', updateZoom);
+    map.on('viewreset', updateZoom);
+    return () => {
+      map.off('zoomend', updateZoom);
+      map.off('viewreset', updateZoom);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+      L.DomEvent.disableScrollPropagation(containerRef.current);
+    }
+  }, []);
+
+  const isAtMin = zoom <= minZoom;
+  const isAtMax = zoom >= maxZoom;
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute top-2 left-2 z-400 flex flex-col border border-(--color-hairline) rounded-[2px] bg-(--color-paper) overflow-hidden select-none"
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isAtMax) {
+            map.zoomIn();
+          }
+        }}
+        disabled={isAtMax}
+        aria-label="Zoom in"
+        className="w-7 h-7 flex items-center justify-center bg-(--color-paper) text-(--color-ink) hover:bg-(--color-hairline) disabled:text-(--color-text-secondary) disabled:hover:bg-(--color-paper) disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer border-b border-(--color-hairline) focus:outline-none"
+      >
+        <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isAtMin) {
+            map.zoomOut();
+          }
+        }}
+        disabled={isAtMin}
+        aria-label="Zoom out"
+        className="w-7 h-7 flex items-center justify-center bg-(--color-paper) text-(--color-ink) hover:bg-(--color-hairline) disabled:text-(--color-text-secondary) disabled:hover:bg-(--color-paper) disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer focus:outline-none"
+      >
+        <Minus className="w-3.5 h-3.5" strokeWidth={2} />
+      </button>
+    </div>
+  );
 }
 
 function formatLat(lat: number): string {
@@ -244,6 +316,7 @@ export default function MapComponent({
   onBasemapModeChange,
   showOfflineNotice: propShowOfflineNotice,
   onAutoSwitchOffline,
+  scrollZoom = true,
 }: MapComponentProps) {
   // Ensure strict ordering: south <= north, west <= east
   const south = Math.min(bounds.south, bounds.north);
@@ -307,7 +380,11 @@ export default function MapComponent({
     <div className="relative w-full h-full border border-(--color-hairline) z-0 bg-paper overflow-hidden">
       {/* Quiet notice: "Offline: showing radar basemap" */}
       {showOfflineNotice && basemapMode === 'radar' && (
-        <div className="absolute top-2 left-2 z-400 bg-(--color-paper) border border-(--color-hairline) px-2.5 py-1 text-xs text-(--color-text-secondary) font-sans rounded-[2px] pointer-events-none select-none">
+        <div
+          className={`absolute top-2 ${
+            scrollZoom === false ? 'left-11' : 'left-2'
+          } z-400 bg-(--color-paper) border border-(--color-hairline) px-2.5 py-1 text-xs text-(--color-text-secondary) font-sans rounded-[2px] pointer-events-none select-none`}
+        >
           Offline: showing radar basemap
         </div>
       )}
@@ -317,9 +394,11 @@ export default function MapComponent({
         zoom={11}
         style={{ width: '100%', height: '100%', background: '#F1F0EC' }}
         zoomControl={false}
+        scrollWheelZoom={scrollZoom}
       >
         <MapBoundsUpdater leafletBounds={leafletBounds} />
         <MetricScaleControl />
+        {scrollZoom === false && <CustomZoomControl />}
 
         {basemapMode === 'street' ? (
           /* Street map mode: normal OpenStreetMap tile layer with attribution, loaded only on view */

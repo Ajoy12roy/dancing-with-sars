@@ -74,9 +74,8 @@ const ibmPlexMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Dancing with the SARs — SAR Change Detection Platform',
-  description:
-    'See the Earth change in radar\'s eyes. A platform that compares before/after SAR satellite images to detect and explain surface change with scientific precision and AI-narrated insight.',
+  title: 'TerraPulse — SAR Change Detection',
+  description: 'Earth insights. A safer tomorrow.',
   keywords: [
     'SAR',
     'Synthetic Aperture Radar',
@@ -89,6 +88,18 @@ export const metadata: Metadata = {
     'NASA Space Apps Challenge',
   ],
   authors: [{ name: 'Team Bangladesh' }],
+  openGraph: {
+    title: 'TerraPulse — SAR Change Detection',
+    description: 'Earth insights. A safer tomorrow.',
+    images: [
+      {
+        url: '/brand/terrapulse-logo-full-navy.png',
+        width: 1983,
+        height: 793,
+        alt: 'TerraPulse — Earth insights. A safer tomorrow.',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

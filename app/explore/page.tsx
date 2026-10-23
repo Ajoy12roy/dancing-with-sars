@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
 import BeforeAfterViewer from '@/components/visualization/BeforeAfterViewer';
 import StatsPanel from '@/components/visualization/StatsPanel';
@@ -8,22 +9,51 @@ import CategoryBreakdownChart from '@/components/visualization/CategoryBreakdown
 import { ChangeMap } from '@/components/visualization/ChangeMap';
 import ShorelineShiftCard from '@/components/visualization/ShorelineShiftCard';
 import { AIInsightPanel } from '@/components/ai/AIInsightPanel';
+import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { useAnalysisMode } from '@/context';
 import { DEMO_AOIS } from '@/constants';
 import type { AreaOfInterest, AnalysisMode } from '@/types';
 
-const MODE_TABS: { id: AnalysisMode; label: string }[] = [
-  { id: 'flood', label: 'Flood' },
-  { id: 'river-erosion', label: 'River Erosion' },
-  { id: 'deforestation', label: 'Deforestation' },
-  { id: 'surface-water', label: 'Surface Water' },
-];
+function parseModeParam(param: string | null): AnalysisMode | null {
+  if (!param) return null;
+  const p = param.toLowerCase().trim();
+  if (p === 'flood') return 'flood';
+  if (p === 'erosion' || p === 'river-erosion') return 'river-erosion';
+  if (p === 'deforestation') return 'deforestation';
+  if (p === 'water' || p === 'surface-water') return 'surface-water';
+  return null;
+}
 
-export default function ExplorePage() {
+function modeToParam(m: AnalysisMode): string {
+  if (m === 'river-erosion') return 'erosion';
+  if (m === 'surface-water') return 'water';
+  return m;
+}
+
+function ExploreContent() {
   const [activeTab, setActiveTab] = useState<'demo' | 'upload'>('demo');
   const { mode, setMode, selectedAoi, setSelectedAoi } = useAnalysisMode();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const rawModeParam = searchParams.get('mode');
+
+  // Synchronize URL search param -> context state on load or URL param change.
+  // URL is the single source of truth when a search parameter is present.
+  useEffect(() => {
+    const parsed = parseModeParam(rawModeParam);
+    if (parsed && parsed !== mode) {
+      setMode(parsed);
+      if (activeTab === 'demo') {
+        const matching = DEMO_AOIS.find((a) => a.mode === parsed);
+        if (matching && matching.id !== selectedAoi) {
+          setSelectedAoi(matching.id);
+        }
+      }
+    }
+  }, [rawModeParam, mode, selectedAoi, activeTab, setMode, setSelectedAoi]);
 
   // Quick Demo State
   const { data: demoData, loading: demoLoading, error: demoError } = useChangeData(selectedAoi);
@@ -60,25 +90,40 @@ export default function ExplorePage() {
     }
   };
 
-  // Switch mode tab
-  const handleModeSelect = (newMode: AnalysisMode) => {
-    setMode(newMode);
-    if (activeTab === 'demo') {
-      const matching = DEMO_AOIS.filter((a) => a.mode === newMode);
-      if (matching.length > 0 && matching[0]) {
-        setSelectedAoi(matching[0].id);
+  // Switch mode tab and sync URL
+  const handleModeSelect = useCallback((newMode: AnalysisMode) => {
+    if (newMode !== mode) {
+      setMode(newMode);
+      if (activeTab === 'demo') {
+        const matching = DEMO_AOIS.find((a) => a.mode === newMode);
+        if (matching && matching.id !== selectedAoi) {
+          setSelectedAoi(matching.id);
+        }
       }
     }
-  };
-
-  // Switch demo AOI select
-  const handleAoiSelect = (aoiId: string) => {
-    setSelectedAoi(aoiId);
-    const found = DEMO_AOIS.find((a) => a.id === aoiId);
-    if (found?.mode && found.mode !== mode) {
-      setMode(found.mode as AnalysisMode);
+    const targetParam = modeToParam(newMode);
+    if (rawModeParam !== targetParam) {
+      router.replace(`/explore?mode=${targetParam}`, { scroll: false });
     }
-  };
+  }, [mode, selectedAoi, activeTab, rawModeParam, router, setMode, setSelectedAoi]);
+
+  // Switch demo AOI select and sync URL
+  const handleAoiSelect = useCallback((aoiId: string) => {
+    if (aoiId !== selectedAoi) {
+      setSelectedAoi(aoiId);
+    }
+    const found = DEMO_AOIS.find((a) => a.id === aoiId);
+    if (found?.mode) {
+      const targetMode = found.mode as AnalysisMode;
+      if (targetMode !== mode) {
+        setMode(targetMode);
+      }
+      const targetParam = modeToParam(targetMode);
+      if (rawModeParam !== targetParam) {
+        router.replace(`/explore?mode=${targetParam}`, { scroll: false });
+      }
+    }
+  }, [selectedAoi, mode, rawModeParam, router, setSelectedAoi, setMode]);
 
   // Filter demo AOIs for current mode
   const filteredAois = DEMO_AOIS.filter((a) => a.mode === mode);
@@ -119,32 +164,33 @@ export default function ExplorePage() {
   const displayData = activeTab === 'demo' ? demoData : uploadData;
   const activeAoi = activeTab === 'demo' ? activeDemoAoi : uploadAoi;
 
+  // Wrap items passed to CategoryBreakdownChart in useMemo keyed on the underlying result
+  const chartItems = useMemo(() => {
+    const categories = displayData?.categories;
+    if (!categories || categories.length === 0) return [];
+    return categories.map((cat) => {
+      const isLoss =
+        cat.kind === 'loss' ||
+        cat.id.includes('loss') ||
+        cat.id.includes('erosion') ||
+        cat.id.includes('flooded');
+      const isGain =
+        cat.kind === 'gain' ||
+        cat.id.includes('gain') ||
+        cat.id.includes('accretion');
+      const color = isLoss ? '#A8462E' : isGain ? '#2C5C61' : '#7D8A92';
+      return {
+        name: cat.label || cat.id,
+        areaKm2: Number(cat.areaKm2.toFixed(2)),
+        color,
+        kind: cat.kind,
+      };
+    });
+  }, [displayData?.categories]);
+
   return (
     <div className="min-h-screen bg-(--color-paper) text-(--color-ink) p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Top: 4-Mode Selector Tabs with hairline underline */}
-        <div className="border-b border-(--color-hairline)">
-          <div className="flex gap-6 sm:gap-8 overflow-x-auto">
-            {MODE_TABS.map((tab) => {
-              const isActive = mode === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleModeSelect(tab.id)}
-                  className={`pb-3 font-medium text-sm transition-colors border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
-                    isActive
-                      ? 'border-(--color-teal) text-(--color-ink)'
-                      : 'border-transparent text-(--color-text-secondary) hover:text-(--color-ink)'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* 12-Column CSS Grid Layout with consistent 24px gap (gap-6) */}
         <div className="grid grid-cols-12 gap-6">
           {/* ── Row 1: Page Header + AOI Select / Mode Switcher (12 columns) ── */}
@@ -361,7 +407,7 @@ export default function ExplorePage() {
           {/* ── Results View: Rendered for both Demo and Upload Success ── */}
           {displayData && activeAoi && (activeTab === 'demo' ? !demoLoading && !demoError : !uploadLoading) && (
             <>
-              {/* ── Row 2: Before/After Viewer (7 cols) + Map Card (5 cols), Equal Height ── */}
+              {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
               <div className="col-span-12 lg:col-span-7 flex">
                 <BeforeAfterViewer
                   beforeImage={displayData.beforeImage}
@@ -380,54 +426,45 @@ export default function ExplorePage() {
                 )}
               </div>
 
-              {/* ── Row 3: Metric Cards Row (12 cols, equal width/height, same padding) ── */}
-              <div className="col-span-12">
-                <StatsPanel
-                  data={displayData}
-                  mode={displayData.mode || activeAoi.mode || mode}
-                />
-              </div>
-
-              {/* ── Row 4: Charts Row (7 cols Category Breakdown + 5 cols AI Insight) ── */}
+              {/* ── Row 2: Left = Category Breakdown (7 cols), Right = Radar Interpretation (5 cols) ── */}
               <div className="col-span-12 lg:col-span-7 flex">
-                <div className="border border-(--color-hairline) bg-(--color-paper) rounded-[2px] flex flex-col h-full min-h-85 w-full">
-                  {/* Header bar (h-12) */}
-                  <div className="h-12 px-4 border-b border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0">
-                    <h3 className="font-bold font-headline text-base text-(--color-ink)">Category Breakdown</h3>
+                <DataPanel
+                  title="Category Breakdown"
+                  rightSlot={
                     <span className="font-data text-xs text-(--color-text-secondary)">Area (km²)</span>
+                  }
+                  className="h-full w-full"
+                  bodyClassName="justify-between"
+                >
+                  <div className="h-56 w-full">
+                    <CategoryBreakdownChart
+                      categories={displayData.categories}
+                      items={chartItems}
+                    />
                   </div>
 
-                  {/* Body (flex-1) with CategoryBreakdownChart */}
-                  <div className="flex-1 p-5 flex flex-col justify-between">
-                    <div className="h-56 w-full">
-                      <CategoryBreakdownChart
-                        categories={displayData.categories}
-                      />
+                  {displayData.categories && displayData.categories.length > 0 && (
+                    <div className="pt-3 border-t border-(--color-hairline) flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                      {displayData.categories.map((cat) => (
+                        <div key={cat.id} className="flex items-center gap-1.5 font-data text-(--color-text-secondary)">
+                          <span
+                            className="w-2.5 h-2.5 rounded-sm border border-(--color-hairline) shrink-0"
+                            style={{
+                              backgroundColor:
+                                cat.kind === 'loss' || cat.id.includes('loss') || cat.id.includes('erosion') || cat.id.includes('flooded')
+                                  ? 'var(--color-rust)'
+                                  : cat.kind === 'gain' || cat.id.includes('accretion')
+                                  ? 'var(--color-teal)'
+                                  : '#7D8A92',
+                            }}
+                          />
+                          <span className="text-(--color-ink) font-sans">{cat.label}:</span>
+                          <span className="font-medium text-(--color-teal)">{cat.areaKm2.toFixed(2)} km²</span>
+                        </div>
+                      ))}
                     </div>
-
-                    {displayData.categories && displayData.categories.length > 0 && (
-                      <div className="pt-3 border-t border-(--color-hairline) flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-                        {displayData.categories.map((cat) => (
-                          <div key={cat.id} className="flex items-center gap-1.5 font-data text-(--color-text-secondary)">
-                            <span
-                              className="w-2.5 h-2.5 rounded-sm border border-(--color-hairline) shrink-0"
-                              style={{
-                                backgroundColor:
-                                  cat.kind === 'loss' || cat.id.includes('loss') || cat.id.includes('erosion') || cat.id.includes('flooded')
-                                    ? 'var(--color-rust)'
-                                    : cat.kind === 'gain' || cat.id.includes('accretion')
-                                    ? 'var(--color-teal)'
-                                    : '#7D8A92',
-                              }}
-                            />
-                            <span className="text-(--color-ink) font-sans">{cat.label}:</span>
-                            <span className="font-medium text-(--color-teal)">{cat.areaKm2.toFixed(2)} km²</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  )}
+                </DataPanel>
               </div>
 
               <div className="col-span-12 lg:col-span-5 flex">
@@ -446,10 +483,33 @@ export default function ExplorePage() {
                   mode={displayData.mode || activeAoi.mode || mode}
                 />
               </div>
+
+              {/* ── Row 3: Metric Cards Row (12 cols, equal width/height, same padding) ── */}
+              <div className="col-span-12">
+                <StatsPanel
+                  data={displayData}
+                  mode={displayData.mode || activeAoi.mode || mode}
+                />
+              </div>
             </>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          <div className="h-8 bg-(--color-hairline) w-64 mb-4 rounded-sm" />
+          <div className="h-96 bg-(--color-hairline) w-full rounded-sm" />
+        </div>
+      }
+    >
+      <ExploreContent />
+    </Suspense>
   );
 }

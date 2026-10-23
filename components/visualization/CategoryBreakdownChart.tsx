@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -12,39 +13,51 @@ import {
 } from 'recharts';
 import type { ResultCategory } from '@/types';
 
+export interface ChartItem {
+  name: string;
+  areaKm2: number;
+  color: string;
+  kind?: string;
+}
+
 interface CategoryBreakdownChartProps {
   categories?: ResultCategory[];
+  items?: ChartItem[];
 }
 
 export default function CategoryBreakdownChart({
   categories,
+  items: propItems,
 }: CategoryBreakdownChartProps) {
-  // Build chart items derived directly from result.categories (areaKm2 per category)
-  const items =
-    categories && categories.length > 0
-      ? categories.map((cat) => {
-          const isLoss =
-            cat.kind === 'loss' ||
-            cat.id.includes('loss') ||
-            cat.id.includes('erosion') ||
-            cat.id.includes('flooded');
-          const isGain =
-            cat.kind === 'gain' ||
-            cat.id.includes('gain') ||
-            cat.id.includes('accretion');
+  // Build chart items derived directly from result.categories (areaKm2 per category), or use memoized propItems
+  const derivedItems = useMemo(() => {
+    if (propItems) return propItems;
+    if (!categories || categories.length === 0) return [];
+    return categories.map((cat) => {
+      const isLoss =
+        cat.kind === 'loss' ||
+        cat.id.includes('loss') ||
+        cat.id.includes('erosion') ||
+        cat.id.includes('flooded');
+      const isGain =
+        cat.kind === 'gain' ||
+        cat.id.includes('gain') ||
+        cat.id.includes('accretion');
 
-          // Bar colors by kind:
-          // loss & hazard = #A8462E, gain = #2C5C61, persistent & other = #7D8A92 (neutral token)
-          const color = isLoss ? '#A8462E' : isGain ? '#2C5C61' : '#7D8A92';
+      // Bar colors by kind:
+      // loss & hazard = #A8462E, gain = #2C5C61, persistent & other = #7D8A92 (neutral token)
+      const color = isLoss ? '#A8462E' : isGain ? '#2C5C61' : '#7D8A92';
 
-          return {
-            name: cat.label || cat.id,
-            areaKm2: Number(cat.areaKm2.toFixed(2)),
-            color,
-            kind: cat.kind,
-          };
-        })
-      : [];
+      return {
+        name: cat.label || cat.id,
+        areaKm2: Number(cat.areaKm2.toFixed(2)),
+        color,
+        kind: cat.kind,
+      };
+    });
+  }, [categories, propItems]);
+
+  const items = propItems || derivedItems;
 
   if (items.length === 0) {
     return (

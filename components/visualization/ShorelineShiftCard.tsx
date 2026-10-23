@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultCategory } from '@/types';
 import type { BasemapMode } from './MapComponent';
+import { DataPanel } from '@/components/ui/DataPanel';
 
 interface ShorelineShiftCardProps {
   data: ChangeData;
@@ -167,22 +168,14 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
   };
 
   return (
-    <div
-      className={`border border-(--color-hairline) bg-(--color-paper) rounded-[2px] flex flex-col h-130 xl:h-145 overflow-hidden w-full ${
-        className || ''
-      }`}
-    >
-      {/* Header bar (h-12) with Mode Title, result.dates caption, basemap toggle, and persistent water toggle */}
-      <div className="h-12 px-4 border-b border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 gap-2">
-        <div className="flex flex-col min-w-0 pr-2">
-          <h3 className="font-bold font-headline text-base text-(--color-ink) leading-tight truncate">
-            {cardTitle}
-          </h3>
-          <span className="font-data text-[11px] text-(--color-text-secondary) leading-tight truncate">
-            {dateCaption}
-          </span>
-        </div>
-
+    <DataPanel
+      title={cardTitle}
+      subtitle={
+        <span className="font-data text-[11px] text-(--color-text-secondary) leading-tight truncate">
+          {dateCaption}
+        </span>
+      }
+      rightSlot={
         <div className="flex items-center gap-2 shrink-0">
           {/* Manual Basemap Toggle */}
           <div className="flex items-center gap-1 border border-(--color-hairline) rounded-[2px] p-0.5 bg-(--color-paper-warm)">
@@ -227,7 +220,10 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
             {showPersistentWater ? 'Hide persistent water' : 'Show persistent water'}
           </button>
         </div>
-      </div>
+      }
+      className={`h-130 xl:h-145 w-full ${className || ''}`}
+      noPadding
+    >
 
       {/* Map viewport (flex-1) */}
       <div className="relative flex-1 w-full overflow-hidden bg-(--color-paper-warm)">
@@ -242,6 +238,7 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
             onBasemapModeChange={setBasemapMode}
             showOfflineNotice={showOfflineNotice}
             onAutoSwitchOffline={handleAutoSwitchOffline}
+            scrollZoom={false}
           />
         ) : (
           <div className="w-full h-full border border-(--color-hairline) bg-(--color-paper-warm) flex flex-col items-center justify-center p-6 text-center">
@@ -298,6 +295,6 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
           Sentinel-1 SAR
         </span>
       </div>
-    </div>
+    </DataPanel>
   );
 }

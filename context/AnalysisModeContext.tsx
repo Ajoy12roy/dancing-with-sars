@@ -91,29 +91,13 @@ export function AnalysisModeProvider({ children }: { children: React.ReactNode }
 
   const setMode = useCallback((newMode: AnalysisMode) => {
     setModeState(newMode);
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('mode', newMode);
-      window.history.replaceState({}, '', url.toString());
-    }
   }, []);
 
   const setSelectedAoi = useCallback((aoiId: string) => {
     setSelectedAoiState(aoiId);
     const targetAoi = DEMO_AOIS.find((a) => a.id === aoiId);
     if (targetAoi?.mode) {
-      const targetMode = targetAoi.mode as AnalysisMode;
-      setModeState(targetMode);
-      if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
-        url.searchParams.set('aoi', aoiId);
-        url.searchParams.set('mode', targetMode);
-        window.history.replaceState({}, '', url.toString());
-      }
-    } else if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('aoi', aoiId);
-      window.history.replaceState({}, '', url.toString());
+      setModeState(targetAoi.mode as AnalysisMode);
     }
   }, []);
 
@@ -121,8 +105,19 @@ export function AnalysisModeProvider({ children }: { children: React.ReactNode }
     return MODE_INFO_MAP[mode] || MODE_INFO_MAP.flood;
   }, [mode]);
 
+  const value = useMemo(
+    () => ({
+      mode,
+      setMode,
+      selectedAoi,
+      setSelectedAoi,
+      modeInfo,
+    }),
+    [mode, setMode, selectedAoi, setSelectedAoi, modeInfo]
+  );
+
   return (
-    <AnalysisModeContext.Provider value={{ mode, setMode, selectedAoi, setSelectedAoi, modeInfo }}>
+    <AnalysisModeContext.Provider value={value}>
       {children}
     </AnalysisModeContext.Provider>
   );

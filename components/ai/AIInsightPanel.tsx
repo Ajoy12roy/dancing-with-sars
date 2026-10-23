@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAnalysisMode } from '@/context';
 import { generateFallbackInsight } from '@/lib/ai-insight-fallback';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
+import { DataPanel } from '@/components/ui/DataPanel';
 
 interface AIInsightPanelProps {
   percentChanged: number;
@@ -18,6 +19,15 @@ interface AIInsightPanelProps {
   warnings?: string[];
   totalAreaKm2?: number;
 }
+
+interface InsightCacheEntry {
+  explanation: string;
+  usedFallback: boolean;
+}
+
+// Module-level cache and in-flight request map keyed by `${aoi}:${mode}`
+const insightCache = new Map<string, InsightCacheEntry>();
+const inFlightRequests = new Map<string, Promise<InsightCacheEntry>>();
 
 export function AIInsightPanel({
   percentChanged,
@@ -45,9 +55,24 @@ export function AIInsightPanel({
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [usedFallback, setUsedFallback] = useState<boolean>(false);
+  const currentKeyRef = useRef<string>('');
 
   useEffect(() => {
-    let isMounted = true;
+    if (!aoiId && !activeMode) return;
+
+    const cacheKey = `${aoiId || 'none'}:${activeMode}`;
+    currentKeyRef.current = cacheKey;
+
+    // 1. Cache hit: restore state from cache immediately on repeated effect run
+    if (insightCache.has(cacheKey)) {
+      const cached = insightCache.get(cacheKey)!;
+      setExplanation(cached.explanation);
+      setUsedFallback(cached.usedFallback);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
 
     const payload = {
       mode: activeMode,
@@ -63,41 +88,77 @@ export function AIInsightPanel({
       warnings: activeWarnings,
     };
 
-    const fetchInsight = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/ai-insight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+    // 2. Reuse one in-flight promise per key
+    let requestPromise = inFlightRequests.get(cacheKey);
 
-        const result = await response.json();
-        if (isMounted) {
-          setExplanation(result.explanation);
-          setUsedFallback(Boolean(result.usedFallback));
-          setLoading(false);
+    if (!requestPromise) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 20000); // 20-second AbortController timeout
+
+      requestPromise = (async () => {
+        try {
+          const response = await fetch('/api/ai-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const result = await response.json();
+          const entry: InsightCacheEntry = {
+            explanation: result.explanation || generateFallbackInsight(payload),
+            usedFallback: Boolean(result.usedFallback),
+          };
+          insightCache.set(cacheKey, entry);
+          return entry;
+        } catch {
+          // Fall back to offline text on timeout or fetch error; never show empty box
+          const fallbackText = generateFallbackInsight(payload);
+          const entry: InsightCacheEntry = {
+            explanation: fallbackText,
+            usedFallback: true,
+          };
+          insightCache.set(cacheKey, entry);
+          return entry;
+        } finally {
+          clearTimeout(timeoutId);
+          inFlightRequests.delete(cacheKey);
         }
-      } catch (err) {
-        console.warn('AI insight fetch failed; generating deterministic offline summary:', err);
-        if (isMounted) {
+      })();
+
+      inFlightRequests.set(cacheKey, requestPromise);
+    }
+
+    // 3. Await in-flight request, ignore response only if current key differs, setLoading(false) in finally
+    requestPromise
+      .then((entry) => {
+        if (currentKeyRef.current === cacheKey) {
+          setExplanation(entry.explanation);
+          setUsedFallback(entry.usedFallback);
+        }
+      })
+      .catch(() => {
+        if (currentKeyRef.current === cacheKey) {
           const fallbackText = generateFallbackInsight(payload);
           setExplanation(fallbackText);
           setUsedFallback(true);
+        }
+      })
+      .finally(() => {
+        if (currentKeyRef.current === cacheKey) {
           setLoading(false);
         }
-      }
-    };
-
-    fetchInsight();
-
-    return () => {
-      isMounted = false;
-    };
+      });
   }, [
     activeMode,
-    aoiName,
     aoiId,
+    aoiName,
     percentChanged,
     affectedAreaKm2,
     confidence,
@@ -109,21 +170,18 @@ export function AIInsightPanel({
   ]);
 
   return (
-    <div className="border border-(--color-hairline) bg-(--color-paper) rounded-[2px] flex flex-col h-full min-h-80 w-full">
-      {/* Header bar (h-12) */}
-      <div className="h-12 px-4 border-b border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 gap-3">
-        <h3 className="font-bold font-headline text-base text-(--color-ink) shrink-0">
-          Radar Interpretation
-        </h3>
+    <DataPanel
+      title="Radar Interpretation"
+      rightSlot={
         <span className="font-sans text-xs text-(--color-text-secondary) truncate text-right">
           {usedFallback
             ? 'Offline summary generated from the computed numbers'
             : 'AI-generated explanation of computed results'}
         </span>
-      </div>
-
-      {/* Body (flex-1) */}
-      <div className="flex-1 p-5 flex flex-col justify-center">
+      }
+      className="h-full min-h-80 w-full"
+      bodyClassName="justify-between overflow-y-auto"
+    >
         {loading ? (
           <div className="space-y-3">
             <div className="h-3.5 bg-(--color-hairline) rounded-sm w-full animate-pulse"></div>
@@ -131,17 +189,16 @@ export function AIInsightPanel({
             <div className="h-3.5 bg-(--color-hairline) rounded-sm w-4/6 animate-pulse"></div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 flex flex-col justify-between">
             <p className="text-sm text-(--color-ink) font-sans leading-relaxed">
               {explanation}
             </p>
-            <div className="pt-3 border-t border-(--color-hairline) flex items-center justify-between text-xs text-(--color-text-secondary) font-data">
+            <div className="pt-3 border-t border-(--color-hairline) flex items-center justify-between text-xs text-(--color-text-secondary) font-data shrink-0">
               <span>Target: {aoiName || aoiId}</span>
               <span>{usedFallback ? 'Deterministic summary' : 'gemini-3.5-flash'}</span>
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </DataPanel>
   );
 }

@@ -8,10 +8,11 @@ import type { AreaOfInterest } from '@/types';
 // ── Navigation ───────────────────────────────────────────────────────────
 export const NAV_LINKS = [
   { label: 'Home', href: '/' },
-  { label: 'Explore', href: '/explore' },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'Data Sources', href: '/data-sources' },
-  { label: 'About', href: '/about' },
+  { label: 'Flood', href: '/explore?mode=flood' },
+  { label: 'River Erosion', href: '/explore?mode=erosion' },
+  { label: 'Deforestation', href: '/explore?mode=deforestation' },
+  { label: 'Surface Water', href: '/explore?mode=water' },
+  { label: 'Data Source', href: '/data-sources' },
 ] as const;
 
 // ── Design Tokens (JS-side mirror) ──────────────────────────────────────
@@ -297,7 +298,7 @@ export const DATASET_INFO = {
 
 // ── Application Config ───────────────────────────────────────────────────
 export const APP_CONFIG = {
-  name: 'Dancing with the SARs',
+  name: 'TerraPulse',
   tagline: 'See the Earth change in radar\'s eyes',
   version: '0.1.0',
   challenge: 'NASA Space Apps Challenge 2026',
