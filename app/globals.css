@@ -7,41 +7,63 @@
    ======================================================================== */
 
 @theme inline {
-  /* ── Color Palette ──────────────────────────────────────────────────── */
-  /* Paper & Ink */
-  --color-paper: #F1F0EC;
-  --color-paper-warm: #E8E6E1;
-  --color-ink: #1D2023;
-  --color-ink-light: #3A3D42;
-  --color-ink-muted: #6B6E73; /* kept for transition; prefer --color-text-secondary */
-  --navy: #000E1C;
-  --color-navy: #000E1C;
+  /* ── Color Palette (maps Tailwind utilities to dynamic CSS variables) ── */
+  --color-paper: var(--color-paper);
+  --color-paper-warm: var(--color-paper-warm);
+  --color-paper-dark: var(--color-paper-dark);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-bg: var(--color-bg);
 
-  /* Text hierarchy — solid colors, no opacity tricks */
-  --color-text-primary: #1D2023;   /* headings + primary body */
-  --color-text-secondary: #4A4E52; /* captions, descriptions, footer — WCAG AA on #F1F0EC */
-  --color-text-caption: #6B6F74;   /* placeholders, mono identifiers — WCAG AA on #F1F0EC */
+  --color-ink: var(--color-ink);
+  --color-ink-light: var(--color-ink-light);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-dark: var(--color-ink-dark);
 
-  /* Survey Teal — primary accent, sparingly for data highlights / links */
-  --color-teal: #2C5C61;
-  --color-teal-light: #3A7A80;
-  --color-teal-faint: rgba(44, 92, 97, 0.08);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-caption: var(--color-text-caption);
+  --color-text-small: var(--color-text-small);
 
-  /* Annotation Rust — ONLY for flagged / changed-region indicators */
-  --color-rust: #A8462E;
-  --color-rust-light: #C05A3E;
-  --color-rust-faint: rgba(168, 70, 46, 0.08);
+  --color-teal: var(--color-teal);
+  --color-teal-light: var(--color-teal-light);
+  --color-teal-faint: var(--color-teal-faint);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-text-on-accent: var(--color-text-on-accent);
 
-  /* Hairline — borders, rules, grid lines */
-  --color-hairline: #C7C4BC;
-  --color-hairline-light: #D8D5CE;
-  --color-hairline-dark: #A9A69F;
+  --color-rust: var(--color-rust);
+  --color-rust-light: var(--color-rust-light);
+  --color-rust-faint: var(--color-rust-faint);
+  --color-change-red: var(--color-change-red);
+  --color-comparison-line: var(--color-comparison-line);
 
-  /* Status (muted, documentary) */
-  --color-success: #3B7A57;
-  --color-warning: #A8462E;
-  --color-error: #8B2E2E;
-  --color-info: #2C5C61;
+  --color-hairline: var(--color-hairline);
+  --color-hairline-light: var(--color-hairline-light);
+  --color-hairline-dark: var(--color-hairline-dark);
+  --color-border: var(--color-border);
+  --color-panel-border: var(--color-panel-border);
+  --data-panel-border: var(--data-panel-border);
+
+  --navy: var(--navy);
+  --color-navy: var(--color-navy);
+  --color-navbar-bg: var(--color-navbar-bg);
+  --color-navbar-border: var(--color-navbar-border);
+  --color-navbar-text: var(--color-navbar-text);
+  --color-navbar-link-hover: var(--color-navbar-link-hover);
+
+  --color-footer-bg: var(--color-footer-bg);
+  --color-footer-border: var(--color-footer-border);
+  --color-footer-text: var(--color-footer-text);
+  --color-footer-text-secondary: var(--color-footer-text-secondary);
+
+  --color-selection-bg: var(--color-selection-bg);
+  --color-selection-text: var(--color-selection-text);
+
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
 
   /* ── Typography ─────────────────────────────────────────────────────── */
   --font-headline: "Source Serif 4", Georgia, "Times New Roman", serif;
@@ -84,9 +106,179 @@
   --radius-full: 2px;
 }
 
-:root {
-  --navy: #000E1C;
+/* ========================================================================
+   Theme Foundation — Light & Dark Tokens (DESIGN_SYSTEM.md)
+   ======================================================================== */
+
+:root,
+:root[data-theme="light"] {
+  /* Page & Surfaces */
+  --color-paper: #F1F0EC;
+  --color-paper-warm: #E8E6E1;
+  --color-paper-dark: #141618;
+  --color-surface: #F1F0EC;
+  --color-surface-2: #E8E6E1;
+  --color-bg: #F1F0EC;
+  --leaflet-bg: #F1F0EC;
+
+  /* Typography / Ink — solid colors only */
+  --color-ink: #1D2023;
+  --color-ink-light: #3A3D42;
+  --color-ink-muted: #4A4E52;
+  --color-ink-dark: #EDEBE6;
+  --color-text-primary: #1D2023;
+  --color-text-secondary: #4A4E52;
+  --color-text-caption: #4A4E52;
+  --color-text-small: #4A4E52;
+
+  /* Survey Teal — primary accent in light mode */
+  --color-teal: #2C5C61;
+  --color-teal-light: #3A7A80;
+  --color-teal-faint: #E2ECEB;
+  --color-accent: #2C5C61;
+  --color-accent-hover: #3A7A80;
+  --color-text-on-accent: #F1F0EC;
+
+  /* Annotation Rust & Change Detection */
+  --color-rust: #A8462E;
+  --color-rust-light: #C05A3E;
+  --color-rust-faint: #EFE2DF;
+  --color-change-red: #D7301F;
+  --color-comparison-line: #0077CC;
+
+  /* Hairlines & Borders */
+  --color-hairline: #C7C4BC;
+  --color-hairline-light: #D8D5CE;
+  --color-hairline-dark: #A9A69F;
+  --color-border: #C7C4BC;
+  --color-panel-border: #2C5C61;
   --data-panel-border: #2C5C61;
+  --data-panel-border-width: 2.5px;
+
+  /* Navbar (Light mode stays #000E1C) */
+  --navy: #000E1C;
+  --color-navy: #000E1C;
+  --color-navbar-bg: #000E1C;
+  --color-navbar-border: #12263A;
+  --color-navbar-text: #EAF3FB;
+  --color-navbar-link-hover: #7FD6E3;
+
+  /* Footer (Light mode stays #000E1C) */
+  --color-footer-bg: #000E1C;
+  --color-footer-border: #12263A;
+  --color-footer-text: #EAF3FB;
+  --color-footer-text-secondary: #B4BDC7;
+
+  /* Selection (Solid tokens) */
+  --color-selection-bg: #C6DDE0;
+  --color-selection-text: #1D2023;
+
+  /* Status */
+  --color-success: #3B7A57;
+  --color-warning: #A8462E;
+  --color-error: #8B2E2E;
+  --color-info: #2C5C61;
+
+  /* Hero Tokens (DESIGN_SYSTEM.md Hero Exception - Light Mode) */
+  --hero-bg: var(--color-paper);
+  --hero-eyebrow: var(--color-teal);
+  --hero-title: var(--color-ink);
+  --hero-subtitle: var(--color-teal);
+  --hero-paragraph: var(--color-text-secondary);
+  --hero-btn-primary-bg: var(--color-teal);
+  --hero-btn-primary-text: var(--color-paper);
+  --hero-btn-primary-hover-bg: var(--color-teal-light);
+  --hero-btn-secondary-border: 1px solid var(--color-teal);
+  --hero-btn-secondary-text: var(--color-teal);
+  --hero-btn-secondary-bg: transparent;
+  --hero-btn-secondary-hover-bg: transparent;
+  --hero-btn-secondary-hover-text: var(--color-teal-light);
+  --hero-btn-secondary-hover-border: 1px solid var(--color-teal-light);
+}
+
+:root[data-theme="dark"] {
+  /* Page & Surfaces (bg #090C12, surface #0E131B, surface-2 #141B26) */
+  --color-paper: #090C12;
+  --color-paper-warm: #0E131B;
+  --color-paper-dark: #090C12;
+  --color-surface: #0E131B;
+  --color-surface-2: #141B26;
+  --color-bg: #090C12;
+  --leaflet-bg: #141B26;
+
+  /* Typography / Ink (text #E8EDF2, text-secondary #8F99A3, text-small #B4BDC7) */
+  --color-ink: #E8EDF2;
+  --color-ink-light: #B4BDC7;
+  --color-ink-muted: #8F99A3;
+  --color-ink-dark: #E8EDF2;
+  --color-text-primary: #E8EDF2;
+  --color-text-secondary: #8F99A3;
+  --color-text-caption: #B4BDC7;
+  --color-text-small: #B4BDC7;
+
+  /* Primary Accent (#19E66F replaces teal, text on accent #090B11, hover #4CF094) */
+  --color-teal: #19E66F;
+  --color-teal-light: #4CF094;
+  --color-teal-faint: #143522;
+  --color-accent: #19E66F;
+  --color-accent-hover: #4CF094;
+  --color-text-on-accent: #090B11;
+
+  /* Alert / Flagged & Change Detection (change red #FF5A47, comparison line #2F9BFF) */
+  --color-rust: #FF5A47;
+  --color-rust-light: #FF7B6B;
+  --color-rust-faint: #381B18;
+  --color-change-red: #FF5A47;
+  --color-comparison-line: #2F9BFF;
+
+  /* Hairlines & Borders (border #1F2A38, panel border 1.5px solid #1F8F55) */
+  --color-hairline: #1F2A38;
+  --color-hairline-light: #18222E;
+  --color-hairline-dark: #283648;
+  --color-border: #1F2A38;
+  --color-panel-border: #1F8F55;
+  --data-panel-border: #1F8F55;
+  --data-panel-border-width: 1.5px;
+
+  /* Navbar (Dark mode: #0B1624 with 1px bottom border #1E3045, text #EAF3FB) */
+  --navy: #0B1624;
+  --color-navy: #0B1624;
+  --color-navbar-bg: #0B1624;
+  --color-navbar-border: #1E3045;
+  --color-navbar-text: #EAF3FB;
+  --color-navbar-link-hover: #19E66F;
+
+  /* Footer (Dark mode: surface-2 #141B26, border #1F2A38, text-small #B4BDC7) */
+  --color-footer-bg: #141B26;
+  --color-footer-border: #1F2A38;
+  --color-footer-text: #E8EDF2;
+  --color-footer-text-secondary: #B4BDC7;
+
+  /* Selection (Solid tokens) */
+  --color-selection-bg: #1F4D33;
+  --color-selection-text: #E8EDF2;
+
+  /* Status */
+  --color-success: #19E66F;
+  --color-warning: #FFB020;
+  --color-error: #FF5A47;
+  --color-info: #2F9BFF;
+
+  /* Hero Tokens (DESIGN_SYSTEM.md Hero Exception - Dark Mode) */
+  --hero-bg: #090C12;
+  --hero-eyebrow: #19E66F;
+  --hero-title: #19E66F;
+  --hero-subtitle: #19E66F;
+  --hero-paragraph: #8F99A3;
+  --hero-btn-primary-bg: #19E66F;
+  --hero-btn-primary-text: #090B11;
+  --hero-btn-primary-hover-bg: #4CF094;
+  --hero-btn-secondary-border: 1.5px solid #19E66F;
+  --hero-btn-secondary-text: #19E66F;
+  --hero-btn-secondary-bg: transparent;
+  --hero-btn-secondary-hover-bg: #19E66F;
+  --hero-btn-secondary-hover-text: #090B11;
+  --hero-btn-secondary-hover-border: 1.5px solid #19E66F;
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────── */
@@ -132,8 +324,8 @@ a {
 
 /* ── Selection ────────────────────────────────────────────────────────── */
 ::selection {
-  background-color: var(--color-teal-faint);
-  color: var(--color-ink);
+  background-color: var(--color-selection-bg);
+  color: var(--color-selection-text);
 }
 
 /* ── Scrollbar (clean, minimal) ───────────────────────────────────────── */
@@ -148,16 +340,60 @@ a {
 
 ::-webkit-scrollbar-thumb {
   background: var(--color-hairline);
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-hairline-dark);
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-hairline) var(--color-paper);
+}
+
 /* ── Focus Styles (accessibility) ─────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--color-teal);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* ── Form Controls (Inputs, Selects, Dropdowns) ───────────────────────── */
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="file"],
+select,
+textarea {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
 }
 
 /* ── Reduced Motion ───────────────────────────────────────────────────── */
@@ -170,30 +406,6 @@ a {
   }
 }
 
-/* ── Dark Mode (toggle-only, not default) ─────────────────────────────── */
-[data-theme="dark"] {
-  --color-paper: #141618;
-  --color-paper-warm: #1C1E21;
-  --color-ink: #EDEBE6;
-  --color-ink-light: #C8C5BE;
-  --color-ink-muted: #8A877F;
-  /* Solid dark-mode text tokens — WCAG AA on #141618 */
-  --color-text-primary: #EDEBE6;   /* ~14:1 on dark bg */
-  --color-text-secondary: #AEAAA3; /* ~6:1 on dark bg */
-  --color-text-caption: #8A877F;   /* ~4.6:1 on dark bg */
-  --color-hairline: #2E3035;
-  --color-hairline-light: #252729;
-  --color-hairline-dark: #3E4045;
-  --color-teal-faint: rgba(44, 92, 97, 0.15);
-  --color-rust-faint: rgba(168, 70, 46, 0.15);
-  --data-panel-border: #5FA3AB;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --data-panel-border: #5FA3AB;
-  }
-}
 
 /* ── Graticule / Coordinate Grid ──────────────────────────────────────── */
 .graticule-frame {
@@ -247,55 +459,210 @@ a {
   width: 6px;
 }
 
-/* ── Leaflet Overrides ────────────────────────────────────────────────── */
-.leaflet-container {
-  background-color: #F1F0EC !important;
-}
-
-[data-theme="dark"] .leaflet-container {
-  background-color: #141618 !important;
-}
-
-.leaflet-control-attribution {
-  color: var(--color-text-secondary) !important;
-  font-family: var(--font-body) !important;
-  background-color: rgba(241, 240, 236, 0.8) !important; /* paper with some transparency */
-}
-
-[data-theme="dark"] .leaflet-control-attribution {
-  background-color: rgba(20, 22, 24, 0.8) !important;
-}
-
-.leaflet-control-attribution a {
-  color: var(--color-teal) !important;
-  text-decoration: none;
-}
-
-.leaflet-control-attribution a:hover {
-  text-decoration: underline;
-}
-
-.leaflet-control-scale-line {
-  border: 1px solid var(--color-hairline) !important;
-  border-top: none !important;
-  color: var(--color-text-secondary) !important;
-  background: rgba(241, 240, 236, 0.9) !important;
-  font-family: var(--font-data), monospace !important;
-  font-size: 10px !important;
-  line-height: 1.2 !important;
-  padding: 1px 4px !important;
-  box-shadow: none !important;
-  border-radius: 0 0 1px 1px !important;
-}
-
-[data-theme="dark"] .leaflet-control-scale-line {
-  background: rgba(20, 22, 24, 0.9) !important;
-  color: var(--color-text-secondary) !important;
-  border-color: var(--color-hairline) !important;
-}
+/* ── Leaflet Overrides (Defined in solid Leaflet section below) ── */
 
 .graticule-lat-label,
 .graticule-lon-label {
   background: transparent !important;
   border: none !important;
 }
+
+/* ========================================================================
+   Homepage Hero Section (DESIGN_SYSTEM.md Hero Exception)
+   ======================================================================== */
+
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--hero-bg);
+}
+
+.hero-eyebrow {
+  color: var(--hero-eyebrow);
+}
+
+.hero-title {
+  color: var(--hero-title);
+  font-family: var(--font-body);
+}
+
+.hero-subtitle {
+  color: var(--hero-subtitle);
+}
+
+.hero-paragraph {
+  color: var(--hero-paragraph);
+}
+
+.hero-btn-primary {
+  background-color: var(--hero-btn-primary-bg);
+  color: var(--hero-btn-primary-text);
+  box-shadow: none;
+}
+.hero-btn-primary:hover {
+  background-color: var(--hero-btn-primary-hover-bg);
+  color: var(--hero-btn-primary-text);
+}
+
+.hero-btn-secondary {
+  background-color: var(--hero-btn-secondary-bg);
+  color: var(--hero-btn-secondary-text);
+  border: var(--hero-btn-secondary-border);
+  box-shadow: none;
+}
+.hero-btn-secondary:hover {
+  background-color: var(--hero-btn-secondary-hover-bg);
+  color: var(--hero-btn-secondary-hover-text);
+  border: var(--hero-btn-secondary-hover-border);
+}
+
+[data-theme="dark"] .hero-btn-primary:hover {
+  background-color: #4CF094;
+  color: #090B11;
+}
+
+[data-theme="dark"] .hero-btn-secondary:hover {
+  background-color: #19E66F;
+  color: #090B11;
+  border-color: #19E66F;
+}
+
+
+/* Earth Arc (Dark mode only) */
+.hero-earth-arc {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10vh;
+  width: max(150vw, 120vh);
+  height: max(150vw, 120vh);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 0%, #10121B 0%, #090C12 70%);
+  border: 2px solid #19212F;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: none;
+}
+
+[data-theme="dark"] .hero-earth-arc {
+  display: block;
+}
+
+/* Star Field (Dark mode only) */
+.hero-stars-container {
+  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="dark"] .hero-stars-container {
+  display: block;
+}
+
+@keyframes heroStarTwinkle {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.hero-star {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation-name: heroStarTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-star {
+    animation: none !important;
+    opacity: 0.7 !important;
+  }
+}
+
+/* ========================================================================
+   Leaflet Maps — Solid Dark Mode Tokens & Basemap (#141B26)
+   ======================================================================== */
+
+.leaflet-container {
+  background-color: var(--leaflet-bg) !important;
+  font-family: var(--font-body) !important;
+}
+
+[data-theme="dark"] .leaflet-container {
+  background-color: #141B26 !important;
+}
+
+/* Metric Scale Bar: on surface-2 with solid text */
+.leaflet-control-scale-line {
+  background: var(--color-surface-2) !important;
+  color: var(--color-ink) !important;
+  border: 1px solid var(--color-hairline) !important;
+  border-top: none !important;
+  font-family: var(--font-data) !important;
+  font-size: 10px !important;
+  padding: 1px 4px !important;
+  border-radius: 0 0 2px 2px !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .leaflet-control-scale-line {
+  background: #141B26 !important;
+  color: #E8EDF2 !important;
+  border-color: #1F2A38 !important;
+}
+
+/* Attribution Control: solid background and readable links */
+.leaflet-control-attribution {
+  background: var(--color-surface-2) !important;
+  color: var(--color-text-secondary) !important;
+  font-family: var(--font-data) !important;
+  font-size: 10px !important;
+  border-top: 1px solid var(--color-hairline) !important;
+  border-left: 1px solid var(--color-hairline) !important;
+  padding: 2px 6px !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--color-teal) !important;
+  text-decoration: none !important;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline !important;
+}
+
+/* Popups: solid surface, solid ink, hairline border */
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface) !important;
+  color: var(--color-ink) !important;
+  border: 1px solid var(--color-hairline) !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  font-family: var(--font-body) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--color-surface) !important;
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px !important;
+  line-height: 1.4 !important;
+  color: var(--color-ink) !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--color-ink) !important;
+  padding: 4px 4px 0 0 !important;
+}
+

@@ -14,9 +14,9 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  teal: 'text-(--color-teal) border-(--color-teal)',
-  rust: 'text-(--color-rust) border-(--color-rust)',
-  neutral: 'text-(--color-text-secondary) border-(--color-hairline)',
+  teal: 'text-teal border-teal',
+  rust: 'text-rust border-rust',
+  neutral: 'text-text-secondary border-hairline',
 };
 
 export function Badge({

@@ -19,42 +19,43 @@ export function DataSourcesSection() {
           transition: { duration: 0.45, ease: 'easeOut' },
         },
       }}
-      className="py-14 border-t border-(--color-hairline)"
+      className="py-16 border-t border-hairline"
     >
-      <div className="border border-(--color-hairline) p-6 bg-(--color-paper) rounded-[2px]">
-        <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 pb-4 border-b border-(--color-hairline) mb-4">
-          <div>
-            <span className="block text-xs text-(--color-text-caption) font-data tracking-wider uppercase mb-1">
-              Provenance &amp; Attribution
-            </span>
-            <h2 className="text-xl md:text-2xl font-headline font-semibold text-(--color-text-primary)">
-              Data sources &amp; satellite missions
-            </h2>
-          </div>
-          <Link
-            href="/data-sources"
-            className="text-xs font-sans font-medium text-(--color-teal) hover:underline flex items-center gap-1"
-          >
-            View full citations &amp; software stack &rarr;
-          </Link>
+      <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-8">
+        <div>
+          <span className="block text-xs text-text-caption font-data tracking-wider uppercase mb-1">
+            Provenance &amp; Attribution
+          </span>
+          <h2 className="text-2xl md:text-3xl font-headline font-semibold text-text-primary leading-snug">
+            Data sources &amp; satellite missions
+          </h2>
         </div>
+        <Link
+          href="/data-sources"
+          className="text-xs font-sans font-medium text-teal hover:underline flex items-center gap-1 shrink-0"
+        >
+          View full citations &amp; software stack &rarr;
+        </Link>
+      </div>
 
-        <p className="text-sm text-(--color-text-secondary) leading-relaxed mb-6 max-w-3xl">
+      <div className="border border-hairline p-6 bg-surface rounded-[2px]">
+
+        <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-3xl">
           All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and processed via Alaska Satellite Facility (ASF DAAC). Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-data">
-          <div className="border border-(--color-hairline) p-3 bg-(--color-paper-warm) rounded-[1px]">
-            <span className="text-(--color-text-caption) block text-[11px] mb-1">CONSTELLATION</span>
-            <span className="text-(--color-ink) font-medium">Copernicus Sentinel-1 (C-band)</span>
+          <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
+            <span className="text-text-caption block text-[11px] mb-1">CONSTELLATION</span>
+            <span className="text-text-primary font-medium">Copernicus Sentinel-1 (C-band)</span>
           </div>
-          <div className="border border-(--color-hairline) p-3 bg-(--color-paper-warm) rounded-[1px]">
-            <span className="text-(--color-text-caption) block text-[11px] mb-1">ARCHIVE DISTRIBUTION</span>
-            <span className="text-(--color-ink) font-medium">ASF DAAC / NASA Earthdata</span>
+          <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
+            <span className="text-text-caption block text-[11px] mb-1">ARCHIVE DISTRIBUTION</span>
+            <span className="text-text-primary font-medium">ASF DAAC / NASA Earthdata</span>
           </div>
-          <div className="border border-(--color-hairline) p-3 bg-(--color-paper-warm) rounded-[1px]">
-            <span className="text-(--color-text-caption) block text-[11px] mb-1">GEOSPATIAL PROCESSING</span>
-            <span className="text-(--color-ink) font-medium">GDAL &bull; Rasterio &bull; NumPy &bull; SciPy</span>
+          <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
+            <span className="text-text-caption block text-[11px] mb-1">GEOSPATIAL PROCESSING</span>
+            <span className="text-text-primary font-medium">GDAL &bull; Rasterio &bull; NumPy &bull; SciPy</span>
           </div>
         </div>
       </div>

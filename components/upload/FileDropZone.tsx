@@ -84,7 +84,7 @@ export function FileDropZone({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-(--color-ink)">{label}</span>
+      <span className="text-sm font-medium text-ink">{label}</span>
 
       <div
         onClick={handleClick}
@@ -101,10 +101,10 @@ export function FileDropZone({
         }}
         className={`border border-dashed rounded-[2px] p-6 min-h-[160px] flex flex-col items-center justify-center text-center transition-colors cursor-pointer select-none ${
           isDragOver
-            ? 'border-(--color-teal) bg-(--color-teal-faint)'
+            ? 'border-teal bg-teal-faint'
             : file
-            ? 'border-solid border-(--color-hairline) bg-transparent'
-            : 'border-(--color-hairline) hover:border-(--color-ink) bg-transparent'
+            ? 'border-solid border-hairline bg-transparent'
+            : 'border-hairline hover:border-ink bg-transparent'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input
@@ -118,14 +118,14 @@ export function FileDropZone({
 
         {file ? (
           <div className="flex flex-col items-center gap-2 max-w-full">
-            <div className="w-8 h-8 rounded-[2px] border border-(--color-hairline) flex items-center justify-center text-(--color-teal)">
-              <FileCheck className="w-4 h-4 text-(--color-teal)" strokeWidth={1.5} />
+            <div className="w-8 h-8 rounded-[2px] border border-hairline flex items-center justify-center text-teal">
+              <FileCheck className="w-4 h-4 text-teal" strokeWidth={1.5} />
             </div>
             <div className="max-w-full px-2 text-center">
-              <p className="font-data text-sm font-semibold text-(--color-ink) truncate max-w-xs sm:max-w-sm">
+              <p className="font-data text-sm font-semibold text-ink truncate max-w-xs sm:max-w-sm">
                 {file.name}
               </p>
-              <p className="font-data text-xs text-(--color-teal) mt-0.5">
+              <p className="font-data text-xs text-teal mt-0.5">
                 {formatFileSize(file.size)}
               </p>
             </div>
@@ -136,7 +136,7 @@ export function FileDropZone({
                 setValidationError(null);
                 onFileRemove();
               }}
-              className="mt-1 flex items-center gap-1 text-xs text-(--color-text-secondary) hover:text-(--color-rust) transition-colors py-1 px-2 border border-transparent hover:border-(--color-hairline) rounded-[2px]"
+              className="mt-1 flex items-center gap-1 text-xs text-text-secondary hover:text-rust transition-colors py-1 px-2 border border-transparent hover:border-hairline rounded-[2px]"
             >
               <X className="w-3 h-3" />
               <span>Remove</span>
@@ -144,14 +144,14 @@ export function FileDropZone({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-[2px] border border-(--color-hairline) flex items-center justify-center text-(--color-text-secondary)">
-              <Upload className="w-4 h-4 text-(--color-text-secondary)" strokeWidth={1.5} />
+            <div className="w-8 h-8 rounded-[2px] border border-hairline flex items-center justify-center text-text-secondary">
+              <Upload className="w-4 h-4 text-text-secondary" strokeWidth={1.5} />
             </div>
             <div>
-              <p className="text-sm font-medium text-(--color-ink)">
+              <p className="text-sm font-medium text-ink">
                 Drag & drop or click to choose
               </p>
-              <p className="font-data text-xs text-(--color-text-secondary) mt-1">
+              <p className="font-data text-xs text-text-secondary mt-1">
                 .tif or .tiff format (up to 250 MB)
               </p>
             </div>
@@ -160,7 +160,7 @@ export function FileDropZone({
       </div>
 
       {validationError && (
-        <p className="text-xs text-(--color-rust) font-sans mt-0.5">
+        <p className="text-xs text-rust font-sans mt-0.5">
           {validationError}
         </p>
       )}

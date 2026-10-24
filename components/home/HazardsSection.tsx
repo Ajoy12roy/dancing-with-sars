@@ -62,18 +62,18 @@ export function HazardsSection() {
           transition: { duration: 0.45, ease: 'easeOut' },
         },
       }}
-      className="py-20 border-t border-(--color-hairline)"
+      className="py-20 border-t border-hairline"
     >
       <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-8">
         <div>
-          <span className="block text-xs text-(--color-text-caption) font-data tracking-wider uppercase mb-1">
+          <span className="block text-xs text-text-caption font-data tracking-wider uppercase mb-1">
             Standardized Remote Sensing Framework
           </span>
-          <h2 className="text-2xl md:text-3xl font-headline font-semibold text-(--color-text-primary) leading-snug">
+          <h2 className="text-2xl md:text-3xl font-headline font-semibold text-text-primary leading-snug">
             Four hazards, one workflow
           </h2>
         </div>
-        <p className="text-xs font-data text-(--color-text-secondary) max-w-sm">
+        <p className="text-xs font-data text-text-secondary max-w-sm">
           A single deterministic pipeline parameterized for four distinct earth surface transformations
         </p>
       </div>
@@ -82,34 +82,34 @@ export function HazardsSection() {
         {HAZARDS.map((h, idx) => (
           <div
             key={h.id}
-            className="border border-(--color-hairline) p-5 bg-(--color-paper) rounded-[2px] flex flex-col justify-between hover:border-(--color-teal) transition-colors duration-150"
+            className="border border-hairline p-5 bg-surface rounded-[2px] flex flex-col justify-between hover:border-teal transition-colors duration-150"
           >
             <div>
-              <div className="flex items-center justify-between pb-2 border-b border-(--color-hairline) mb-3">
-                <span className="text-[11px] font-data text-(--color-text-caption) uppercase">
+              <div className="flex items-center justify-between pb-2 border-b border-hairline mb-3">
+                <span className="text-[11px] font-data text-text-caption uppercase">
                   MODE 0{idx + 1}
                 </span>
-                <span className="text-[11px] font-data text-(--color-teal) font-medium">
+                <span className="text-[11px] font-data text-teal font-medium">
                   {h.kicker}
                 </span>
               </div>
 
-              <h3 className="text-base font-headline font-semibold text-(--color-text-primary) mb-2">
+              <h3 className="text-base font-headline font-semibold text-text-primary mb-2">
                 {h.title}
               </h3>
 
-              <p className="text-xs text-(--color-text-secondary) leading-relaxed mb-4">
+              <p className="text-xs text-text-secondary leading-relaxed mb-4">
                 {h.description}
               </p>
             </div>
 
-            <div className="pt-3 border-t border-(--color-hairline) flex items-center justify-between">
-              <span className="text-[11px] font-data text-(--color-text-caption)">
+            <div className="pt-3 border-t border-hairline flex items-center justify-between">
+              <span className="text-[11px] font-data text-text-caption">
                 ?mode={h.mode}
               </span>
               <Link
                 href={h.href}
-                className="text-xs font-sans font-medium text-(--color-teal) hover:underline flex items-center gap-1"
+                className="text-xs font-sans font-medium text-teal hover:underline flex items-center gap-1"
               >
                 Explore mode &rarr;
               </Link>

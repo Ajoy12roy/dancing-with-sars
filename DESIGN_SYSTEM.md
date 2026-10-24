@@ -39,4 +39,25 @@
 2. Comparison line color: solid #0077CC (blue), 3px wide, with a 1px solid #FFFFFF casing on each side (not a shadow) so it is visible on both dark and bright SAR pixels. No glow.
 3. Change-detection overlay: "change red" token #D7301F, used ONLY for changed pixels and their legend swatch. accent-rust #A8462E remains for text alerts.
 4. Footer text: solid colors only at full opacity, minimum 14px for links and 13px for legal text, no Tailwind opacity modifiers.
+
+## Dark mode
+Theme mechanism rule: theme is set by data-theme="light|dark" on <html>, all colors come from CSS variables, never hard-coded hex in components.
+
+Dark mode tokens (solid colors only, never opacity modifiers on text):
+- bg: #090C12
+- surface (cards/panels): #0E131B
+- surface-2: #141B26
+- border: #1F2A38; panel border (data panels): 1.5px solid #1F8F55
+- text: #E8EDF2; text-secondary: #8F99A3; text-small (footer/legal, min contrast): #B4BDC7
+- accent (replaces teal in dark mode for data values, links, primary buttons): #19E66F; text on accent: #090B11; accent hover: #4CF094
+- change red (dark): #FF5A47; comparison line (dark): #2F9BFF with 1px #FFFFFF casing
+- navbar (dark): #0B1624 with a 1px bottom border #1E3045. It must be visibly different from bg. Light-mode navbar stays #000E1C.
+- Light mode tokens stay exactly as they are today.
+
+## Hero exception
+Hero exception (homepage first section only):
+- Title/hero text uses Public Sans weight 700 (sans) instead of Source Serif 4.
+- In DARK mode only, the hero may use a CSS radial-gradient "Earth arc" background and tiny accent-colored star dots. No glow or box-shadow on buttons or text.
+- Light mode hero keeps the current background and colors.
 ---
+

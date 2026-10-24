@@ -74,6 +74,7 @@ const ibmPlexMono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'TerraPulse — SAR Change Detection',
   description: 'Earth insights. A safer tomorrow.',
   keywords: [
@@ -110,8 +111,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="light"
+      suppressHydrationWarning
       className={`${sourceSerif.variable} ${publicSans.variable} ${ibmPlexMono.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('terrapulse-theme');var theme=(t==='dark'||t==='light')?t:'light';document.documentElement.setAttribute('data-theme',theme);document.documentElement.style.colorScheme=theme;}catch(e){document.documentElement.setAttribute('data-theme','light');document.documentElement.style.colorScheme='light';}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col">
         <AnalysisModeProvider>
           <Navbar />

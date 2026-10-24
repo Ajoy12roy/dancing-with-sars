@@ -125,9 +125,6 @@ function ExploreContent() {
     }
   }, [selectedAoi, mode, rawModeParam, router, setSelectedAoi, setMode]);
 
-  // Filter demo AOIs for current mode
-  const filteredAois = DEMO_AOIS.filter((a) => a.mode === mode);
-  const displayAois = filteredAois.length > 0 ? filteredAois : DEMO_AOIS;
 
   // Build upload AOI representation for ChangeMap / BeforeAfterViewer
   const uploadAoi: AreaOfInterest | null = uploadData
@@ -189,19 +186,19 @@ function ExploreContent() {
   }, [displayData?.categories]);
 
   return (
-    <div className="min-h-screen bg-(--color-paper) text-(--color-ink) p-6">
+    <div className="min-h-screen bg-paper text-ink p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 12-Column CSS Grid Layout with consistent 24px gap (gap-6) */}
         <div className="grid grid-cols-12 gap-6">
           {/* ── Row 1: Page Header + AOI Select / Mode Switcher (12 columns) ── */}
-          <div className="col-span-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-(--color-hairline)">
+          <div className="col-span-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-hairline">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold font-headline text-(--color-ink)">
+              <h1 className="text-2xl lg:text-3xl font-bold font-headline text-ink">
                 {activeTab === 'demo'
                   ? activeDemoAoi?.name || 'Precomputed Case Studies'
                   : 'Custom SAR Analysis'}
               </h1>
-              <p className="text-(--color-text-secondary) text-sm mt-1 font-sans">
+              <p className="text-text-secondary text-sm mt-1 font-sans">
                 {activeTab === 'demo'
                   ? activeDemoAoi?.description || 'Sentinel-1 radar backscatter variation analysis'
                   : 'Upload co-registered Before and After SAR GeoTIFF imagery to detect ground surface change.'}
@@ -210,14 +207,14 @@ function ExploreContent() {
 
             <div className="flex flex-wrap items-center gap-4 shrink-0">
               {/* Quick Demo vs Upload Toggle */}
-              <div className="inline-flex border border-(--color-hairline) rounded-[2px] p-0.5 bg-(--color-paper)">
+              <div className="inline-flex border border-hairline rounded-[2px] p-0.5 bg-surface-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab('demo')}
                   className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
                     activeTab === 'demo'
-                      ? 'bg-(--color-teal) text-white'
-                      : 'text-(--color-text-secondary) hover:text-(--color-ink)'
+                      ? 'bg-accent text-text-on-accent font-semibold'
+                      : 'text-text-secondary hover:text-ink'
                   }`}
                 >
                   Quick Demo
@@ -227,8 +224,8 @@ function ExploreContent() {
                   onClick={() => setActiveTab('upload')}
                   className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
                     activeTab === 'upload'
-                      ? 'bg-(--color-teal) text-white'
-                      : 'text-(--color-text-secondary) hover:text-(--color-ink)'
+                      ? 'bg-accent text-text-on-accent font-semibold'
+                      : 'text-text-secondary hover:text-ink'
                   }`}
                 >
                   Upload Your Own
@@ -238,16 +235,16 @@ function ExploreContent() {
               {/* AOI Select (when in Quick Demo mode) */}
               {activeTab === 'demo' && (
                 <div className="flex items-center gap-2">
-                  <label htmlFor="aoi-select" className="text-xs font-medium text-(--color-text-secondary) shrink-0 font-sans">
+                  <label htmlFor="aoi-select" className="text-xs font-medium text-text-secondary shrink-0 font-sans">
                     Case Study:
                   </label>
                   <select
                     id="aoi-select"
                     value={selectedAoi}
                     onChange={(e) => handleAoiSelect(e.target.value)}
-                    className="bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) rounded-[2px] py-1.5 px-3 text-xs font-data focus:outline-none focus:border-(--color-teal) cursor-pointer"
+                    className="bg-surface border border-hairline text-ink rounded-[2px] py-1.5 px-3 text-xs font-data focus:outline-none focus:border-accent cursor-pointer"
                   >
-                    {displayAois.map((aoi) => (
+                    {DEMO_AOIS.map((aoi) => (
                       <option key={aoi.id} value={aoi.id}>
                         {aoi.name}
                       </option>
@@ -261,7 +258,7 @@ function ExploreContent() {
                 <button
                   type="button"
                   onClick={handleResetUpload}
-                  className="px-3 py-1.5 text-xs font-medium border border-(--color-hairline) text-(--color-ink) hover:border-(--color-ink) rounded-[2px] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer"
                 >
                   Upload Another Pair
                 </button>
@@ -271,7 +268,7 @@ function ExploreContent() {
 
           {/* ── Upload Mode Form / Progress States ── */}
           {activeTab === 'upload' && uploadError && (
-            <div className="col-span-12 border border-(--color-rust) text-(--color-rust) p-4 rounded-[2px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="col-span-12 border border-rust text-rust p-4 rounded-[2px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <p className="font-semibold text-sm">Analysis Failed</p>
                 <p className="text-sm font-sans">{uploadError}</p>
@@ -280,14 +277,14 @@ function ExploreContent() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('demo')}
-                  className="px-3 py-1.5 text-xs font-medium border border-(--color-hairline) text-(--color-ink) hover:border-(--color-ink) rounded-[2px] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer"
                 >
                   Return to Quick Demo
                 </button>
                 <button
                   type="button"
                   onClick={handleResetUpload}
-                  className="px-3 py-1.5 text-xs font-medium border border-(--color-rust) text-(--color-rust) hover:bg-(--color-rust) hover:text-white rounded-[2px] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-medium border border-rust text-rust hover:bg-rust hover:text-text-on-accent rounded-[2px] transition-colors cursor-pointer"
                 >
                   Try again
                 </button>
@@ -302,27 +299,27 @@ function ExploreContent() {
           )}
 
           {activeTab === 'upload' && !uploadLoading && !uploadData && (
-            <div className="col-span-12 border border-(--color-hairline) bg-(--color-paper) p-6 rounded-[2px] space-y-6">
+            <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-6">
               <div>
-                <h2 className="text-xl font-bold font-headline text-(--color-ink)">
+                <h2 className="text-xl font-bold font-headline text-ink">
                   Upload SAR GeoTIFF Files
                 </h2>
-                <p className="text-(--color-text-secondary) text-sm mt-1 font-sans">
+                <p className="text-text-secondary text-sm mt-1 font-sans">
                   Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 250 MB each) to compute radar backscatter changes. Requires local Python runtime; precomputed case studies in Quick Demo work without Python.
                 </p>
               </div>
 
               {/* Analysis Configuration Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-(--color-hairline) bg-(--color-paper-warm) p-4 rounded-[2px]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
                 <div>
-                  <label htmlFor="upload-mode-select" className="block text-xs font-medium text-(--color-text-secondary) mb-1 font-sans">
+                  <label htmlFor="upload-mode-select" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
                     Analysis type
                   </label>
                   <select
                     id="upload-mode-select"
                     value={mode}
                     onChange={(e) => handleModeSelect(e.target.value as AnalysisMode)}
-                    className="w-full bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) rounded-[2px] py-2 px-3 text-sm focus:outline-none focus:border-(--color-teal) cursor-pointer"
+                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm focus:outline-none focus:border-accent cursor-pointer"
                   >
                     <option value="flood">Flood</option>
                     <option value="river-erosion">River erosion</option>
@@ -331,7 +328,7 @@ function ExploreContent() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="upload-date-a" className="block text-xs font-medium text-(--color-text-secondary) mb-1 font-sans">
+                  <label htmlFor="upload-date-a" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
                     Before date (optional)
                   </label>
                   <input
@@ -339,11 +336,11 @@ function ExploreContent() {
                     id="upload-date-a"
                     value={uploadDateA}
                     onChange={(e) => setUploadDateA(e.target.value)}
-                    className="w-full bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-(--color-teal)"
+                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
                   />
                 </div>
                 <div>
-                  <label htmlFor="upload-date-b" className="block text-xs font-medium text-(--color-text-secondary) mb-1 font-sans">
+                  <label htmlFor="upload-date-b" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
                     After date (optional)
                   </label>
                   <input
@@ -351,7 +348,7 @@ function ExploreContent() {
                     id="upload-date-b"
                     value={uploadDateB}
                     onChange={(e) => setUploadDateB(e.target.value)}
-                    className="w-full bg-(--color-paper) border border-(--color-hairline) text-(--color-ink) rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-(--color-teal)"
+                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
                   />
                 </div>
               </div>
@@ -375,12 +372,12 @@ function ExploreContent() {
               </div>
 
               {/* Submit Action */}
-              <div className="flex justify-end pt-2 border-t border-(--color-hairline)">
+              <div className="flex justify-end pt-2 border-t border-hairline">
                 <button
                   type="button"
                   disabled={!beforeFile || !afterFile || uploadLoading}
                   onClick={handleAnalyze}
-                  className="bg-(--color-teal) text-white border border-(--color-teal) hover:bg-(--color-teal-light) disabled:bg-transparent disabled:text-(--color-text-secondary) disabled:border-(--color-hairline) disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 font-medium text-sm transition-colors cursor-pointer"
+                  className="bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
                 >
                   Analyze
                 </button>
@@ -390,15 +387,15 @@ function ExploreContent() {
 
           {/* ── Demo Loading / Error States ── */}
           {activeTab === 'demo' && demoLoading && (
-            <div className="col-span-12 flex justify-center items-center h-[50vh] border border-(--color-hairline) bg-(--color-paper) rounded-[2px]">
-              <div className="font-data text-sm text-(--color-text-secondary)">
+            <div className="col-span-12 flex justify-center items-center h-[50vh] border border-hairline bg-surface rounded-[2px]">
+              <div className="font-data text-sm text-text-secondary">
                 Loading SAR observation data...
               </div>
             </div>
           )}
 
           {activeTab === 'demo' && demoError && (
-            <div className="col-span-12 border border-(--color-rust) text-(--color-rust) p-6 rounded-[2px] text-center">
+            <div className="col-span-12 border border-rust bg-surface text-rust p-6 rounded-[2px] text-center">
               <p className="font-semibold text-sm">Error Loading Precomputed Data</p>
               <p className="text-xs mt-1 font-sans">{demoError}</p>
             </div>
@@ -431,7 +428,7 @@ function ExploreContent() {
                 <DataPanel
                   title="Category Breakdown"
                   rightSlot={
-                    <span className="font-data text-xs text-(--color-text-secondary)">Area (km²)</span>
+                    <span className="font-data text-xs text-text-secondary">Area (km²)</span>
                   }
                   className="h-full w-full"
                   bodyClassName="justify-between"
@@ -444,22 +441,22 @@ function ExploreContent() {
                   </div>
 
                   {displayData.categories && displayData.categories.length > 0 && (
-                    <div className="pt-3 border-t border-(--color-hairline) flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                    <div className="pt-3 border-t border-hairline flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                       {displayData.categories.map((cat) => (
-                        <div key={cat.id} className="flex items-center gap-1.5 font-data text-(--color-text-secondary)">
+                        <div key={cat.id} className="flex items-center gap-1.5 font-data text-text-secondary">
                           <span
-                            className="w-2.5 h-2.5 rounded-sm border border-(--color-hairline) shrink-0"
+                            className="w-2.5 h-2.5 rounded-sm border border-hairline shrink-0"
                             style={{
                               backgroundColor:
                                 cat.kind === 'loss' || cat.id.includes('loss') || cat.id.includes('erosion') || cat.id.includes('flooded')
                                   ? 'var(--color-rust)'
                                   : cat.kind === 'gain' || cat.id.includes('accretion')
                                   ? 'var(--color-teal)'
-                                  : '#7D8A92',
+                                  : 'var(--color-ink-muted)',
                             }}
                           />
-                          <span className="text-(--color-ink) font-sans">{cat.label}:</span>
-                          <span className="font-medium text-(--color-teal)">{cat.areaKm2.toFixed(2)} km²</span>
+                          <span className="text-ink font-sans">{cat.label}:</span>
+                          <span className="font-medium text-teal">{cat.areaKm2.toFixed(2)} km²</span>
                         </div>
                       ))}
                     </div>
@@ -503,9 +500,9 @@ export default function ExplorePage() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
-          <div className="h-8 bg-(--color-hairline) w-64 mb-4 rounded-sm" />
-          <div className="h-96 bg-(--color-hairline) w-full rounded-sm" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse space-y-4">
+          <div className="h-8 bg-surface-2 border border-hairline w-64 rounded-[2px]" />
+          <div className="h-96 bg-surface-2 border border-hairline w-full rounded-[2px]" />
         </div>
       }
     >

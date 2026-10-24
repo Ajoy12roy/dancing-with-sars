@@ -22,12 +22,12 @@ export function StatCounter({
   highlight = false,
 }: StatCounterProps) {
   const valueColor = highlight
-    ? 'text-(--color-rust)'
-    : 'text-(--color-ink)';
+    ? 'text-rust'
+    : 'text-ink';
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-xs tracking-wide text-(--color-text-secondary)">
+      <span className="text-xs tracking-wide text-text-secondary">
         {label}
       </span>
       <div className="flex items-baseline gap-1">
@@ -35,7 +35,7 @@ export function StatCounter({
           {value}
         </span>
         {unit && (
-          <span className="text-sm text-(--color-text-secondary) font-data">
+          <span className="text-sm text-text-secondary font-data">
             {unit}
           </span>
         )}

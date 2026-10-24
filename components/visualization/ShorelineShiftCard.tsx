@@ -16,8 +16,8 @@ interface ShorelineShiftCardProps {
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-(--color-paper-warm) border border-(--color-hairline)">
-      <div className="text-(--color-text-secondary) font-data text-xs">
+    <div className="w-full h-full flex items-center justify-center bg-surface-2 border border-hairline">
+      <div className="text-text-secondary font-data text-xs">
         Loading map tiles...
       </div>
     </div>
@@ -163,30 +163,30 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
     const isGain = cat.kind === 'gain' || cat.id.includes('gain') || cat.id.includes('accretion');
     if (isLoss) return 'var(--color-rust)';
     if (isGain) return 'var(--color-teal)';
-    if (cat.kind === 'persistent' || cat.id.includes('persistent')) return 'rgba(125, 138, 146, 0.8)';
-    return '#4A4E52';
+    if (cat.kind === 'persistent' || cat.id.includes('persistent')) return 'var(--color-ink-muted)';
+    return 'var(--color-text-secondary)';
   };
 
   return (
     <DataPanel
       title={cardTitle}
       subtitle={
-        <span className="font-data text-[11px] text-(--color-text-secondary) leading-tight truncate">
+        <span className="font-data text-[11px] text-text-secondary leading-tight truncate">
           {dateCaption}
         </span>
       }
       rightSlot={
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Manual Basemap Toggle */}
-          <div className="flex items-center gap-1 border border-(--color-hairline) rounded-[2px] p-0.5 bg-(--color-paper-warm)">
+          <div className="flex items-center gap-1 border border-hairline rounded-[2px] p-0.5 bg-surface-2">
             <button
               id="shoreline-basemap-radar"
               type="button"
               onClick={() => handleManualModeChange('radar')}
               className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
                 basemapMode === 'radar'
-                  ? 'bg-(--color-paper) text-(--color-ink) font-semibold border border-(--color-hairline)'
-                  : 'text-(--color-text-secondary) hover:text-(--color-ink) border border-transparent'
+                  ? 'bg-surface text-ink font-semibold border border-hairline'
+                  : 'text-text-secondary hover:text-ink border border-transparent'
               }`}
               aria-pressed={basemapMode === 'radar'}
             >
@@ -198,8 +198,8 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
               onClick={() => handleManualModeChange('street')}
               className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
                 basemapMode === 'street'
-                  ? 'bg-(--color-paper) text-(--color-ink) font-semibold border border-(--color-hairline)'
-                  : 'text-(--color-text-secondary) hover:text-(--color-ink) border border-transparent'
+                  ? 'bg-surface text-ink font-semibold border border-hairline'
+                  : 'text-text-secondary hover:text-ink border border-transparent'
               }`}
               aria-pressed={basemapMode === 'street'}
             >
@@ -212,8 +212,8 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
             onClick={() => setShowPersistentWater((prev) => !prev)}
             className={`px-2.5 py-1 text-xs rounded-[2px] border transition-colors cursor-pointer shrink-0 font-sans ${
               showPersistentWater
-                ? 'bg-(--color-paper) text-(--color-ink) border-(--color-hairline) hover:border-(--color-ink)'
-                : 'bg-(--color-paper-warm) text-(--color-text-secondary) border-(--color-hairline)'
+                ? 'bg-surface text-ink border-hairline hover:border-ink'
+                : 'bg-surface-2 text-text-secondary border-hairline'
             }`}
             aria-pressed={showPersistentWater}
           >
@@ -226,7 +226,7 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
     >
 
       {/* Map viewport (flex-1) */}
-      <div className="relative flex-1 w-full overflow-hidden bg-(--color-paper-warm)">
+      <div className="relative flex-1 w-full overflow-hidden bg-surface-2">
         {validBounds ? (
           <MapComponent
             bounds={validBounds}
@@ -241,11 +241,11 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
             scrollZoom={false}
           />
         ) : (
-          <div className="w-full h-full border border-(--color-hairline) bg-(--color-paper-warm) flex flex-col items-center justify-center p-6 text-center">
-            <span className="font-data text-xs text-(--color-ink) font-semibold uppercase tracking-wider">
+          <div className="w-full h-full border border-hairline bg-surface-2 flex flex-col items-center justify-center p-6 text-center">
+            <span className="font-data text-xs text-ink font-semibold uppercase tracking-wider">
               Geographic Map Overlay Unavailable
             </span>
-            <p className="text-xs text-(--color-text-secondary) mt-2 max-w-sm font-sans">
+            <p className="text-xs text-text-secondary mt-2 max-w-sm font-sans">
               Geospatial bounding coordinates missing. Inspect backscatter changes using the SAR comparison viewer.
             </p>
           </div>
@@ -254,8 +254,8 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
 
       {/* Quiet notice block for result.warnings under the map */}
       {warnings.length > 0 && (
-        <div className="border-t border-(--color-hairline) border-l-2 border-l-(--color-rust) bg-(--color-paper) px-4 py-2 text-xs text-(--color-text-secondary) font-sans shrink-0">
-          <div className="font-semibold text-(--color-ink) text-[11px] mb-0.5">
+        <div className="border-t border-hairline border-l-2 border-l-rust bg-surface px-4 py-2 text-xs text-text-secondary font-sans shrink-0">
+          <div className="font-semibold text-ink text-[11px] mb-0.5">
             Observation Notice
           </div>
           {warnings.map((w, idx) => (
@@ -265,8 +265,8 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
       )}
 
       {/* Footer / Legend generated dynamically from result.categories (swatch + label + area in km² in IBM Plex Mono) */}
-      <div className="h-11 px-4 border-t border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 overflow-x-auto text-xs">
-        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+      <div className="min-h-11 py-2 px-4 border-t border-hairline flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 bg-surface shrink-0 text-xs">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
           {categories.map((cat) => {
             const isPersistent = cat.kind === 'persistent' || cat.id.includes('persistent');
             const isDimmed = isPersistent && !showPersistentWater;
@@ -279,11 +279,11 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
                 }`}
               >
                 <div
-                  className="w-3 h-3 border border-(--color-hairline) shrink-0"
+                  className="w-3 h-3 border border-hairline shrink-0"
                   style={{ backgroundColor: getSwatchColor(cat) }}
                 />
-                <span className="font-sans text-xs text-(--color-ink)">{cat.label}:</span>
-                <span className="font-data text-xs text-(--color-text-secondary)">
+                <span className="font-sans text-xs text-ink">{cat.label}:</span>
+                <span className="font-data text-xs text-text-secondary">
                   {cat.areaKm2.toFixed(2)} km²
                 </span>
               </div>
@@ -291,7 +291,7 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
           })}
         </div>
 
-        <span className="font-data text-[11px] text-(--color-text-secondary) hidden md:inline shrink-0 pl-4">
+        <span className="font-data text-[11px] text-text-secondary hidden md:inline shrink-0 pl-4">
           Sentinel-1 SAR
         </span>
       </div>

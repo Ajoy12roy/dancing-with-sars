@@ -63,16 +63,10 @@ export function AIInsightPanel({
     const cacheKey = `${aoiId || 'none'}:${activeMode}`;
     currentKeyRef.current = cacheKey;
 
-    // 1. Cache hit: restore state from cache immediately on repeated effect run
-    if (insightCache.has(cacheKey)) {
-      const cached = insightCache.get(cacheKey)!;
-      setExplanation(cached.explanation);
-      setUsedFallback(cached.usedFallback);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
+    // 1. Cache hit: restore state from cache via Promise to avoid synchronous setState in effect
+    let requestPromise = insightCache.has(cacheKey)
+      ? Promise.resolve(insightCache.get(cacheKey)!)
+      : inFlightRequests.get(cacheKey);
 
     const payload = {
       mode: activeMode,
@@ -88,8 +82,10 @@ export function AIInsightPanel({
       warnings: activeWarnings,
     };
 
-    // 2. Reuse one in-flight promise per key
-    let requestPromise = inFlightRequests.get(cacheKey);
+    // 2. Reuse one in-flight promise per key if not in cache
+    if (!requestPromise) {
+      requestPromise = inFlightRequests.get(cacheKey);
+    }
 
     if (!requestPromise) {
       const controller = new AbortController();
@@ -173,7 +169,7 @@ export function AIInsightPanel({
     <DataPanel
       title="Radar Interpretation"
       rightSlot={
-        <span className="font-sans text-xs text-(--color-text-secondary) truncate text-right">
+        <span className="font-sans text-xs text-text-secondary truncate text-right">
           {usedFallback
             ? 'Offline summary generated from the computed numbers'
             : 'AI-generated explanation of computed results'}
@@ -184,16 +180,16 @@ export function AIInsightPanel({
     >
         {loading ? (
           <div className="space-y-3">
-            <div className="h-3.5 bg-(--color-hairline) rounded-sm w-full animate-pulse"></div>
-            <div className="h-3.5 bg-(--color-hairline) rounded-sm w-5/6 animate-pulse"></div>
-            <div className="h-3.5 bg-(--color-hairline) rounded-sm w-4/6 animate-pulse"></div>
+            <div className="h-3.5 bg-hairline rounded-sm w-full animate-pulse"></div>
+            <div className="h-3.5 bg-hairline rounded-sm w-5/6 animate-pulse"></div>
+            <div className="h-3.5 bg-hairline rounded-sm w-4/6 animate-pulse"></div>
           </div>
         ) : (
           <div className="space-y-4 flex-1 flex flex-col justify-between">
-            <p className="text-sm text-(--color-ink) font-sans leading-relaxed">
+            <p className="text-sm text-ink font-sans leading-relaxed">
               {explanation}
             </p>
-            <div className="pt-3 border-t border-(--color-hairline) flex items-center justify-between text-xs text-(--color-text-secondary) font-data shrink-0">
+            <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-text-secondary font-data shrink-0">
               <span>Target: {aoiName || aoiId}</span>
               <span>{usedFallback ? 'Deterministic summary' : 'gemini-3.5-flash'}</span>
             </div>

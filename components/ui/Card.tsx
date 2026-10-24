@@ -23,13 +23,13 @@ export function SpecimenSheet({
   return (
     <Component
       className={`
-        border-t border-(--color-hairline)
+        border-t border-hairline
         pt-4 pb-6
         ${className}
       `.trim()}
     >
       {identifier && (
-        <span className="block mb-3 text-xs text-(--color-text-secondary) font-data tracking-wide">
+        <span className="block mb-3 text-xs text-text-secondary font-data tracking-wide">
           {identifier}
         </span>
       )}

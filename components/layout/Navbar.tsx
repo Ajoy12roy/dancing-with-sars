@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import TerraPulseLogo from '@/components/layout/TerraPulseLogo';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { NAV_LINKS } from '@/constants';
 
 interface NavLinkProps {
@@ -35,7 +36,7 @@ function NavLink({ href, label, isActive }: NavLinkProps) {
         {/* Top copy — slides up and out on hover */}
         <motion.span
           className="block"
-          style={{ color: isActive ? '#7FD6E3' : '#EAF3FB' }}
+          style={{ color: isActive ? 'var(--color-navbar-link-hover)' : 'var(--color-navbar-text)' }}
           variants={{
             rest: { y: 0 },
             hover: { y: '-100%' },
@@ -46,7 +47,8 @@ function NavLink({ href, label, isActive }: NavLinkProps) {
         </motion.span>
         {/* Bottom copy — slides up in on hover */}
         <motion.span
-          className="absolute inset-0 block text-[#7FD6E3]"
+          className="absolute inset-0 block"
+          style={{ color: 'var(--color-navbar-link-hover)' }}
           variants={{
             rest: { y: '100%' },
             hover: { y: 0 },
@@ -91,8 +93,8 @@ function NavbarContent() {
 
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b border-[#12263A] bg-(--navy)"
-      style={{ backgroundColor: 'var(--navy)', borderBottomColor: '#12263A' }}
+      className="sticky top-0 z-50 w-full border-b border-navbar-border bg-navbar-bg"
+      style={{ backgroundColor: 'var(--color-navbar-bg)', borderBottomColor: 'var(--color-navbar-border)' }}
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-15 md:h-18 flex items-center justify-between">
         {/* Far-left: TerraPulse Logo wrapped in Link to home */}
@@ -111,26 +113,32 @@ function NavbarContent() {
           </div>
         </Link>
 
-        {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-4 lg:gap-6 xl:gap-7">
-          {NAV_LINKS.map((link) => {
-            const isActive = isLinkActive(link.href, pathname, currentMode);
-            return (
-              <NavLink
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                isActive={isActive}
-              />
-            );
-          })}
-        </nav>
+        {/* Desktop Nav Links + ThemeToggle at far right */}
+        <div className="hidden md:flex items-center gap-4 lg:gap-6">
+          <nav className="flex items-center gap-4 lg:gap-6 xl:gap-7">
+            {NAV_LINKS.map((link) => {
+              const isActive = isLinkActive(link.href, pathname, currentMode);
+              return (
+                <NavLink
+                  key={link.href}
+                  href={link.href}
+                  label={link.label}
+                  isActive={isActive}
+                />
+              );
+            })}
+          </nav>
+          <div className="pl-3 lg:pl-4 border-l border-navbar-border flex items-center">
+            <ThemeToggle className="p-2 text-[#EAF3FB] hover:text-navbar-link-hover" />
+          </div>
+        </div>
 
-        {/* Mobile Hamburger Toggle Button */}
-        <div className="flex md:hidden items-center">
+        {/* Mobile Controls: ThemeToggle + Hamburger Toggle Button */}
+        <div className="flex md:hidden items-center gap-1">
+          <ThemeToggle className="p-2 text-navbar-text hover:text-navbar-link-hover" />
           <button
             type="button"
-            className="p-2 text-[#EAF3FB] hover:text-[#7FD6E3] transition-colors cursor-pointer focus:outline-none"
+            className="p-2 text-navbar-text hover:text-navbar-link-hover transition-colors cursor-pointer focus:outline-none"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
@@ -163,8 +171,8 @@ function NavbarContent() {
       {/* Mobile Dropdown Menu (<768px) */}
       {mobileOpen && (
         <div
-          className="md:hidden border-t border-[#12263A] bg-(--navy) w-full"
-          style={{ backgroundColor: 'var(--navy)', borderTopColor: '#12263A' }}
+          className="md:hidden border-t border-navbar-border bg-navbar-bg w-full"
+          style={{ backgroundColor: 'var(--color-navbar-bg)', borderTopColor: 'var(--color-navbar-border)' }}
         >
           <ul className="flex flex-col px-6 py-4 space-y-1">
             {NAV_LINKS.map((link) => {
@@ -178,7 +186,7 @@ function NavbarContent() {
                     style={{
                       fontFamily: 'var(--font-body)',
                       fontWeight: 600,
-                      color: isActive ? '#7FD6E3' : '#EAF3FB',
+                      color: isActive ? 'var(--color-navbar-link-hover)' : 'var(--color-navbar-text)',
                     }}
                   >
                     {link.label}
@@ -186,6 +194,16 @@ function NavbarContent() {
                 </li>
               );
             })}
+            {/* Theme Toggle option inside mobile menu */}
+            <li className="pt-3 mt-2 border-t border-navbar-border flex items-center justify-between">
+              <span
+                className="text-xs uppercase tracking-wider font-semibold text-footer-text-secondary"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Theme
+              </span>
+              <ThemeToggle showLabel className="px-3 py-1.5 border border-navbar-border" />
+            </li>
           </ul>
         </div>
       )}
@@ -198,8 +216,8 @@ export function Navbar() {
     <Suspense
       fallback={
         <header
-          className="sticky top-0 z-50 w-full border-b border-[#12263A] bg-(--navy) h-15 md:h-18"
-          style={{ backgroundColor: 'var(--navy)', borderBottomColor: '#12263A' }}
+          className="sticky top-0 z-50 w-full border-b border-navbar-border bg-navbar-bg h-15 md:h-18"
+          style={{ backgroundColor: 'var(--color-navbar-bg)', borderBottomColor: 'var(--color-navbar-border)' }}
         >
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
             <Link href="/" aria-label="TerraPulse — home" className="flex items-center shrink-0">

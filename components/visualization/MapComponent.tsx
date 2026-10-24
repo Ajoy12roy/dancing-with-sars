@@ -43,13 +43,21 @@ function MapBoundsUpdater({ leafletBounds }: { leafletBounds: [[number, number],
   const map = useMap();
   useEffect(() => {
     if (
+      map &&
       leafletBounds &&
       leafletBounds[0] &&
       leafletBounds[1] &&
       isFinite(leafletBounds[0][0]) &&
       isFinite(leafletBounds[1][0])
     ) {
-      map.fitBounds(leafletBounds, { padding: [16, 16], maxZoom: 14 });
+      try {
+        const container = map.getContainer();
+        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+          map.fitBounds(leafletBounds, { padding: [16, 16], maxZoom: 14 });
+        }
+      } catch {
+        // Map container is not yet measured or unmounting
+      }
     }
   }, [leafletBounds, map]);
   return null;
@@ -107,7 +115,7 @@ function CustomZoomControl() {
   return (
     <div
       ref={containerRef}
-      className="absolute top-2 left-2 z-400 flex flex-col border border-(--color-hairline) rounded-[2px] bg-(--color-paper) overflow-hidden select-none"
+      className="absolute top-2 left-2 z-400 flex flex-col border border-hairline rounded-[2px] bg-surface-2 overflow-hidden select-none"
     >
       <button
         type="button"
@@ -119,7 +127,7 @@ function CustomZoomControl() {
         }}
         disabled={isAtMax}
         aria-label="Zoom in"
-        className="w-7 h-7 flex items-center justify-center bg-(--color-paper) text-(--color-ink) hover:bg-(--color-hairline) disabled:text-(--color-text-secondary) disabled:hover:bg-(--color-paper) disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer border-b border-(--color-hairline) focus:outline-none"
+        className="w-7 h-7 flex items-center justify-center bg-surface-2 text-ink hover:bg-hairline disabled:text-text-secondary disabled:hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer border-b border-hairline focus:outline-none"
       >
         <Plus className="w-3.5 h-3.5" strokeWidth={2} />
       </button>
@@ -133,7 +141,7 @@ function CustomZoomControl() {
         }}
         disabled={isAtMin}
         aria-label="Zoom out"
-        className="w-7 h-7 flex items-center justify-center bg-(--color-paper) text-(--color-ink) hover:bg-(--color-hairline) disabled:text-(--color-text-secondary) disabled:hover:bg-(--color-paper) disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer focus:outline-none"
+        className="w-7 h-7 flex items-center justify-center bg-surface-2 text-ink hover:bg-hairline disabled:text-text-secondary disabled:hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer focus:outline-none"
       >
         <Minus className="w-3.5 h-3.5" strokeWidth={2} />
       </button>
@@ -161,6 +169,17 @@ const CANDIDATE_STEPS = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5, 1.
 function Graticule({ bounds }: { bounds: MapBounds }) {
   const map = useMap();
   const [, setTick] = useState(0);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleUpdate = () => setTick((t) => t + 1);
@@ -226,6 +245,12 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
     // Fallback to outer bounds
   }
 
+  const frameColor = isDark ? '#283648' : '#A9A69F';
+  const graticuleLineColor = isDark ? '#1F2A38' : '#C7C4BC';
+  const labelBg = isDark ? '#141B26' : '#F1F0EC';
+  const labelText = isDark ? '#E8EDF2' : '#4A4E52';
+  const labelBorder = isDark ? '#1F2A38' : '#C7C4BC';
+
   return (
     <>
       {/* Outer bounding frame of the AOI */}
@@ -238,7 +263,7 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
           [north, west],
         ]}
         pathOptions={{
-          color: '#A9A69F',
+          color: frameColor,
           weight: 1,
           opacity: 0.9,
         }}
@@ -254,7 +279,7 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
               [lat, east],
             ]}
             pathOptions={{
-              color: '#C7C4BC',
+              color: graticuleLineColor,
               weight: 1,
               dashArray: '2, 4',
               opacity: 0.9,
@@ -266,7 +291,7 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
             interactive={false}
             icon={L.divIcon({
               className: 'graticule-lat-label',
-              html: `<span style="display:inline-block; font-family: var(--font-data, 'IBM Plex Mono', monospace); font-size: 10px; line-height: 1; color: #4A4E52; background: rgba(241, 240, 236, 0.92); padding: 1px 3px; border: 1px solid #C7C4BC; border-radius: 1px; white-space: nowrap; pointer-events: none;">${formatLat(lat)}</span>`,
+              html: `<span style="display:inline-block; font-family: var(--font-data, 'IBM Plex Mono', monospace); font-size: 10px; line-height: 1; color: ${labelText}; background: ${labelBg}; padding: 1px 3px; border: 1px solid ${labelBorder}; border-radius: 1px; white-space: nowrap; pointer-events: none;">${formatLat(lat)}</span>`,
               iconAnchor: [-4, 7],
               iconSize: [0, 0],
             })}
@@ -283,7 +308,7 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
               [north, lon],
             ]}
             pathOptions={{
-              color: '#C7C4BC',
+              color: graticuleLineColor,
               weight: 1,
               dashArray: '2, 4',
               opacity: 0.9,
@@ -295,7 +320,7 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
             interactive={false}
             icon={L.divIcon({
               className: 'graticule-lon-label',
-              html: `<span style="display:inline-block; font-family: var(--font-data, 'IBM Plex Mono', monospace); font-size: 10px; line-height: 1; color: #4A4E52; background: rgba(241, 240, 236, 0.92); padding: 1px 3px; border: 1px solid #C7C4BC; border-radius: 1px; white-space: nowrap; pointer-events: none;">${formatLon(lon)}</span>`,
+              html: `<span style="display:inline-block; font-family: var(--font-data, 'IBM Plex Mono', monospace); font-size: 10px; line-height: 1; color: ${labelText}; background: ${labelBg}; padding: 1px 3px; border: 1px solid ${labelBorder}; border-radius: 1px; white-space: nowrap; pointer-events: none;">${formatLon(lon)}</span>`,
               iconAnchor: [24, 18],
               iconSize: [0, 0],
             })}
@@ -377,13 +402,13 @@ export default function MapComponent({
   const effectiveBeforeImage = beforeImage || (aoiId ? `/api/images?aoi=${aoiId}&type=before` : '');
 
   return (
-    <div className="relative w-full h-full border border-(--color-hairline) z-0 bg-paper overflow-hidden">
+    <div className="relative w-full h-full border border-hairline z-0 bg-surface overflow-hidden">
       {/* Quiet notice: "Offline: showing radar basemap" */}
       {showOfflineNotice && basemapMode === 'radar' && (
         <div
           className={`absolute top-2 ${
             scrollZoom === false ? 'left-11' : 'left-2'
-          } z-400 bg-(--color-paper) border border-(--color-hairline) px-2.5 py-1 text-xs text-(--color-text-secondary) font-sans rounded-[2px] pointer-events-none select-none`}
+          } z-400 bg-surface-2 border border-hairline px-2.5 py-1 text-xs text-text-secondary font-sans rounded-[2px] pointer-events-none select-none`}
         >
           Offline: showing radar basemap
         </div>
@@ -392,7 +417,7 @@ export default function MapComponent({
       <MapContainer
         center={center}
         zoom={11}
-        style={{ width: '100%', height: '100%', background: '#F1F0EC' }}
+        style={{ width: '100%', height: '100%', background: 'var(--leaflet-bg, #F1F0EC)' }}
         zoomControl={false}
         scrollWheelZoom={scrollZoom}
       >

@@ -27,26 +27,27 @@ export function DataPanel({
 }: DataPanelProps) {
   return (
     <section
-      className={`border-[2.5px] border-[#2C5C61] dark:border-[#5FA3AB] bg-(--color-paper) text-(--color-ink) rounded-[2px] flex flex-col overflow-hidden shadow-none ${className}`}
+      className={`border-panel-border bg-surface text-ink rounded-[2px] flex flex-col overflow-hidden shadow-none ${className}`}
       style={{
-        borderWidth: '2.5px',
+        borderWidth: 'var(--data-panel-border-width, 2.5px)',
         borderStyle: 'solid',
-        borderColor: 'var(--data-panel-border, #2C5C61)',
-        backgroundColor: 'var(--color-paper)',
+        borderColor: 'var(--data-panel-border, var(--color-panel-border))',
+        backgroundColor: 'var(--color-surface)',
         borderRadius: '2px',
         boxShadow: 'none',
       }}
     >
-      {/* Header strip with 1px bottom rule in hairline #C7C4BC */}
+      {/* Header strip with 1px bottom rule in hairline */}
       <header
-        className={`px-5 py-3 border-b border-hairline flex items-center justify-between shrink-0 gap-3 bg-(--color-paper) ${headerClassName}`}
+        className={`px-4 sm:px-5 py-2.5 sm:py-3 border-b border-hairline flex flex-wrap items-center justify-between shrink-0 gap-2 sm:gap-3 bg-surface ${headerClassName}`}
         style={{
-          borderBottom: '1px solid var(--color-hairline, #C7C4BC)',
+          borderBottom: '1px solid var(--color-hairline)',
+          backgroundColor: 'var(--color-surface)',
         }}
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <h3
-            className="font-bold text-base text-(--color-ink) leading-tight truncate"
+            className="font-bold text-sm sm:text-base text-ink leading-tight"
             style={{
               fontFamily: 'var(--font-headline), "Source Serif 4", Georgia, serif',
               fontWeight: 600,
@@ -55,14 +56,14 @@ export function DataPanel({
             {title}
           </h3>
           {subtitle && (
-            <div className="font-sans text-xs text-(--color-text-secondary) truncate">
+            <div className="font-sans text-xs text-text-secondary truncate">
               {subtitle}
             </div>
           )}
         </div>
 
         {rightSlot && (
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {rightSlot}
           </div>
         )}

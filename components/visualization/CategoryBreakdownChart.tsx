@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -16,7 +16,7 @@ import type { ResultCategory } from '@/types';
 export interface ChartItem {
   name: string;
   areaKm2: number;
-  color: string;
+  color?: string;
   kind?: string;
 }
 
@@ -29,10 +29,49 @@ export default function CategoryBreakdownChart({
   categories,
   items: propItems,
 }: CategoryBreakdownChartProps) {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const gainColor = isDark ? '#19E66F' : '#2C5C61';
+  const lossColor = isDark ? '#FF5A47' : '#A8462E';
+  const neutralColor = isDark ? '#8F99A3' : '#7D8A92';
+
   // Build chart items derived directly from result.categories (areaKm2 per category), or use memoized propItems
   const derivedItems = useMemo(() => {
-    if (propItems) return propItems;
+    if (propItems) {
+      return propItems.map((item) => {
+        const isLoss =
+          item.kind === 'loss' ||
+          item.name.toLowerCase().includes('loss') ||
+          item.name.toLowerCase().includes('erosion') ||
+          item.name.toLowerCase().includes('flood') ||
+          item.color === '#A8462E' ||
+          item.color === '#FF5A47';
+        const isGain =
+          item.kind === 'gain' ||
+          item.name.toLowerCase().includes('gain') ||
+          item.name.toLowerCase().includes('accretion') ||
+          item.color === '#2C5C61' ||
+          item.color === '#19E66F';
+
+        return {
+          ...item,
+          color: isLoss ? lossColor : isGain ? gainColor : neutralColor,
+        };
+      });
+    }
+
     if (!categories || categories.length === 0) return [];
+
     return categories.map((cat) => {
       const isLoss =
         cat.kind === 'loss' ||
@@ -44,9 +83,7 @@ export default function CategoryBreakdownChart({
         cat.id.includes('gain') ||
         cat.id.includes('accretion');
 
-      // Bar colors by kind:
-      // loss & hazard = #A8462E, gain = #2C5C61, persistent & other = #7D8A92 (neutral token)
-      const color = isLoss ? '#A8462E' : isGain ? '#2C5C61' : '#7D8A92';
+      const color = isLoss ? lossColor : isGain ? gainColor : neutralColor;
 
       return {
         name: cat.label || cat.id,
@@ -55,17 +92,25 @@ export default function CategoryBreakdownChart({
         kind: cat.kind,
       };
     });
-  }, [categories, propItems]);
+  }, [categories, propItems, gainColor, lossColor, neutralColor]);
 
-  const items = propItems || derivedItems;
+  const items = derivedItems;
 
   if (items.length === 0) {
     return (
-      <div className="w-full h-full min-h-40 flex items-center justify-center text-xs font-data text-(--color-text-secondary) border border-dashed border-(--color-hairline) p-4">
+      <div className="w-full h-full min-h-40 flex items-center justify-center text-xs font-data text-text-secondary border border-dashed border-hairline p-4">
         No categorical breakdown data available for this scene
       </div>
     );
   }
+
+  const axisStroke = isDark ? '#1F2A38' : '#C7C4BC';
+  const tickText = isDark ? '#8F99A3' : '#4A4E52';
+  const yTickText = isDark ? '#E8EDF2' : '#1D2023';
+  const gridStroke = isDark ? '#1F2A38' : '#C7C4BC';
+  const tooltipBg = isDark ? '#0E131B' : '#F1F0EC';
+  const tooltipBorder = isDark ? '#1F2A38' : '#C7C4BC';
+  const tooltipText = isDark ? '#E8EDF2' : '#1D2023';
 
   return (
     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
@@ -74,41 +119,41 @@ export default function CategoryBreakdownChart({
         data={items}
         margin={{ top: 8, right: 24, left: 12, bottom: 8 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hairline)" horizontal={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} horizontal={false} />
         <XAxis
           type="number"
-          stroke="var(--color-ink)"
+          stroke={axisStroke}
           tick={{
-            fill: 'var(--color-text-secondary)',
+            fill: tickText,
             fontSize: 11,
             fontFamily: 'var(--font-data)',
           }}
-          axisLine={{ stroke: 'var(--color-hairline)' }}
+          axisLine={{ stroke: axisStroke }}
           tickLine={false}
           unit=" km²"
         />
         <YAxis
           type="category"
           dataKey="name"
-          stroke="var(--color-ink)"
+          stroke={axisStroke}
           tick={{
-            fill: 'var(--color-ink)',
+            fill: yTickText,
             fontSize: 12,
             fontFamily: 'var(--font-sans)',
           }}
-          axisLine={{ stroke: 'var(--color-hairline)' }}
+          axisLine={{ stroke: axisStroke }}
           tickLine={false}
           width={130}
         />
         <Tooltip
-          cursor={{ fill: 'var(--color-hairline)', opacity: 0.2 }}
+          cursor={{ fill: axisStroke, opacity: 0.2 }}
           contentStyle={{
-            backgroundColor: 'var(--color-paper)',
-            border: '1px solid var(--color-hairline)',
+            backgroundColor: tooltipBg,
+            border: `1px solid ${tooltipBorder}`,
             borderRadius: '2px',
             fontFamily: 'var(--font-data)',
             fontSize: '12px',
-            color: 'var(--color-ink)',
+            color: tooltipText,
             boxShadow: 'none',
           }}
           formatter={(val: unknown) => [`${Number(val).toFixed(2)} km²`, 'Area']}

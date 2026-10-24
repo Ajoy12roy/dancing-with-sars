@@ -119,10 +119,10 @@ export default function StatsPanel({
       {cards.map((card) => (
         <div
           key={card.id}
-          className="border border-(--color-hairline) bg-(--color-paper) p-4 rounded-[2px] flex flex-col justify-between h-full min-h-26"
+          className="border border-hairline bg-surface p-4 rounded-[2px] flex flex-col justify-between h-full min-h-26"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="font-sans text-xs text-(--color-text-secondary) font-medium">
+            <span className="font-sans text-xs text-text-secondary font-medium">
               {card.label}
             </span>
           </div>
@@ -131,21 +131,21 @@ export default function StatsPanel({
             <span
               className={`font-data leading-none shrink-0 ${
                 card.isNullText
-                  ? 'text-sm lg:text-base text-(--color-text-secondary) font-normal italic'
-                  : 'text-2xl lg:text-3xl font-medium text-(--color-teal)'
+                  ? 'text-sm lg:text-base text-text-secondary font-normal italic'
+                  : 'text-2xl lg:text-3xl font-medium text-teal'
               }`}
             >
               {card.value}
             </span>
             {card.unit && !card.isNullText && (
-              <span className="font-data text-xs lg:text-sm text-(--color-text-secondary) font-normal leading-none shrink-0">
+              <span className="font-data text-xs lg:text-sm text-text-secondary font-normal leading-none shrink-0">
                 {card.unit}
               </span>
             )}
           </div>
 
           {card.description && (
-            <p className="font-sans text-[11px] text-(--color-text-secondary) mt-2 truncate">
+            <p className="font-sans text-[11px] text-text-secondary mt-2 leading-snug">
               {card.description}
             </p>
           )}

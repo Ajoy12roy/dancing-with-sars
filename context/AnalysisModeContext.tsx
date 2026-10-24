@@ -58,36 +58,19 @@ interface AnalysisModeContextType {
 
 const AnalysisModeContext = createContext<AnalysisModeContextType | undefined>(undefined);
 
-export function AnalysisModeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<AnalysisMode>(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const urlMode = searchParams.get('mode');
-      const validModes: AnalysisMode[] = ['flood', 'river-erosion', 'deforestation', 'surface-water'];
-      if (urlMode && validModes.includes(urlMode as AnalysisMode)) {
-        return urlMode as AnalysisMode;
-      }
-      const urlAoi = searchParams.get('aoi');
-      if (urlAoi) {
-        const match = DEMO_AOIS.find((a) => a.id === urlAoi);
-        if (match?.mode && validModes.includes(match.mode as AnalysisMode)) {
-          return match.mode as AnalysisMode;
-        }
-      }
-    }
-    return 'flood';
-  });
+export function normalizeMode(param: string | null): AnalysisMode | null {
+  if (!param) return null;
+  const p = param.toLowerCase().trim();
+  if (p === 'flood') return 'flood';
+  if (p === 'erosion' || p === 'river-erosion') return 'river-erosion';
+  if (p === 'deforestation') return 'deforestation';
+  if (p === 'water' || p === 'surface-water') return 'surface-water';
+  return null;
+}
 
-  const [selectedAoi, setSelectedAoiState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const urlAoi = searchParams.get('aoi');
-      if (urlAoi && DEMO_AOIS.some((a) => a.id === urlAoi)) {
-        return urlAoi;
-      }
-    }
-    return DEMO_AOIS[0]?.id || 'sylhet';
-  });
+export function AnalysisModeProvider({ children }: { children: React.ReactNode }) {
+  const [mode, setModeState] = useState<AnalysisMode>('flood');
+  const [selectedAoi, setSelectedAoiState] = useState<string>(DEMO_AOIS[0]?.id || 'sylhet');
 
   const setMode = useCallback((newMode: AnalysisMode) => {
     setModeState(newMode);

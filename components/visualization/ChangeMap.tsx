@@ -16,8 +16,8 @@ interface ChangeMapProps {
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-(--color-paper-warm) border border-(--color-hairline)">
-      <div className="text-(--color-text-secondary) font-data text-xs">
+    <div className="w-full h-full flex items-center justify-center bg-surface-2 border border-hairline">
+      <div className="text-text-secondary font-data text-xs">
         Loading map tiles...
       </div>
     </div>
@@ -102,15 +102,15 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
       rightSlot={
         <div className="flex items-center gap-3">
           {/* Manual Basemap Toggle */}
-          <div className="flex items-center gap-1 border border-(--color-hairline) rounded-[2px] p-0.5 bg-(--color-paper-warm)">
+          <div className="flex items-center gap-1 border border-hairline rounded-[2px] p-0.5 bg-surface-2">
             <button
               id="changemap-basemap-radar"
               type="button"
               onClick={() => handleManualModeChange('radar')}
               className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
                 basemapMode === 'radar'
-                  ? 'bg-(--color-paper) text-(--color-ink) font-semibold border border-(--color-hairline)'
-                  : 'text-(--color-text-secondary) hover:text-(--color-ink) border border-transparent'
+                  ? 'bg-surface text-ink font-semibold border border-hairline'
+                  : 'text-text-secondary hover:text-ink border border-transparent'
               }`}
               aria-pressed={basemapMode === 'radar'}
             >
@@ -122,15 +122,15 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
               onClick={() => handleManualModeChange('street')}
               className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
                 basemapMode === 'street'
-                  ? 'bg-(--color-paper) text-(--color-ink) font-semibold border border-(--color-hairline)'
-                  : 'text-(--color-text-secondary) hover:text-(--color-ink) border border-transparent'
+                  ? 'bg-surface text-ink font-semibold border border-hairline'
+                  : 'text-text-secondary hover:text-ink border border-transparent'
               }`}
               aria-pressed={basemapMode === 'street'}
             >
               Street map
             </button>
           </div>
-          <span className="font-data text-xs text-(--color-text-secondary) hidden sm:inline shrink-0">
+          <span className="font-data text-xs text-text-secondary hidden sm:inline shrink-0">
             {centerLabel}
           </span>
         </div>
@@ -140,7 +140,7 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
     >
 
       {/* Map viewport (flex-1) */}
-      <div className="relative flex-1 w-full overflow-hidden bg-(--color-paper-warm)">
+      <div className="relative flex-1 w-full overflow-hidden bg-surface-2">
         {validBounds ? (
           <MapComponent
             bounds={validBounds}
@@ -155,11 +155,11 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
             scrollZoom={false}
           />
         ) : (
-          <div className="w-full h-full border border-(--color-hairline) bg-(--color-paper-warm) flex flex-col items-center justify-center p-6 text-center">
-            <span className="font-data text-xs text-(--color-ink) font-semibold uppercase tracking-wider">
+          <div className="w-full h-full border border-hairline bg-surface-2 flex flex-col items-center justify-center p-6 text-center">
+            <span className="font-data text-xs text-ink font-semibold uppercase tracking-wider">
               Geographic Map Overlay Unavailable
             </span>
-            <p className="text-xs text-(--color-text-secondary) mt-2 max-w-sm font-sans">
+            <p className="text-xs text-text-secondary mt-2 max-w-sm font-sans">
               The uploaded imagery does not contain embedded geospatial coordinate reference data. Inspect backscatter changes using the SAR comparison viewer.
             </p>
           </div>
@@ -168,8 +168,8 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
 
       {/* Quiet notice block for result.warnings under the map */}
       {warnings.length > 0 && (
-        <div className="border-t border-(--color-hairline) border-l-2 border-l-(--color-rust) bg-(--color-paper) px-4 py-2.5 text-xs text-(--color-text-secondary) font-sans shrink-0">
-          <div className="font-semibold text-(--color-ink) text-[11px] mb-0.5">
+        <div className="border-t border-hairline border-l-2 border-l-rust bg-surface px-4 py-2.5 text-xs text-text-secondary font-sans shrink-0">
+          <div className="font-semibold text-ink text-[11px] mb-0.5">
             Observation Notice
           </div>
           {warnings.map((w, idx) => (
@@ -178,26 +178,26 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
         </div>
       )}
 
-      {/* Footer / Legend bar (h-11) */}
-      <div className="h-11 px-4 border-t border-(--color-hairline) flex items-center justify-between bg-(--color-paper) shrink-0 overflow-x-auto text-xs">
-        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+      {/* Footer / Legend bar */}
+      <div className="min-h-11 py-2 px-4 border-t border-hairline flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 bg-surface shrink-0 text-xs">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 border border-(--color-hairline)" style={{ backgroundColor: 'var(--color-rust)' }}></div>
-            <span className="font-data text-xs text-(--color-ink)">{modeInfo.hazardLabel}</span>
+            <div className="w-3 h-3 border border-hairline" style={{ backgroundColor: 'var(--color-rust)' }}></div>
+            <span className="font-data text-xs text-ink">{modeInfo.hazardLabel}</span>
           </div>
           {activeMode !== 'deforestation' && (
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 border border-(--color-hairline)" style={{ backgroundColor: 'var(--color-teal)' }}></div>
-              <span className="font-data text-xs text-(--color-ink)">{modeInfo.oppositeLabel}</span>
+              <div className="w-3 h-3 border border-hairline" style={{ backgroundColor: 'var(--color-teal)' }}></div>
+              <span className="font-data text-xs text-ink">{modeInfo.oppositeLabel}</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 border border-(--color-hairline)" style={{ backgroundColor: 'rgba(125, 138, 146, 0.5)' }}></div>
-            <span className="font-data text-xs text-(--color-ink)">{modeInfo.persistentLabel}</span>
+            <div className="w-3 h-3 border border-hairline" style={{ backgroundColor: 'var(--color-ink-muted)' }}></div>
+            <span className="font-data text-xs text-ink">{modeInfo.persistentLabel}</span>
           </div>
         </div>
 
-        <span className="font-data text-[11px] text-(--color-text-secondary) hidden sm:inline shrink-0">
+        <span className="font-data text-[11px] text-text-secondary hidden sm:inline shrink-0">
           Sentinel-1 SAR
         </span>
       </div>
