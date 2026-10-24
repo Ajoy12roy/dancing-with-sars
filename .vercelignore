@@ -12,8 +12,6 @@ venv/
 # Raw datasets and heavy rasters (precomputed web data in data/precomputed must remain)
 data/samples/
 data/sample-uploads/
-*.tif
-*.tiff
 
 # Local utility scripts and dev-only docs
 scripts/
