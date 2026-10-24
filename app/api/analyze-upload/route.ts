@@ -4,9 +4,9 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
-
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const runtime = 'nodejs';
+export const maxDuration = 15;
 
 // Allow at most 2 concurrent analyses; extra requests get 429
 let activeAnalyses = 0;
@@ -106,6 +106,13 @@ function isGeoTiff(fileName: string): boolean {
 }
 
 export async function POST(request: Request) {
+  if (process.env.UPLOAD_ENABLED !== "true") {
+    return NextResponse.json(
+      { error: "Local-only route. Live processing uses the separate Python API." },
+      { status: 503 }
+    );
+  }
+
   // Reject early using Content-Length header before parsing form
   const contentLength = request.headers.get('content-length');
   if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {

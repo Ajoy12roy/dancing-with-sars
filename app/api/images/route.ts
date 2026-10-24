@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export const runtime = 'nodejs';
+export const maxDuration = 15;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const aoi = searchParams.get('aoi');

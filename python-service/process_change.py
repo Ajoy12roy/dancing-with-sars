@@ -863,6 +863,61 @@ def run_change_detection(
 
     return result_dict
 
+def run_analysis(
+    before_path,
+    after_path,
+    out_dir,
+    aoi_id=None,
+    mode="flood",
+    date_a=None,
+    date_b=None,
+    threshold=3.0,
+    water_threshold=None,
+    min_pixels=20,
+    river_buffer=5,
+    loss_threshold_db=-3.0,
+    band=None,
+    polarization=None,
+    filter_size=5,
+    min_db=-25.0,
+    max_db=0.0,
+    max_width=1600
+):
+    """
+    Standard analysis entry point wrapping run_change_detection.
+    Saves before.png, after.png, change-map.png, and result.json in out_dir.
+    Returns the result dictionary.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    change_map_png = os.path.join(out_dir, "change-map.png")
+    result_json = os.path.join(out_dir, "result.json")
+    before_png = os.path.join(out_dir, "before.png")
+    after_png = os.path.join(out_dir, "after.png")
+
+    return run_change_detection(
+        image_a_path=before_path,
+        image_b_path=after_path,
+        threshold=threshold,
+        filter_size=filter_size,
+        output_png=change_map_png,
+        output_json=result_json,
+        output_before_png=before_png,
+        output_after_png=after_png,
+        min_db=min_db,
+        max_db=max_db,
+        max_width=max_width,
+        mode=mode,
+        date_a=date_a,
+        date_b=date_b,
+        band=band,
+        polarization=polarization.upper() if polarization else None,
+        water_threshold=water_threshold,
+        min_pixels=min_pixels,
+        river_buffer=river_buffer,
+        loss_threshold_db=loss_threshold_db,
+        aoi_id=aoi_id
+    )
+
 if __name__ == "__main__":
     import shutil
     parser = argparse.ArgumentParser(description="Deterministic SAR Change Detection Pipeline")
@@ -899,38 +954,29 @@ if __name__ == "__main__":
     image_a = os.path.join(args.input_dir, "image_a.tif")
     image_b = os.path.join(args.input_dir, "image_b.tif")
 
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    change_map_png = os.path.join(args.output_dir, "change-map.png")
-    result_json = os.path.join(args.output_dir, "result.json")
-    before_png = os.path.join(args.output_dir, "before.png")
-    after_png = os.path.join(args.output_dir, "after.png")
-
     if not os.path.exists(image_a) or not os.path.exists(image_b):
         missing = image_a if not os.path.exists(image_a) else image_b
         print(f"Error: Required input file not found: {missing}")
         exit(1)
 
     print(f"Running SAR change detection (mode: {args.mode}) for AOI: {args.aoi}")
-    res = run_change_detection(
-        image_a, 
-        image_b, 
-        threshold=args.threshold, 
-        output_png=change_map_png, 
-        output_json=result_json,
-        output_before_png=before_png,
-        output_after_png=after_png,
+    res = run_analysis(
+        before_path=image_a,
+        after_path=image_b,
+        out_dir=args.output_dir,
+        aoi_id=args.aoi,
         mode=args.mode,
         date_a=args.date_a,
         date_b=args.date_b,
-        band=args.band,
-        polarization=args.polarization.upper() if args.polarization else None,
+        threshold=args.threshold,
         water_threshold=args.water_threshold,
         min_pixels=args.min_pixels,
         river_buffer=args.river_buffer,
         loss_threshold_db=args.loss_threshold_db,
-        aoi_id=args.aoi
+        band=args.band,
+        polarization=args.polarization
     )
 
     print("Processing complete. Results:")
     print(json.dumps(res, indent=2))
+

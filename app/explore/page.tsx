@@ -64,13 +64,26 @@ function ExploreContent() {
   const [afterFile, setAfterFile] = useState<File | null>(null);
   const [uploadDateA, setUploadDateA] = useState<string>('');
   const [uploadDateB, setUploadDateB] = useState<string>('');
+  const [sampleLoading, setSampleLoading] = useState<boolean>(false);
+
   const {
     data: uploadData,
     loading: uploadLoading,
+    statusText: uploadStatusText,
     error: uploadError,
+    serverStatus,
+    apiUrl,
     analyze: analyzeUpload,
     reset: resetUpload,
+    pingHealth,
   } = useUploadChangeData();
+
+  // Ping /health once when upload panel becomes visible
+  useEffect(() => {
+    if (activeTab === 'upload' && apiUrl && serverStatus === 'idle') {
+      pingHealth();
+    }
+  }, [activeTab, apiUrl, serverStatus, pingHealth]);
 
   const handleResetUpload = () => {
     setBeforeFile(null);
@@ -87,6 +100,57 @@ function ExploreContent() {
         dateA: uploadDateA || undefined,
         dateB: uploadDateB || undefined,
       });
+    }
+  };
+
+  const handleDownloadSampleFiles = () => {
+    const download = (url: string, filename: string) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+    download('/samples/sylhet_before.tif', 'sylhet_before.tif');
+    setTimeout(() => {
+      download('/samples/sylhet_after.tif', 'sylhet_after.tif');
+    }, 300);
+  };
+
+  const handleTryWithSampleFiles = async () => {
+    try {
+      setSampleLoading(true);
+      const [resBefore, resAfter] = await Promise.all([
+        fetch('/samples/sylhet_before.tif', { cache: 'no-cache' }),
+        fetch('/samples/sylhet_after.tif', { cache: 'no-cache' }),
+      ]);
+      if (!resBefore.ok || !resAfter.ok) {
+        throw new Error('Failed to load sample files from public/samples/');
+      }
+      const [bufBefore, bufAfter] = await Promise.all([
+        resBefore.arrayBuffer(),
+        resAfter.arrayBuffer(),
+      ]);
+
+      const fileBefore = new File([bufBefore], 'sylhet_before.tif', { type: 'image/tiff' });
+      const fileAfter = new File([bufAfter], 'sylhet_after.tif', { type: 'image/tiff' });
+
+      setBeforeFile(fileBefore);
+      setAfterFile(fileAfter);
+      setUploadDateA('2022-05-01');
+      setUploadDateB('2022-06-21');
+
+      analyzeUpload(fileBefore, fileAfter, {
+        mode: mode || 'flood',
+        dateA: '2022-05-01',
+        dateB: '2022-06-21',
+        aoiName: 'sylhet-sample',
+      });
+    } catch (err: unknown) {
+      console.error('Failed to run sample analysis:', err);
+    } finally {
+      setSampleLoading(false);
     }
   };
 
@@ -263,8 +327,62 @@ function ExploreContent() {
                   Upload Another Pair
                 </button>
               )}
+
+              {/* Server Status indicator (when in Upload mode and API URL configured) */}
+              {activeTab === 'upload' && apiUrl && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-data">
+                  {serverStatus === 'ready' && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
+                      <span className="text-teal font-medium">Server ready</span>
+                    </>
+                  )}
+                  {serverStatus === 'waking' && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
+                      <span className="text-text-secondary">Server waking up</span>
+                    </>
+                  )}
+                  {serverStatus === 'offline' && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
+                      <span className="text-rust">Server offline</span>
+                    </>
+                  )}
+                  {serverStatus === 'idle' && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
+                      <span className="text-text-secondary">Connecting...</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* ── Notice when Live Processing API URL is not configured ── */}
+          {activeTab === 'upload' && !apiUrl && (
+            <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rust" />
+                <h2 className="text-base font-bold font-headline text-ink">
+                  Live Processing Not Configured
+                </h2>
+              </div>
+              <p className="text-text-secondary text-sm font-sans">
+                Live processing is not configured; precomputed areas still work.
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('demo')}
+                  className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
+                >
+                  View Precomputed Case Studies
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── Upload Mode Form / Progress States ── */}
           {activeTab === 'upload' && uploadError && (
@@ -294,18 +412,18 @@ function ExploreContent() {
 
           {activeTab === 'upload' && uploadLoading && (
             <div className="col-span-12">
-              <HairlineProgress />
+              <HairlineProgress statusText={uploadStatusText || 'Analyzing radar change'} />
             </div>
           )}
 
-          {activeTab === 'upload' && !uploadLoading && !uploadData && (
+          {activeTab === 'upload' && apiUrl && !uploadLoading && !uploadData && (
             <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-6">
               <div>
                 <h2 className="text-xl font-bold font-headline text-ink">
                   Upload SAR GeoTIFF Files
                 </h2>
                 <p className="text-text-secondary text-sm mt-1 font-sans">
-                  Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 250 MB each) to compute radar backscatter changes. Requires local Python runtime; precomputed case studies in Quick Demo work without Python.
+                  Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
                 </p>
               </div>
 
@@ -356,31 +474,55 @@ function ExploreContent() {
               {/* File Drop Zones */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FileDropZone
-                  label="Before image (.tif / .tiff)"
+                  label="Before image (.tif / .tiff, max 60 MB)"
                   file={beforeFile}
                   onFileSelect={(f) => setBeforeFile(f)}
                   onFileRemove={() => setBeforeFile(null)}
-                  disabled={uploadLoading}
+                  disabled={uploadLoading || sampleLoading}
                 />
                 <FileDropZone
-                  label="After image (.tif / .tiff)"
+                  label="After image (.tif / .tiff, max 60 MB)"
                   file={afterFile}
                   onFileSelect={(f) => setAfterFile(f)}
                   onFileRemove={() => setAfterFile(null)}
-                  disabled={uploadLoading}
+                  disabled={uploadLoading || sampleLoading}
                 />
               </div>
 
-              {/* Submit Action */}
-              <div className="flex justify-end pt-2 border-t border-hairline">
-                <button
-                  type="button"
-                  disabled={!beforeFile || !afterFile || uploadLoading}
-                  onClick={handleAnalyze}
-                  className="bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
-                >
-                  Analyze
-                </button>
+              {/* Sample buttons & Submit Action */}
+              <div className="pt-4 border-t border-hairline space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadSampleFiles}
+                      className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface"
+                    >
+                      Download sample files
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTryWithSampleFiles}
+                      disabled={uploadLoading || sampleLoading}
+                      className="px-3 py-1.5 text-xs font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={!beforeFile || !afterFile || uploadLoading || sampleLoading}
+                    onClick={handleAnalyze}
+                    className="bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
+                  >
+                    Analyze
+                  </button>
+                </div>
+
+                <p className="text-xs text-text-secondary font-sans">
+                  Use clipped GeoTIFFs (about 10-20 km wide, both dates on the same grid). Full raw Sentinel-1 scenes are too large.
+                </p>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAnalysisMode } from '@/context';
-import { generateFallbackInsight } from '@/lib/ai-insight-fallback';
+import { generateFallbackInsight, type InsightPayload } from '@/lib/ai-insight-fallback';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
 import { DataPanel } from '@/components/ui/DataPanel';
@@ -68,7 +68,9 @@ export function AIInsightPanel({
       ? Promise.resolve(insightCache.get(cacheKey)!)
       : inFlightRequests.get(cacheKey);
 
-    const payload = {
+    const isDemoAoi = ['sylhet', 'jamuna', 'amazon', 'tanguar'].includes(aoiId);
+
+    const localFallbackPayload: InsightPayload = {
       mode: activeMode,
       aoiName,
       aoiId,
@@ -81,6 +83,39 @@ export function AIInsightPanel({
       dates: activeDates,
       warnings: activeWarnings,
     };
+
+    let requestBody: Record<string, unknown>;
+    if (isDemoAoi) {
+      requestBody = {
+        aoi: aoiId,
+        mode: activeMode,
+      };
+    } else {
+      const metricsObj: Record<string, number> = {};
+      if (typeof percentChanged === 'number' && Number.isFinite(percentChanged)) {
+        metricsObj.percentChanged = percentChanged;
+      }
+      if (typeof affectedAreaKm2 === 'number' && Number.isFinite(affectedAreaKm2)) {
+        metricsObj.affectedAreaKm2 = affectedAreaKm2;
+      }
+      if (typeof confidence === 'number' && Number.isFinite(confidence)) {
+        metricsObj.confidence = confidence;
+      }
+      if (typeof activeTotalArea === 'number' && Number.isFinite(activeTotalArea)) {
+        metricsObj.totalAreaKm2 = activeTotalArea;
+      }
+      if (activeMetrics && typeof activeMetrics === 'object') {
+        for (const [k, v] of Object.entries(activeMetrics)) {
+          if (typeof v === 'number' && Number.isFinite(v)) {
+            metricsObj[k] = v;
+          }
+        }
+      }
+      requestBody = {
+        mode: activeMode,
+        metrics: metricsObj,
+      };
+    }
 
     // 2. Reuse one in-flight promise per key if not in cache
     if (!requestPromise) {
@@ -98,24 +133,37 @@ export function AIInsightPanel({
           const response = await fetch('/api/ai-insight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(requestBody),
             signal: controller.signal,
           });
 
           if (!response.ok) {
+            // Rate limit (429) returns fallback explanation directly
+            if (response.status === 429) {
+              const resJson = await response.json().catch(() => null);
+              if (resJson?.explanation) {
+                const entry: InsightCacheEntry = {
+                  explanation: resJson.explanation,
+                  usedFallback: true,
+                };
+                insightCache.set(cacheKey, entry);
+                return entry;
+              }
+            }
             throw new Error(`HTTP ${response.status}`);
           }
 
           const result = await response.json();
+          const isFallback = Boolean(result.fallback ?? result.usedFallback);
           const entry: InsightCacheEntry = {
-            explanation: result.explanation || generateFallbackInsight(payload),
-            usedFallback: Boolean(result.usedFallback),
+            explanation: result.explanation || generateFallbackInsight(localFallbackPayload),
+            usedFallback: isFallback,
           };
           insightCache.set(cacheKey, entry);
           return entry;
         } catch {
           // Fall back to offline text on timeout or fetch error; never show empty box
-          const fallbackText = generateFallbackInsight(payload);
+          const fallbackText = generateFallbackInsight(localFallbackPayload);
           const entry: InsightCacheEntry = {
             explanation: fallbackText,
             usedFallback: true,
@@ -141,7 +189,7 @@ export function AIInsightPanel({
       })
       .catch(() => {
         if (currentKeyRef.current === cacheKey) {
-          const fallbackText = generateFallbackInsight(payload);
+          const fallbackText = generateFallbackInsight(localFallbackPayload);
           setExplanation(fallbackText);
           setUsedFallback(true);
         }
@@ -171,7 +219,7 @@ export function AIInsightPanel({
       rightSlot={
         <span className="font-sans text-xs text-text-secondary truncate text-right">
           {usedFallback
-            ? 'Offline summary generated from the computed numbers'
+            ? 'Offline summary'
             : 'AI-generated explanation of computed results'}
         </span>
       }
@@ -191,7 +239,7 @@ export function AIInsightPanel({
             </p>
             <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-text-secondary font-data shrink-0">
               <span>Target: {aoiName || aoiId}</span>
-              <span>{usedFallback ? 'Deterministic summary' : 'gemini-3.5-flash'}</span>
+              <span>{usedFallback ? 'Offline summary' : 'gemini-2.5-flash'}</span>
             </div>
           </div>
         )}

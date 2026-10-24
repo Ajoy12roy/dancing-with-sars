@@ -109,3 +109,27 @@ Run the full pytest suite with synthetic test rasters and hand-computed geometri
 ```bash
 python -m pytest
 ```
+
+---
+
+## Running the API Server Locally
+
+The service provides a FastAPI microservice (`api.py`) exposing deterministic SAR processing over HTTP:
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Start the FastAPI server locally
+uvicorn api:app --port 8000
+```
+
+### Endpoints:
+- `GET /health` &rarr; `{"status": "ok"}`
+- `POST /analyze` &rarr; Multipart upload: `before` (`.tif`), `after` (`.tif`), and optional `aoi_name`, `mode`, `date_a`, `date_b`. Returns the full JSON result along with Base64 data URLs for `before`, `after`, and `change_map` preview images.
+
+### Docker Deployment:
+```bash
+docker build -t sars-processor .
+docker run -p 7860:7860 sars-processor
+```

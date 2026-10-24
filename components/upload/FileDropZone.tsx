@@ -53,6 +53,10 @@ export function FileDropZone({
       setValidationError('Only .tif or .tiff files are supported.');
       return;
     }
+    if (selectedFile.size > 60 * 1024 * 1024) {
+      setValidationError(`File exceeds the 60 MB maximum limit (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB).`);
+      return;
+    }
     onFileSelect(selectedFile);
   };
 
@@ -152,7 +156,7 @@ export function FileDropZone({
                 Drag & drop or click to choose
               </p>
               <p className="font-data text-xs text-text-secondary mt-1">
-                .tif or .tiff format (up to 250 MB)
+                .tif or .tiff format (up to 60 MB)
               </p>
             </div>
           </div>

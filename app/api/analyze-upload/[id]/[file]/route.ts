@@ -4,6 +4,8 @@ import path from 'path';
 import os from 'os';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 15;
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_FILES = new Set(['change-map.png', 'before.png', 'after.png']);

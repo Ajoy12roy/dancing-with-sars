@@ -77,8 +77,9 @@ function isLinkActive(linkHref: string, pathname: string, currentMode: string | 
   }
   if (linkHref.startsWith('/explore')) {
     if (pathname !== '/explore') return false;
-    const url = new URL(linkHref, 'http://localhost');
-    const targetMode = url.searchParams.get('mode');
+    const queryString = linkHref.includes('?') ? linkHref.slice(linkHref.indexOf('?')) : '';
+    const params = new URLSearchParams(queryString);
+    const targetMode = params.get('mode');
     const activeMode = parseMode(currentMode);
     return targetMode === activeMode;
   }

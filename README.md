@@ -123,6 +123,24 @@ python -m pytest python-service/test_process_change.py
 
 ---
 
+### Deploy on Vercel
+
+The application is structured to deploy smoothly to [Vercel](https://vercel.com) as a single Next.js project:
+
+1. **Import the repository** into Vercel.
+2. **Framework Preset**: Next.js (detected automatically).
+3. **Root Directory**: `./` (default).
+4. **Environment Variables**:
+   - `GEMINI_API_KEY` *(optional)*: Your Google Gemini API key for live generative interpretations. If omitted, the platform uses deterministic, offline-capable analysis derived from computed remote-sensing statistics.
+   - `NEXT_PUBLIC_APP_URL` *(optional)*: Canonical URL of your deployment (e.g. `https://terrapulse.vercel.app`).
+   - `NEXT_PUBLIC_PROCESSING_API_URL` *(optional)*: Public endpoint of an external Python processing API (if hosted separately).
+   - *(Note: `UPLOAD_ENABLED` is left unset or `false` on Vercel so the local Python subprocess route is safely guarded).*
+5. **Asset Bundling**:
+   - All precomputed SAR datasets (`data/precomputed/**`) are automatically bundled with the API routes via `outputFileTracingIncludes` in `next.config.ts`.
+   - `.vercelignore` excludes raw `.tif` rasters and Python virtual environments to keep deployment bundles lightweight and fast.
+
+---
+
 ### Regenerate a Demo Area
 
 The repository includes precomputed outputs for four case studies in `data/precomputed/`. To re-run the deterministic Python processing pipeline from raw GeoTIFF samples, download the imagery via Google Earth Engine (see [`scripts/gee/README.md`](scripts/gee/README.md) and [`data/README.md`](data/README.md)), place `image_a.tif` and `image_b.tif` in `data/samples/<aoi>/`, and execute:

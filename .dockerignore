@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.venv
+.venv/
+python-service/.venv
+python-service/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.tif
+*.tiff
