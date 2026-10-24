@@ -11,7 +11,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source code
+# Copy samples and application source code
+COPY samples ./samples
 COPY . .
 
 EXPOSE ${PORT}

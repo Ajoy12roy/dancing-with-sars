@@ -74,6 +74,7 @@ function ExploreContent() {
     serverStatus,
     apiUrl,
     analyze: analyzeUpload,
+    analyzeSample: analyzeSampleUpload,
     reset: resetUpload,
     pingHealth,
   } = useUploadChangeData();
@@ -121,31 +122,16 @@ function ExploreContent() {
   const handleTryWithSampleFiles = async () => {
     try {
       setSampleLoading(true);
-      const [resBefore, resAfter] = await Promise.all([
-        fetch('/samples/sylhet_before.tif', { cache: 'no-cache' }),
-        fetch('/samples/sylhet_after.tif', { cache: 'no-cache' }),
-      ]);
-      if (!resBefore.ok || !resAfter.ok) {
-        throw new Error('Failed to load sample files from public/samples/');
-      }
-      const [bufBefore, bufAfter] = await Promise.all([
-        resBefore.arrayBuffer(),
-        resAfter.arrayBuffer(),
-      ]);
-
-      const fileBefore = new File([bufBefore], 'sylhet_before.tif', { type: 'image/tiff' });
-      const fileAfter = new File([bufAfter], 'sylhet_after.tif', { type: 'image/tiff' });
-
-      setBeforeFile(fileBefore);
-      setAfterFile(fileAfter);
+      setBeforeFile(null);
+      setAfterFile(null);
       setUploadDateA('2022-05-01');
       setUploadDateB('2022-06-21');
 
-      analyzeUpload(fileBefore, fileAfter, {
+      await analyzeSampleUpload({
+        name: 'sylhet',
         mode: mode || 'flood',
         dateA: '2022-05-01',
         dateB: '2022-06-21',
-        aoiName: 'sylhet-sample',
       });
     } catch (err: unknown) {
       console.error('Failed to run sample analysis:', err);

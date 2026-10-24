@@ -46,6 +46,7 @@ next-env.d.ts
 *.tif
 *.tiff
 !data/sample-uploads/*.tif
+!python-service/samples/**/*.tif
 
 # Python & Virtual Environments
 venv/

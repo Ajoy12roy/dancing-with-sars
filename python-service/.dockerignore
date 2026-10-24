@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 *.tif
 *.tiff
+!samples/**/*.tif
+!python-service/samples/**/*.tif

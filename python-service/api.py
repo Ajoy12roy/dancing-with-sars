@@ -111,6 +111,137 @@ def to_png_data_url(file_path: str) -> str:
     return f"data:image/png;base64,{b64}"
 
 
+DEFAULT_SAMPLE_DATES = {
+    "sylhet": ("2022-05-01", "2022-06-21")
+}
+
+
+async def _execute_analysis_job(
+    in_before_path: str,
+    in_after_path: str,
+    tmp_dir: str,
+    aoi_id: str,
+    target_mode: str,
+    clean_date_a: Optional[str],
+    clean_date_b: Optional[str],
+    client_ip: str,
+) -> dict:
+    out_dir = os.path.join(tmp_dir, "out")
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Validate rasters using rasterio
+    try:
+        with rasterio.open(in_before_path) as src_a:
+            crs_a = src_a.crs
+            transform_a = src_a.transform
+            width_a, height_a = src_a.width, src_a.height
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Before image could not be opened as a valid GeoTIFF raster: {str(e)}",
+        )
+
+    try:
+        with rasterio.open(in_after_path) as src_b:
+            crs_b = src_b.crs
+            transform_b = src_b.transform
+            width_b, height_b = src_b.width, src_b.height
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"After image could not be opened as a valid GeoTIFF raster: {str(e)}",
+        )
+
+    # Check Coordinate Reference System
+    if not crs_a:
+        raise HTTPException(
+            status_code=400,
+            detail="Before image missing valid Coordinate Reference System (CRS) metadata.",
+        )
+    if not crs_b:
+        raise HTTPException(
+            status_code=400,
+            detail="After image missing valid Coordinate Reference System (CRS) metadata.",
+        )
+
+    # Check affine transform
+    if not transform_a or transform_a.is_identity:
+        raise HTTPException(
+            status_code=400,
+            detail="Before image missing valid georeferencing affine transform.",
+        )
+    if not transform_b or transform_b.is_identity:
+        raise HTTPException(
+            status_code=400,
+            detail="After image missing valid georeferencing affine transform.",
+        )
+
+    # Check CRS match
+    if crs_a != crs_b:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Coordinate Reference Systems (CRS) do not match: before image is {crs_a}, after image is {crs_b}.",
+        )
+
+    # Check raster dimension match
+    if (width_a, height_a) != (width_b, height_b):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Raster dimensions do not match: before image is {width_a}x{height_a}, after image is {width_b}x{height_b}.",
+        )
+
+    # Check maximum pixel limit
+    total_pixels = width_a * height_a
+    if total_pixels > MAX_PIXELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Raster size ({total_pixels:,} pixels) exceeds the maximum allowed limit of {MAX_PIXELS:,} pixels.",
+        )
+
+    # Execute analysis in threadpool with strict timeout
+    try:
+        result_dict = await asyncio.wait_for(
+            asyncio.to_thread(
+                run_analysis,
+                before_path=in_before_path,
+                after_path=in_after_path,
+                out_dir=out_dir,
+                aoi_id=aoi_id,
+                mode=target_mode,
+                date_a=clean_date_a,
+                date_b=clean_date_b,
+            ),
+            timeout=TIMEOUT_SECONDS,
+        )
+        logger.info(f"Analysis completed successfully for {client_ip} | aoi: {aoi_id} | mode: {target_mode}")
+    except asyncio.TimeoutError:
+        logger.error(f"Analysis timed out for {client_ip} after {TIMEOUT_SECONDS}s")
+        raise HTTPException(
+            status_code=504,
+            detail=f"Analysis timed out after {TIMEOUT_SECONDS:.0f} seconds.",
+        )
+    except Exception as e:
+        logger.error(f"Analysis failed for {client_ip}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"SAR processing failed: {str(e)}",
+        )
+
+    # Read generated PNGs as Base64 data URLs
+    change_map_url = to_png_data_url(os.path.join(out_dir, "change-map.png"))
+    before_url = to_png_data_url(os.path.join(out_dir, "before.png"))
+    after_url = to_png_data_url(os.path.join(out_dir, "after.png"))
+
+    return {
+        "result": result_dict,
+        "images": {
+            "before": before_url,
+            "after": after_url,
+            "change_map": change_map_url,
+        },
+    }
+
+
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health_check():
@@ -186,125 +317,123 @@ async def analyze(
         try:
             in_before_path = os.path.join(tmp_dir, "before.tif")
             in_after_path = os.path.join(tmp_dir, "after.tif")
-            out_dir = os.path.join(tmp_dir, "out")
-            os.makedirs(out_dir, exist_ok=True)
 
             # Stream files to disk and check file extension and size limits
             await stream_and_validate_file(before, in_before_path, "before image")
             await stream_and_validate_file(after, in_after_path, "after image")
 
-            # Validate rasters using rasterio
-            try:
-                with rasterio.open(in_before_path) as src_a:
-                    crs_a = src_a.crs
-                    transform_a = src_a.transform
-                    width_a, height_a = src_a.width, src_a.height
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Before image could not be opened as a valid GeoTIFF raster: {str(e)}",
-                )
-
-            try:
-                with rasterio.open(in_after_path) as src_b:
-                    crs_b = src_b.crs
-                    transform_b = src_b.transform
-                    width_b, height_b = src_b.width, src_b.height
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"After image could not be opened as a valid GeoTIFF raster: {str(e)}",
-                )
-
-            # Check Coordinate Reference System
-            if not crs_a:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Before image missing valid Coordinate Reference System (CRS) metadata.",
-                )
-            if not crs_b:
-                raise HTTPException(
-                    status_code=400,
-                    detail="After image missing valid Coordinate Reference System (CRS) metadata.",
-                )
-
-            # Check affine transform
-            if not transform_a or transform_a.is_identity:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Before image missing valid georeferencing affine transform.",
-                )
-            if not transform_b or transform_b.is_identity:
-                raise HTTPException(
-                    status_code=400,
-                    detail="After image missing valid georeferencing affine transform.",
-                )
-
-            # Check CRS match
-            if crs_a != crs_b:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Coordinate Reference Systems (CRS) do not match: before image is {crs_a}, after image is {crs_b}.",
-                )
-
-            # Check raster dimension match
-            if (width_a, height_a) != (width_b, height_b):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Raster dimensions do not match: before image is {width_a}x{height_a}, after image is {width_b}x{height_b}.",
-                )
-
-            # Check maximum pixel limit
-            total_pixels = width_a * height_a
-            if total_pixels > MAX_PIXELS:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Raster size ({total_pixels:,} pixels) exceeds the maximum allowed limit of {MAX_PIXELS:,} pixels.",
-                )
-
-            # Execute analysis in threadpool with strict timeout
-            try:
-                result_dict = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        run_analysis,
-                        before_path=in_before_path,
-                        after_path=in_after_path,
-                        out_dir=out_dir,
-                        aoi_id=aoi_name or "custom-upload",
-                        mode=target_mode,
-                        date_a=clean_date_a,
-                        date_b=clean_date_b,
-                    ),
-                    timeout=TIMEOUT_SECONDS,
-                )
-                logger.info(f"Analysis completed successfully for {client_ip} | aoi: {aoi_name or 'custom-upload'} | mode: {target_mode}")
-            except asyncio.TimeoutError:
-                logger.error(f"Analysis timed out for {client_ip} after {TIMEOUT_SECONDS}s")
-                raise HTTPException(
-                    status_code=504,
-                    detail=f"Analysis timed out after {TIMEOUT_SECONDS:.0f} seconds.",
-                )
-            except Exception as e:
-                logger.error(f"Analysis failed for {client_ip}: {str(e)}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"SAR processing failed: {str(e)}",
-                )
-
-            # Read generated PNGs as Base64 data URLs
-            change_map_url = to_png_data_url(os.path.join(out_dir, "change-map.png"))
-            before_url = to_png_data_url(os.path.join(out_dir, "before.png"))
-            after_url = to_png_data_url(os.path.join(out_dir, "after.png"))
-
-            return {
-                "result": result_dict,
-                "images": {
-                    "before": before_url,
-                    "after": after_url,
-                    "change_map": change_map_url,
-                },
-            }
+            return await _execute_analysis_job(
+                in_before_path=in_before_path,
+                in_after_path=in_after_path,
+                tmp_dir=tmp_dir,
+                aoi_id=aoi_name or "custom-upload",
+                target_mode=target_mode,
+                clean_date_a=clean_date_a,
+                clean_date_b=clean_date_b,
+                client_ip=client_ip,
+            )
 
         finally:
             # Always delete temp directory and store nothing
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+@app.post("/analyze-sample")
+async def analyze_sample(
+    request: Request,
+    name: Optional[str] = Form(None),
+    mode: Optional[str] = Form("flood"),
+    date_a: Optional[str] = Form(None),
+    date_b: Optional[str] = Form(None),
+):
+    # 1. Per-IP Rate Limiting (RATE_LIMIT_PER_10MIN per 10 minutes)
+    client_ip = get_client_ip(request)
+    logger.info(f"Incoming /analyze-sample request from {client_ip} | sample: {name} | mode: {mode}")
+
+    if await is_rate_limited(client_ip):
+        logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+        return JSONResponse(
+            status_code=429,
+            content={"detail": f"Rate limit exceeded. Maximum {RATE_LIMIT_PER_10MIN} requests per 10 minutes."},
+            headers={"Retry-After": "600"},
+        )
+
+    # Validate sample name: only "sylhet" allowed, reject others with 400
+    clean_name = (name or "").strip().lower()
+    if clean_name != "sylhet":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sample name '{name}'. Only 'sylhet' is supported.",
+        )
+
+    # Validate analysis mode early (same validation as /analyze)
+    valid_modes = ["flood", "river-erosion", "deforestation", "surface-water"]
+    target_mode = (mode or "flood").strip().lower()
+    if target_mode not in valid_modes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid analysis mode '{mode}'. Expected one of: flood, river-erosion, deforestation, surface-water.",
+        )
+
+    # Validate or default sample dates to data/precomputed/sylhet dates
+    default_a, default_b = DEFAULT_SAMPLE_DATES[clean_name]
+    clean_date_a = date_a.strip() if date_a and date_a.strip() else default_a
+    clean_date_b = date_b.strip() if date_b and date_b.strip() else default_b
+
+    try:
+        datetime.strptime(clean_date_a, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid date format for date_a ('{date_a}'). Expected ISO format YYYY-MM-DD.",
+        )
+
+    try:
+        datetime.strptime(clean_date_b, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid date format for date_b ('{date_b}'). Expected ISO format YYYY-MM-DD.",
+        )
+
+    # 2. Concurrency check (one analysis at a time)
+    if analysis_semaphore.locked():
+        logger.warning(f"Server busy (concurrency limit) for IP: {client_ip}")
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Server busy, try again in a minute"},
+            headers={"Retry-After": "60"},
+        )
+
+    # Acquire semaphore
+    async with analysis_semaphore:
+        # Locate sample files on server (never from client-supplied path)
+        samples_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples", clean_name)
+        sample_before = os.path.join(samples_dir, "image_a.tif")
+        sample_after = os.path.join(samples_dir, "image_b.tif")
+
+        if not os.path.isfile(sample_before) or not os.path.isfile(sample_after):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Sample files for '{clean_name}' not found on server.",
+            )
+
+        tmp_dir = tempfile.mkdtemp(prefix="sars_api_sample_")
+        try:
+            in_before_path = os.path.join(tmp_dir, "before.tif")
+            in_after_path = os.path.join(tmp_dir, "after.tif")
+            shutil.copyfile(sample_before, in_before_path)
+            shutil.copyfile(sample_after, in_after_path)
+
+            return await _execute_analysis_job(
+                in_before_path=in_before_path,
+                in_after_path=in_after_path,
+                tmp_dir=tmp_dir,
+                aoi_id=clean_name,
+                target_mode=target_mode,
+                clean_date_a=clean_date_a,
+                clean_date_b=clean_date_b,
+                client_ip=client_ip,
+            )
+        finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)

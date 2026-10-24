@@ -8,6 +8,13 @@ export interface UploadAnalyzeOptions {
   aoiName?: string;
 }
 
+export interface SampleAnalyzeOptions {
+  name: string;
+  mode?: string;
+  dateA?: string;
+  dateB?: string;
+}
+
 export type ServerHealthStatus = 'idle' | 'waking' | 'ready' | 'offline';
 
 export interface UseUploadChangeDataReturn {
@@ -18,6 +25,7 @@ export interface UseUploadChangeDataReturn {
   serverStatus: ServerHealthStatus;
   apiUrl: string;
   analyze: (beforeFile: File, afterFile: File, options?: UploadAnalyzeOptions) => Promise<boolean>;
+  analyzeSample: (options: SampleAnalyzeOptions) => Promise<boolean>;
   reset: () => void;
   pingHealth: () => Promise<void>;
 }
@@ -65,6 +73,135 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
     }
   }, [apiUrl]);
 
+  const sendAnalysisRequest = useCallback(
+    async (
+      endpoint: string,
+      formData: FormData,
+      defaultAoiId: string,
+      defaultName: string,
+      defaultMode?: string
+    ): Promise<boolean> => {
+      if (!apiUrl) {
+        setError('Live processing is not configured; precomputed areas still work.');
+        return false;
+      }
+
+      setLoading(true);
+      setStatusText('Waking up the processing server (can take up to a minute)');
+
+      // Cancel any previous in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const timeoutId = setTimeout(() => controller.abort(), 150000); // 150 seconds timeout
+
+      // Progressive progress states
+      const uploadingTimer = setTimeout(() => {
+        setStatusText('Uploading');
+      }, 1500);
+
+      const analyzingTimer = setTimeout(() => {
+        setStatusText('Analyzing radar change');
+      }, 5000);
+
+      try {
+        const response = await fetch(`${apiUrl}${endpoint}`, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+
+        clearTimeout(uploadingTimer);
+        clearTimeout(analyzingTimer);
+
+        let resJson: any = null;
+        try {
+          resJson = await response.json();
+        } catch {
+          // Response body wasn't JSON
+        }
+
+        if (!response.ok) {
+          const serverMsg = resJson?.detail || resJson?.error;
+          if (response.status === 400) {
+            throw new Error(
+              serverMsg || 'Invalid GeoTIFF format, mismatched coordinates/dimensions, or bad parameters.'
+            );
+          } else if (response.status === 429) {
+            throw new Error(
+              serverMsg || 'Server busy, try again in a minute.'
+            );
+          } else if (response.status === 504) {
+            throw new Error(
+              serverMsg || 'Analysis timed out on the processing server.'
+            );
+          } else {
+            throw new Error(
+              serverMsg || `Processing failed with server status ${response.status}.`
+            );
+          }
+        }
+
+        setStatusText('Done');
+        setServerStatus('ready');
+
+        const apiResult = resJson.result || {};
+        const apiImages = resJson.images || {};
+
+        const unifiedData: ChangeData = {
+          aoiId: apiResult.aoiId || defaultAoiId,
+          name: apiResult.name || defaultName,
+          dateBefore: apiResult.dateBefore || (apiResult.dates?.a ? apiResult.dates.a : 'Before Scene'),
+          dateAfter: apiResult.dateAfter || (apiResult.dates?.b ? apiResult.dates.b : 'After Scene'),
+          percentChanged: typeof apiResult.percentChanged === 'number' ? apiResult.percentChanged : 0,
+          affectedAreaKm2: typeof apiResult.affectedAreaKm2 === 'number' ? apiResult.affectedAreaKm2 : 0,
+          confidence: typeof apiResult.confidence === 'number' ? apiResult.confidence : 0,
+          beforeImage: apiImages.before || '',
+          afterImage: apiImages.after || '',
+          changeMapImage: apiImages.change_map || '',
+          bounds: apiResult.bounds,
+          center: apiResult.center,
+          zoom: apiResult.zoom || 11,
+          mode: apiResult.mode || defaultMode || 'flood',
+          signalStrength: apiResult.signalStrength,
+          totalAreaKm2: apiResult.totalAreaKm2,
+          dates: apiResult.dates,
+          categories: apiResult.categories,
+          metrics: apiResult.metrics,
+          params: apiResult.params,
+          warnings: apiResult.warnings,
+        };
+
+        setData(unifiedData);
+        return true;
+      } catch (err: unknown) {
+        clearTimeout(uploadingTimer);
+        clearTimeout(analyzingTimer);
+
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            setError('Analysis timed out after 150 seconds. The server might still be waking up or processing large imagery.');
+          } else if (err.message.includes('Failed to fetch') || err instanceof TypeError) {
+            setError('Unable to connect to the processing server. Please check your network or verify the processing server is running.');
+            setServerStatus('offline');
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError('An unexpected error occurred during analysis.');
+        }
+        return false;
+      } finally {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      }
+    },
+    [apiUrl]
+  );
+
   const analyze = useCallback(
     async (
       beforeFile: File,
@@ -109,32 +246,6 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
         return false;
       }
 
-      if (!apiUrl) {
-        setError('Live processing is not configured; precomputed areas still work.');
-        return false;
-      }
-
-      setLoading(true);
-      setStatusText('Waking up the processing server (can take up to a minute)');
-
-      // Cancel any previous in-flight request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-      const timeoutId = setTimeout(() => controller.abort(), 150000); // 150 seconds timeout
-
-      // Progressive progress states
-      const uploadingTimer = setTimeout(() => {
-        setStatusText('Uploading');
-      }, 1500);
-
-      const analyzingTimer = setTimeout(() => {
-        setStatusText('Analyzing radar change');
-      }, 5000);
-
       const formData = new FormData();
       formData.append('before', beforeFile);
       formData.append('after', afterFile);
@@ -149,99 +260,32 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
         formData.append('date_b', options.dateB);
       }
 
-      try {
-        const response = await fetch(`${apiUrl}/analyze`, {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal,
-        });
-
-        clearTimeout(uploadingTimer);
-        clearTimeout(analyzingTimer);
-
-        let resJson: any = null;
-        try {
-          resJson = await response.json();
-        } catch {
-          // Response body wasn't JSON
-        }
-
-        if (!response.ok) {
-          const serverMsg = resJson?.detail || resJson?.error;
-          if (response.status === 400) {
-            throw new Error(
-              serverMsg || 'Invalid GeoTIFF format, mismatched coordinates/dimensions, or bad parameters.'
-            );
-          } else if (response.status === 429) {
-            throw new Error(
-              serverMsg || 'Server busy, try again in a minute.'
-            );
-          } else if (response.status === 504) {
-            throw new Error(
-              serverMsg || 'Analysis timed out on the processing server.'
-            );
-          } else {
-            throw new Error(
-              serverMsg || `Processing failed with server status ${response.status}.`
-            );
-          }
-        }
-
-        setStatusText('Done');
-        setServerStatus('ready');
-
-        const apiResult = resJson.result || {};
-        const apiImages = resJson.images || {};
-
-        const unifiedData: ChangeData = {
-          aoiId: apiResult.aoiId || 'custom-upload',
-          name: apiResult.name || (options?.aoiName ? `${options.aoiName} (Custom)` : 'Custom SAR Analysis'),
-          dateBefore: apiResult.dateBefore || (apiResult.dates?.a ? apiResult.dates.a : 'Before Scene'),
-          dateAfter: apiResult.dateAfter || (apiResult.dates?.b ? apiResult.dates.b : 'After Scene'),
-          percentChanged: typeof apiResult.percentChanged === 'number' ? apiResult.percentChanged : 0,
-          affectedAreaKm2: typeof apiResult.affectedAreaKm2 === 'number' ? apiResult.affectedAreaKm2 : 0,
-          confidence: typeof apiResult.confidence === 'number' ? apiResult.confidence : 0,
-          beforeImage: apiImages.before || '',
-          afterImage: apiImages.after || '',
-          changeMapImage: apiImages.change_map || '',
-          bounds: apiResult.bounds,
-          center: apiResult.center,
-          zoom: apiResult.zoom || 11,
-          mode: apiResult.mode || options?.mode || 'flood',
-          signalStrength: apiResult.signalStrength,
-          totalAreaKm2: apiResult.totalAreaKm2,
-          dates: apiResult.dates,
-          categories: apiResult.categories,
-          metrics: apiResult.metrics,
-          params: apiResult.params,
-          warnings: apiResult.warnings,
-        };
-
-        setData(unifiedData);
-        return true;
-      } catch (err: unknown) {
-        clearTimeout(uploadingTimer);
-        clearTimeout(analyzingTimer);
-
-        if (err instanceof Error) {
-          if (err.name === 'AbortError') {
-            setError('Analysis timed out after 150 seconds. The server might still be waking up or processing large imagery.');
-          } else if (err.message.includes('Failed to fetch') || err instanceof TypeError) {
-            setError('Unable to connect to the processing server. Please check your network or verify the processing server is running.');
-            setServerStatus('offline');
-          } else {
-            setError(err.message);
-          }
-        } else {
-          setError('An unexpected error occurred during analysis.');
-        }
-        return false;
-      } finally {
-        clearTimeout(timeoutId);
-        setLoading(false);
-      }
+      const defaultName = options?.aoiName ? `${options.aoiName} (Custom)` : 'Custom SAR Analysis';
+      return sendAnalysisRequest('/analyze', formData, 'custom-upload', defaultName, options?.mode);
     },
-    [apiUrl]
+    [sendAnalysisRequest]
+  );
+
+  const analyzeSample = useCallback(
+    async (options: SampleAnalyzeOptions): Promise<boolean> => {
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('name', options.name || 'sylhet');
+      if (options.mode) {
+        formData.append('mode', options.mode);
+      }
+      if (options.dateA) {
+        formData.append('date_a', options.dateA);
+      }
+      if (options.dateB) {
+        formData.append('date_b', options.dateB);
+      }
+
+      const sampleName = options.name === 'sylhet' ? 'Sylhet Floods (Sample)' : `${options.name} (Sample)`;
+      return sendAnalysisRequest('/analyze-sample', formData, options.name || 'sylhet', sampleName, options.mode);
+    },
+    [sendAnalysisRequest]
   );
 
   const reset = useCallback(() => {
@@ -262,6 +306,7 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
     serverStatus,
     apiUrl,
     analyze,
+    analyzeSample,
     reset,
     pingHealth,
   };
