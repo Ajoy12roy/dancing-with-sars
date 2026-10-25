@@ -27,7 +27,7 @@
 - Motion: Framer Motion only (GSAP must not be used or installed anywhere). Keep animations restrained — one orchestrated entrance moment per page, hairline/underline hover states only, no scale or glow effects.
 
 ## Brand / Logo exception
-1. New color token: navy (brand) = #000E1C. It is used ONLY for the navbar background and the footer strip. It does not replace paper / ink.
+1. New color token: navy (brand) = #000E1C. It is used ONLY for the navbar background (the footer now follows the theme). It does not replace paper / ink.
 2. The logo images in /public/brand/ are protected brand assets. They contain gradients and glow by design. Never edit, recolor, re-encode, crop, add CSS filters/shadows/glow to them.
 3. The "no gradient / no box-shadow / no glow" rules apply to UI elements only, not to the logo image files.
 4. Navbar text color on navy: #EAF3FB (solid, no opacity modifiers). Navbar link hover/active color: #7FD6E3 (solid).
@@ -59,5 +59,12 @@ Hero exception (homepage first section only):
 - Title/hero text uses Public Sans weight 700 (sans) instead of Source Serif 4.
 - In DARK mode only, the hero may use a CSS radial-gradient "Earth arc" background and tiny accent-colored star dots. No glow or box-shadow on buttons or text.
 - Light mode hero keeps the current background and colors.
+
+## Footer v2
+1. Light mode footer: background = the existing light surface token that differs from the page background (if none exists use the paper color), 1px top border in the existing hairline color. Headings = ink; links and secondary text = the existing secondary text color; link hover = the existing teal accent. No new colors.
+2. Dark mode footer: background #0C0E15, 1px top border #1A1F29, column headings #F9FAFB (Public Sans 600, 16px), links and secondary text #A3ABB5 (14-15px, solid), link hover #19E66F, bottom bar rule #1A1F29. No opacity modifiers on text.
+3. Layout: 4 columns (brand column wider), then a full-width rule, then a bottom bar: copyright left, legal links right. Responsive: 2 columns below 1024px, 1 column below 640px; bottom bar stacks.
+4. Logo in the footer uses TerraPulseLogo with tone="auto": it shows public/brand/terrapulse-wordmark-light.png in light mode and public/brand/terrapulse-wordmark.png in dark mode. Never recolor the logo with CSS filters.
+5. No box shadow, no gradient, no glow. Hover on links = solid color change only.
 ---
 

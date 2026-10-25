@@ -35,6 +35,8 @@ type Props = {
   period?: number;
   /** satellite size relative to the original artwork */
   satScale?: number;
+  /** wordmark tone: "auto" (theme-adaptive) or "dark" (always white wordmark) */
+  tone?: "auto" | "dark";
   className?: string;
 };
 
@@ -45,6 +47,7 @@ export default function TerraPulseLogo({
   wordmarkRatio = 0.4,
   period = 14,
   satScale = 0.7,
+  tone = "dark",
   className = "",
 }: Props) {
   const reduce = useReducedMotion();
@@ -99,7 +102,8 @@ export default function TerraPulseLogo({
 
   return (
     <span
-      className={className}
+      className={`tp-logo ${tone === "auto" ? "tp-tone-auto" : "tp-tone-dark"} ${className}`.trim()}
+      data-tone={tone}
       style={{ display: "inline-flex", alignItems: "center", gap: size * 0.18 }}
       role="img"
       aria-label="TerraPulse"
@@ -122,9 +126,27 @@ export default function TerraPulseLogo({
       </span>
 
       {showWordmark && (
-        <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: wmH * 0.35 }}>
+        <span
+          className={`tp-wordmark ${tone === "auto" ? "tp-tone-auto" : "tp-tone-dark"}`}
+          data-tone={tone}
+          style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: wmH * 0.35 }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/terrapulse-wordmark.png" alt="" width={wmW} height={wmH} style={{ display: "block" }} />
+          <img
+            src="/brand/terrapulse-wordmark.png"
+            alt=""
+            width={wmW}
+            height={wmH}
+            className="tp-wm-dark"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/terrapulse-wordmark-light.png"
+            alt=""
+            width={wmW}
+            height={wmH}
+            className="tp-wm-light"
+          />
           {showTagline && (
             // eslint-disable-next-line @next/next/no-img-element
             <img

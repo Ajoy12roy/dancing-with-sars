@@ -54,8 +54,11 @@
 
   --color-footer-bg: var(--color-footer-bg);
   --color-footer-border: var(--color-footer-border);
+  --color-footer-heading: var(--color-footer-heading);
   --color-footer-text: var(--color-footer-text);
   --color-footer-text-secondary: var(--color-footer-text-secondary);
+  --color-footer-link-hover: var(--color-footer-link-hover);
+  --color-footer-rule: var(--color-footer-rule);
 
   --color-selection-bg: var(--color-selection-bg);
   --color-selection-text: var(--color-selection-text);
@@ -163,11 +166,14 @@
   --color-navbar-text: #EAF3FB;
   --color-navbar-link-hover: #7FD6E3;
 
-  /* Footer (Light mode stays #000E1C) */
-  --color-footer-bg: #000E1C;
-  --color-footer-border: #12263A;
-  --color-footer-text: #EAF3FB;
-  --color-footer-text-secondary: #B4BDC7;
+  /* Footer v2 (Light mode: surface-2 #E8E6E1, hairline #C7C4BC, ink #1D2023, text-secondary #4A4E52, teal #2C5C61) */
+  --color-footer-bg: #E8E6E1;
+  --color-footer-border: #C7C4BC;
+  --color-footer-heading: #1D2023;
+  --color-footer-text: #4A4E52;
+  --color-footer-text-secondary: #4A4E52;
+  --color-footer-link-hover: #2C5C61;
+  --color-footer-rule: #C7C4BC;
 
   /* Selection (Solid tokens) */
   --color-selection-bg: #C6DDE0;
@@ -248,11 +254,14 @@
   --color-navbar-text: #EAF3FB;
   --color-navbar-link-hover: #19E66F;
 
-  /* Footer (Dark mode: surface-2 #141B26, border #1F2A38, text-small #B4BDC7) */
-  --color-footer-bg: #141B26;
-  --color-footer-border: #1F2A38;
-  --color-footer-text: #E8EDF2;
-  --color-footer-text-secondary: #B4BDC7;
+  /* Footer v2 (Dark mode: #0C0E15, border #1A1F29, headings #F9FAFB, text #A3ABB5, hover #19E66F, rule #1A1F29) */
+  --color-footer-bg: #0C0E15;
+  --color-footer-border: #1A1F29;
+  --color-footer-heading: #F9FAFB;
+  --color-footer-text: #A3ABB5;
+  --color-footer-text-secondary: #A3ABB5;
+  --color-footer-link-hover: #19E66F;
+  --color-footer-rule: #1A1F29;
 
   /* Selection (Solid tokens) */
   --color-selection-bg: #1F4D33;
@@ -665,4 +674,57 @@ select option {
   color: var(--color-ink) !important;
   padding: 4px 4px 0 0 !important;
 }
+
+/* ========================================================================
+   TerraPulse Logo — Wordmark Tone Switching (CSS-only)
+   ======================================================================== */
+
+.tp-wm-dark {
+  display: block;
+}
+
+.tp-wm-light {
+  display: none;
+}
+
+/* Tone "dark" always shows tp-wm-dark */
+[data-tone="dark"] .tp-wm-dark,
+.tp-tone-dark .tp-wm-dark {
+  display: block;
+}
+
+[data-tone="dark"] .tp-wm-light,
+.tp-tone-dark .tp-wm-light {
+  display: none;
+}
+
+/* Tone "auto" shows tp-wm-light when <html data-theme="light"> and tp-wm-dark when data-theme="dark" */
+html[data-theme="light"] [data-tone="auto"] .tp-wm-light,
+html[data-theme="light"] .tp-tone-auto .tp-wm-light,
+[data-theme="light"] [data-tone="auto"] .tp-wm-light,
+[data-theme="light"] .tp-tone-auto .tp-wm-light {
+  display: block;
+}
+
+html[data-theme="light"] [data-tone="auto"] .tp-wm-dark,
+html[data-theme="light"] .tp-tone-auto .tp-wm-dark,
+[data-theme="light"] [data-tone="auto"] .tp-wm-dark,
+[data-theme="light"] .tp-tone-auto .tp-wm-dark {
+  display: none;
+}
+
+html[data-theme="dark"] [data-tone="auto"] .tp-wm-dark,
+html[data-theme="dark"] .tp-tone-auto .tp-wm-dark,
+[data-theme="dark"] [data-tone="auto"] .tp-wm-dark,
+[data-theme="dark"] .tp-tone-auto .tp-wm-dark {
+  display: block;
+}
+
+html[data-theme="dark"] [data-tone="auto"] .tp-wm-light,
+html[data-theme="dark"] .tp-tone-auto .tp-wm-light,
+[data-theme="dark"] [data-tone="auto"] .tp-wm-light,
+[data-theme="dark"] .tp-tone-auto .tp-wm-light {
+  display: none;
+}
+
 

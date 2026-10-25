@@ -117,6 +117,7 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
         clearTimeout(uploadingTimer);
         clearTimeout(analyzingTimer);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let resJson: any = null;
         try {
           resJson = await response.json();
