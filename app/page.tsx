@@ -17,6 +17,7 @@ import {
   DataSourcesSection,
   AboutSection,
 } from '@/components/home';
+import ExploreButton from '@/components/ui/ExploreButton';
 
 // Deterministic, hard-coded starfield for hero in dark mode (36 stars, 2-3px, 4-8s twinkle)
 const HERO_STARS = [
@@ -158,15 +159,10 @@ export default function HomePage() {
             variants={itemVariants}
             className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
           >
-            <Link
-              href="/explore"
-              className="hero-btn-primary inline-flex items-center justify-center h-14 px-7 rounded-[2px] text-base font-semibold transition-colors duration-150 select-none shadow-none w-full sm:w-auto cursor-pointer"
-            >
-              Explore Now &rarr;
-            </Link>
+            <ExploreButton href="/explore" label="Explore Now" />
             <Link
               href="/how-it-works"
-              className="hero-btn-secondary inline-flex items-center justify-center h-14 px-7 rounded-[2px] text-base font-semibold transition-colors duration-150 select-none shadow-none w-full sm:w-auto cursor-pointer"
+              className="inline-flex items-center justify-center h-12.5 px-8 rounded-[6px] font-body text-sm font-semibold text-ink bg-transparent border border-hairline hover:border-teal hover:text-teal transition-colors duration-150 select-none shadow-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             >
               How It Works
             </Link>

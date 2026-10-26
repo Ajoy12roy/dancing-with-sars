@@ -42,7 +42,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/explore?mode=flood"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   Flood
                 </Link>
@@ -50,7 +50,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/explore?mode=erosion"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   River Erosion
                 </Link>
@@ -58,7 +58,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/explore?mode=deforestation"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   Deforestation
                 </Link>
@@ -66,7 +66,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/explore?mode=water"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   Surface Water
                 </Link>
@@ -83,7 +83,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/#about"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   About
                 </Link>
@@ -91,7 +91,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/how-it-works"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   How It Works
                 </Link>
@@ -99,7 +99,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/data-sources"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   Data Source
                 </Link>
@@ -109,7 +109,7 @@ export function Footer() {
                   href="https://www.spaceappschallenge.org"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   <span>NASA Space Apps Challenge</span>
                   <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
@@ -120,7 +120,7 @@ export function Footer() {
                   href="https://www.earthdata.nasa.gov"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   <span>NASA Earthdata</span>
                   <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
@@ -131,7 +131,7 @@ export function Footer() {
                   href="https://search.asf.alaska.edu"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   <span>ASF Data Search</span>
                   <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
@@ -151,7 +151,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="TerraPulse on GitHub"
-                className="inline-flex items-center gap-2 min-h-[36px] text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                className="inline-flex items-center gap-2 min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
               >
                 <GithubIcon className="w-5 h-5 shrink-0" />
                 <span>GitHub</span>
@@ -172,13 +172,13 @@ export function Footer() {
           <div className="flex flex-wrap items-center gap-6">
             <Link
               href="/privacy"
-              className="inline-flex items-center min-h-[36px] text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+              className="inline-flex items-center min-h-9 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
             >
               Privacy Policy
             </Link>
             <Link
               href="/terms"
-              className="inline-flex items-center min-h-[36px] text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+              className="inline-flex items-center min-h-9 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
             >
               Terms and Conditions
             </Link>

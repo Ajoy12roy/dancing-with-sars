@@ -200,6 +200,11 @@
   --hero-btn-secondary-hover-bg: transparent;
   --hero-btn-secondary-hover-text: var(--color-teal-light);
   --hero-btn-secondary-hover-border: 1px solid var(--color-teal-light);
+
+  /* Hero primary button exception tokens */
+  --tp-btn-accent: #2C5C61;
+  --tp-btn-on-accent: #F1F0EC;
+  --tp-btn-bg: #F1F0EC;
 }
 
 :root[data-theme="dark"] {
@@ -288,6 +293,11 @@
   --hero-btn-secondary-hover-bg: #19E66F;
   --hero-btn-secondary-hover-text: #090B11;
   --hero-btn-secondary-hover-border: 1.5px solid #19E66F;
+
+  /* Hero primary button exception tokens */
+  --tp-btn-accent: #19E66F;
+  --tp-btn-on-accent: #090B11;
+  --tp-btn-bg: #090C12;
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────── */

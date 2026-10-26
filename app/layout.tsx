@@ -119,6 +119,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="light"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${sourceSerif.variable} ${publicSans.variable} ${ibmPlexMono.variable}`}
     >

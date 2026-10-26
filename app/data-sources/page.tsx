@@ -202,7 +202,7 @@ export default function DataSourcesPage() {
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-0.5">
                     <span className="text-text-secondary">Geographic Bounds:</span>
-                    <span className="text-text-secondary text-[11px] break-words">{aoi.bounds}</span>
+                    <span className="text-text-secondary text-[11px] wrap-break-word">{aoi.bounds}</span>
                   </div>
                 </div>
               </div>
