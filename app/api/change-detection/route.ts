@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { isKnownCaseId } from '@/lib/case-studies';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -15,6 +16,10 @@ export async function GET(request: Request) {
 
   try {
     const cleanAoi = aoi.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!isKnownCaseId(cleanAoi)) {
+      return NextResponse.json({ error: 'Unknown or invalid AOI' }, { status: 400 });
+    }
+
     const dataPath = path.join(process.cwd(), 'data', 'precomputed', cleanAoi, 'result.json');
     if (!fs.existsSync(dataPath)) {
       return NextResponse.json({ error: 'Data not found for this AOI' }, { status: 404 });

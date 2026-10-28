@@ -3,6 +3,7 @@ import { useAnalysisMode } from '@/context';
 import { generateFallbackInsight, type InsightPayload } from '@/lib/ai-insight-fallback';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
+import { isKnownCaseId } from '@/lib/case-studies';
 import { DataPanel } from '@/components/ui/DataPanel';
 
 interface AIInsightPanelProps {
@@ -68,7 +69,7 @@ export function AIInsightPanel({
       ? Promise.resolve(insightCache.get(cacheKey)!)
       : inFlightRequests.get(cacheKey);
 
-    const isDemoAoi = ['sylhet', 'jamuna', 'amazon', 'tanguar'].includes(aoiId);
+    const isDemoAoi = isKnownCaseId(aoiId);
 
     const localFallbackPayload: InsightPayload = {
       mode: activeMode,

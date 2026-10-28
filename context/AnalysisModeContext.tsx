@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { AnalysisMode } from '@/types';
-import { DEMO_AOIS } from '@/constants';
+import { getCaseStudyById, getReadyCaseStudies } from '@/lib/case-studies';
 
 export interface ModeDisplayInfo {
   id: AnalysisMode;
@@ -70,17 +70,28 @@ export function normalizeMode(param: string | null): AnalysisMode | null {
 
 export function AnalysisModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<AnalysisMode>('flood');
-  const [selectedAoi, setSelectedAoiState] = useState<string>(DEMO_AOIS[0]?.id || 'sylhet');
+  const [selectedAoi, setSelectedAoiState] = useState<string>(() => {
+    const ready = getReadyCaseStudies('flood');
+    return ready[0]?.id || 'sylhet';
+  });
 
   const setMode = useCallback((newMode: AnalysisMode) => {
     setModeState(newMode);
+    setSelectedAoiState((prevAoi) => {
+      const current = getCaseStudyById(prevAoi);
+      if (!current || current.module !== newMode || current.status !== 'ready') {
+        const valid = getReadyCaseStudies(newMode);
+        return valid[0]?.id || prevAoi;
+      }
+      return prevAoi;
+    });
   }, []);
 
   const setSelectedAoi = useCallback((aoiId: string) => {
     setSelectedAoiState(aoiId);
-    const targetAoi = DEMO_AOIS.find((a) => a.id === aoiId);
-    if (targetAoi?.mode) {
-      setModeState(targetAoi.mode as AnalysisMode);
+    const targetAoi = getCaseStudyById(aoiId);
+    if (targetAoi?.module) {
+      setModeState(targetAoi.module as AnalysisMode);
     }
   }, []);
 

@@ -1,0 +1,879 @@
+{
+  "_comment": "TerraPulse case-study seed. Facts are limited to the cited sources. Entries are 'pending-data' until data/precomputed/<id>/result.json exists. aoi.centerLonLat values marked verifyInGEE are approximate.",
+  "caseStudies": [
+    {
+      "id": "feni-2024",
+      "module": "flood",
+      "title": "Eastern Bangladesh Flash Flood 2024 (Feni)",
+      "location": "Feni, Noakhali, Cumilla",
+      "country": "Bangladesh",
+      "eventPeriod": "From 21 August 2024",
+      "summary": "Heavy rain and cloudbursts over the Bangladesh-Tripura border region caused a flash flood across eastern Bangladesh starting 21 August 2024. Feni, Noakhali and Cumilla were among the worst affected districts.",
+      "causesAndImpacts": "Intense rainfall over the border region and rising river levels (e.g. the Chhota Feni river) flooded low-lying areas of Feni and Noakhali. Feni recorded the highest number of deaths.",
+      "suggestedDates": {
+        "before": [
+          "2024-08-05",
+          "2024-08-12"
+        ],
+        "after": [
+          "2024-08-21",
+          "2024-08-27"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          91.4,
+          23.02
+        ],
+        "halfSizeKm": 9,
+        "verifyInGEE": true,
+        "note": "Feni town area; adjust so floodplain and river are inside the frame."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "International Charter Space and Major Disasters - Activation 905 (Bangladesh flood)",
+          "url": "https://download.disasterscharter.org/web/guest/activations/-/article/flood-in-bangladesh-activation-905-"
+        },
+        {
+          "name": "NASA/JPL OPERA DSWx-S1 flood extent prototype, Bangladesh Aug 2024",
+          "url": "https://gis.earthdata.nasa.gov/gis05/rest/services/DISASTERS_202408_FLOOD_BANGLADESH/2423_opera_dswx_s1/ImageServer/info/metadata"
+        },
+        {
+          "name": "Sentinel Asia event report (GLIDE FL-2024-000088-BGD)",
+          "url": "https://sentinel-asia.org/EO/2024/article20240821BD.html"
+        },
+        {
+          "name": "PreventionWeb: Sentinel-1 flood mapping in Feni District",
+          "url": "https://www.preventionweb.net/quick/95204"
+        }
+      ],
+      "validateAgainst": [
+        "Disasters Charter activation 905 impact maps",
+        "NASA OPERA DSWx-S1 prototype extent"
+      ],
+      "limitations": [
+        "SAR VV water detection can miss flooded urban areas and flooded vegetation.",
+        "Choose before/after acquisitions from the same relative orbit and pass."
+      ],
+      "status": "pending-data",
+      "precomputedId": "feni-2024",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "sindh-pakistan-2022",
+      "module": "flood",
+      "title": "Pakistan Monsoon Floods 2022 (Sindh, Lake Manchar)",
+      "location": "Sindh province, Indus basin, Lake Manchar",
+      "country": "Pakistan",
+      "eventPeriod": "August - September 2022 (peak around late August to early September)",
+      "summary": "Extreme monsoon rainfall in 2022 flooded large parts of Pakistan, with Sindh among the hardest hit. Lake Manchar overflowed in early September after breaches. A peer-reviewed study mapped the flood from Sentinel-1 for 10 August - 23 September 2022.",
+      "causesAndImpacts": "Weeks of extreme monsoon rain overwhelmed the Indus system; NASA reported Sindh received more than five times its average rainfall. Lake Manchar breaches put hundreds of villages in the path of floodwater.",
+      "suggestedDates": {
+        "before": [
+          "2022-07-20",
+          "2022-07-30"
+        ],
+        "after": [
+          "2022-08-30",
+          "2022-09-08"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          67.65,
+          26.4
+        ],
+        "halfSizeKm": 20,
+        "verifyInGEE": true,
+        "note": "Lake Manchar and the Indus floodplain to its east. Use scale 30-40 m if the file gets large."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "NHESS 2023: Sentinel-1-based analysis of the severe flood over Pakistan 2022",
+          "url": "https://nhess.copernicus.org/articles/23/3305/2023/nhess-23-3305-2023.html"
+        },
+        {
+          "name": "NASA Earth Observatory / Science: Pakistan floods",
+          "url": "https://science.nasa.gov/?p=1063149"
+        },
+        {
+          "name": "UNOSAT flood extent, Sindh (FL20220808PAK) on HDX",
+          "url": "https://data.humdata.org"
+        }
+      ],
+      "validateAgainst": [
+        "TU Wien / Copernicus GFM flood extent (NHESS 2023 dataset)",
+        "UNOSAT water extent products"
+      ],
+      "limitations": [
+        "Very large event; AOI is a small window, not the whole flood.",
+        "Check acquisition dates actually exist in the chosen windows."
+      ],
+      "status": "pending-data",
+      "precomputedId": "sindh-pakistan-2022",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "rio-grande-do-sul-2024",
+      "module": "flood",
+      "title": "Rio Grande do Sul Floods 2024 (Porto Alegre, Lake Guaiba)",
+      "location": "Porto Alegre and Lake Guaiba, Rio Grande do Sul",
+      "country": "Brazil",
+      "eventPeriod": "Late April - May 2024 (Lake Guaiba record level on 5 May 2024)",
+      "summary": "Heavy rain from late April into early May 2024 caused flooding on a massive scale in Rio Grande do Sul. Lake Guaiba reached record levels at Porto Alegre and the Copernicus Emergency Management Service rapid mapping (EMSR720) was activated on 2 May.",
+      "causesAndImpacts": "Extreme rainfall raised the Jacui, Cai and Sinos rivers, which drain into Lake Guaiba; floodwater inundated the Porto Alegre metropolitan region, the airport area and farmland.",
+      "suggestedDates": {
+        "before": [
+          "2024-04-14",
+          "2024-04-26"
+        ],
+        "after": [
+          "2024-05-08",
+          "2024-05-14"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          -51.21,
+          -30.03
+        ],
+        "halfSizeKm": 15,
+        "verifyInGEE": true,
+        "note": "Porto Alegre and the delta of the Jacui river."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Copernicus EMS: Rio Grande do Sul flooding April-June 2024 (EMSR720)",
+          "url": "https://emergency.copernicus.eu/news/rio-grande-do-sul-flooding-brazil-april-to-june-2024/"
+        },
+        {
+          "name": "NASA Earth Observatory: Floods Engulf Porto Alegre",
+          "url": "https://science.nasa.gov/earth/earth-observatory/floods-engulf-porto-alegre-152795/"
+        },
+        {
+          "name": "mundialis: Sentinel-1 view of the Rio Grande do Sul flood",
+          "url": "https://www.mundialis.de/en/satellite-image-of-the-month-march-rio-grande-do-sul-brazil/"
+        }
+      ],
+      "validateAgainst": [
+        "Copernicus EMSR720 delineation maps",
+        "NASA MODIS Near Real-Time Global Flood Product (6 May 2024)"
+      ],
+      "limitations": [
+        "Urban flooding is poorly detected by SAR backscatter drop.",
+        "Wind-roughened open water can look bright; check results visually."
+      ],
+      "status": "pending-data",
+      "precomputedId": "rio-grande-do-sul-2024",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "padma-naria",
+      "module": "river-erosion",
+      "title": "Padma River Bank Erosion (Naria, Shariatpur)",
+      "location": "Padma River near Naria upazila, Shariatpur",
+      "country": "Bangladesh",
+      "eventPeriod": "Ongoing; multi-decade bank-line shifting",
+      "summary": "The Padma is a braided, highly dynamic river. Satellite studies document intense bank erosion and accretion, and the Naria area of Shariatpur is a well-studied hotspot.",
+      "causesAndImpacts": "Floods, sediment transport and human activity drive bank erosion; studies of Naria upazila report severe erosion near the Padma Bridge area over four decades.",
+      "suggestedDates": {
+        "before": [
+          "2017-01-15",
+          "2017-03-15"
+        ],
+        "after": [
+          "2024-01-15",
+          "2024-03-15"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          90.33,
+          23.4
+        ],
+        "halfSizeKm": 10,
+        "verifyInGEE": true,
+        "note": "Draw the box along the Padma near the Mawa-Janjira reach; coordinates here are approximate."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Billah (2018), Padma river bank changes, Quaestiones Geographicae",
+          "url": "https://qg.web.amu.edu.pl/qg/archives/2018/quageo-2018-0027.pdf"
+        },
+        {
+          "name": "Bangladesh River Research Institute: riverbank erosion near Padma Bridge (Naria)",
+          "url": "https://rri.portal.gov.bd/site/page/c3267bf0-5448-4729-b7fe-e8c1c30d346d"
+        },
+        {
+          "name": "MIST: Padma bankline shifting near Naria",
+          "url": "https://dspace.mist.ac.bd/items/10f740a7-320e-465b-aaf7-52aaeff179c7"
+        }
+      ],
+      "validateAgainst": [
+        "Published bank-line studies (Landsat-based)",
+        "Optical Sentinel-2 dry-season water mask"
+      ],
+      "limitations": [
+        "Compare the SAME season in different years (dry season) so river stage does not create false change.",
+        "SAR water mask shows river-extent change, which is a proxy for bank erosion."
+      ],
+      "status": "pending-data",
+      "precomputedId": "padma-naria",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "majuli-brahmaputra",
+      "module": "river-erosion",
+      "title": "Majuli Island Erosion (Brahmaputra, Assam)",
+      "location": "Majuli island, Brahmaputra River, Assam",
+      "country": "India",
+      "eventPeriod": "Ongoing; 1986-2023 studied by CWPRS",
+      "summary": "Majuli, described as the world's largest inhabited river island, has lost land to the Brahmaputra for decades. A 2024 CWPRS satellite-based study reported roughly 75 sq km eroded and 58 sq km deposited along the right bank between 1986 and 2023.",
+      "causesAndImpacts": "Monsoon flows of the braided Brahmaputra and its tributaries (including the Subansiri) cut the island banks; the island has shrunk substantially over the last century.",
+      "suggestedDates": {
+        "before": [
+          "2017-01-15",
+          "2017-03-15"
+        ],
+        "after": [
+          "2024-01-15",
+          "2024-03-15"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          94.2,
+          26.95
+        ],
+        "halfSizeKm": 15,
+        "verifyInGEE": true,
+        "note": "Southern bank of Majuli near the Subansiri confluence area is a documented erosion zone."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Assam Tribune: CWPRS study on Majuli erosion (75 sq km eroded, 58 sq km deposited, 1986-2023)",
+          "url": "https://dainikasam.assamtribune.com/assam/majuli-erosion-study-reveals-75-sq-km-land-loss-58-sq-km-deposition-along-brahmaputra-since-1986-1573590"
+        },
+        {
+          "name": "E3S Web of Conferences 347 (2022): geomorphic change at Majuli, 1975-2021",
+          "url": "https://www.e3s-conferences.org/10.1051/e3sconf/202234704002"
+        }
+      ],
+      "validateAgainst": [
+        "CWPRS / published bank-line maps",
+        "Optical Sentinel-2 dry-season water mask"
+      ],
+      "limitations": [
+        "Same-season comparison required; this tool is a demonstration, not a replacement for official CWPRS analysis."
+      ],
+      "status": "pending-data",
+      "precomputedId": "majuli-brahmaputra",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "ucayali-peru",
+      "module": "river-erosion",
+      "title": "Ucayali River Meander Migration (Jenaro Herrera, Peru)",
+      "location": "Ucayali River, Supay-Sahua sector, Jenaro Herrera, Loreto",
+      "country": "Peru",
+      "eventPeriod": "Ongoing; analysed 1985-2021",
+      "summary": "The Ucayali is among the most dynamic large rivers in the world. A 1985-2021 satellite study of the Supay-Sahua sector reports increasing lateral migration of meanders that erode lagoon banks, riparian forest and crops.",
+      "causesAndImpacts": "Rapid meander migration (a studied bend migrates about 36 m per year) threatens riparian forests, crops and communities; the 2022 flood affected the area.",
+      "suggestedDates": {
+        "before": [
+          "2018-07-01",
+          "2018-08-31"
+        ],
+        "after": [
+          "2023-07-01",
+          "2023-08-31"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          -73.72,
+          -4.92
+        ],
+        "halfSizeKm": 12,
+        "verifyInGEE": true,
+        "note": "Approximate; locate the Supay and Sahua lagoons and frame the nearby meander bends."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Kawsaypacha (PUCP): migration of the Ucayali River, Jenaro Herrera",
+          "url": "https://revistas.pucp.edu.pe/index.php/Kawsaypacha/en/article/view/31414"
+        },
+        {
+          "name": "AGU abstract: cutoff effects along the meandering Ucayali",
+          "url": "https://agu.confex.com/agu/fm15/webprogram/Paper80224.html"
+        }
+      ],
+      "validateAgainst": [
+        "Published Landsat bank-line studies"
+      ],
+      "limitations": [
+        "River stage differs between years; check that both dates are at similar stage before reading the change as erosion."
+      ],
+      "status": "pending-data",
+      "precomputedId": "ucayali-peru",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "cox-bazar-kutupalong-2017",
+      "module": "deforestation",
+      "title": "Kutupalong Refugee Camp Forest Loss (Cox's Bazar), 2017",
+      "location": "Kutupalong-Balukhali area, Ukhia/Teknaf, Cox's Bazar",
+      "country": "Bangladesh",
+      "eventPeriod": "From August 2017",
+      "summary": "The large Rohingya influx that began on 25 August 2017 led to rapid expansion of the Kutupalong camp into surrounding forest. Satellite studies report substantial forest loss and the clearing of hillside forest for settlements and fuelwood.",
+      "causesAndImpacts": "Camp settlement and fuelwood collection cleared forest in and around the Teknaf Wildlife Sanctuary. Published figures differ by method and area, so use the cited studies for numbers.",
+      "suggestedDates": {
+        "before": [
+          "2017-01-01",
+          "2017-03-15"
+        ],
+        "after": [
+          "2018-01-01",
+          "2018-03-15"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          92.16,
+          21.21
+        ],
+        "halfSizeKm": 8,
+        "verifyInGEE": true,
+        "note": "Hilly terrain: use the same relative orbit and pass for both dates."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Remote Sensing 11(17):2047, land cover change near Kutupalong",
+          "url": "https://www.mdpi.com/2072-4292/11/17/2047"
+        },
+        {
+          "name": "Al Jazeera / New Arab: forest cover change Oct 2016 - Nov 2017",
+          "url": "https://newarab.com/analysis/bangladeshi-forests-stripped-rohingya-refugees-battle-survive"
+        },
+        {
+          "name": "Environment, Development and Sustainability (2021): vegetation change in the camps",
+          "url": "https://ideas.repec.org/a/spr/endesu/v23y2021i3d10.1007_s10668-020-00733-x.html"
+        }
+      ],
+      "validateAgainst": [
+        "Sentinel-2 / Landsat optical before-after",
+        "Published forest-loss studies"
+      ],
+      "limitations": [
+        "Steep slopes distort SAR backscatter; treat results as an indicator, validate against optical imagery.",
+        "Settlement growth (bright, rough surfaces) and forest loss both change backscatter."
+      ],
+      "status": "pending-data",
+      "precomputedId": "cox-bazar-kutupalong-2017",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "kalimantan-borneo",
+      "module": "deforestation",
+      "title": "Kalimantan Forest Clearing (Borneo, Barito watershed)",
+      "location": "Central / South Kalimantan, Barito watershed",
+      "country": "Indonesia",
+      "eventPeriod": "Ongoing; 2001-2019 documented loss",
+      "summary": "Kalimantan has lost large areas of forest to logging, fire and plantation conversion. Reporting based on Global Forest Watch indicates the Barito watershed lost more than half of its original forest cover between 2001 and 2019.",
+      "causesAndImpacts": "Plantations (oil palm, wood fiber), logging, roads and fire contribute; studies show causes vary by location, so the demo should state the drivers only as the cited sources do.",
+      "suggestedDates": {
+        "before": [
+          "2019-06-01",
+          "2019-08-31"
+        ],
+        "after": [
+          "2023-06-01",
+          "2023-08-31"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": null,
+        "halfSizeKm": 10,
+        "verifyInGEE": true,
+        "note": "Pick the exact window yourself: open Global Forest Watch tree-cover-loss for 2019-2023 inside the Barito watershed and frame a clear clearing front."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Mongabay: new roads in primary forest, Barito watershed (2024)",
+          "url": "https://news.mongabay.com/short-article/2024/11/satellite-data-detect-appearance-of-new-roads-in-primary-forests-in-borneo/"
+        },
+        {
+          "name": "NASA Earth Observatory: Kalimantan, Borneo",
+          "url": "https://earthobservatory.nasa.gov/images/78461/kalimantan-borneo-indonesia"
+        },
+        {
+          "name": "Global Forest Watch",
+          "url": "https://www.globalforestwatch.org"
+        }
+      ],
+      "validateAgainst": [
+        "Global Forest Watch tree cover loss / GLAD alerts for the same window"
+      ],
+      "limitations": [
+        "Frequent cloud makes SAR useful here, but regrowth, peat moisture and rain affect backscatter."
+      ],
+      "status": "pending-data",
+      "precomputedId": "kalimantan-borneo",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "gran-chaco-paraguay",
+      "module": "deforestation",
+      "title": "Gran Chaco Clearing (Paraguay)",
+      "location": "Paraguayan Chaco (Alto Paraguay / Boqueron, near Defensores del Chaco National Park)",
+      "country": "Paraguay",
+      "eventPeriod": "Ongoing; accelerating since the 2010s",
+      "summary": "The Gran Chaco is South America's second largest forest and a global deforestation hotspot, largely cleared for cattle pasture. A NASA analysis reports about 20 percent of Gran Chaco forest was lost between 1985 and 2016.",
+      "causesAndImpacts": "Cattle ranching drives clearing, including at the edges of protected areas. Official figures cited by Mongabay report more than a million hectares cleared in the Paraguayan Chaco between 2014 and 2018.",
+      "suggestedDates": {
+        "before": [
+          "2019-06-01",
+          "2019-08-31"
+        ],
+        "after": [
+          "2023-06-01",
+          "2023-08-31"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": null,
+        "halfSizeKm": 10,
+        "verifyInGEE": true,
+        "note": "Choose a window with a visible clearing front using Global Forest Watch (Alto Paraguay or Boqueron department)."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "NASA Landsat: Deforestation in Paraguay's Gran Chaco",
+          "url": "https://landsat.gsfc.nasa.gov/article/2025/07/25"
+        },
+        {
+          "name": "Mongabay (2018): illegal cattle ranching in Paraguay's Chaco",
+          "url": "https://news.mongabay.com/2018/12/investigation-reveals-illegal-cattle-ranching-in-paraguays-vanishing-chaco/"
+        },
+        {
+          "name": "Global Forest Watch",
+          "url": "https://www.globalforestwatch.org"
+        }
+      ],
+      "validateAgainst": [
+        "Global Forest Watch tree cover loss / GLAD alerts",
+        "Guyra Paraguay monitoring reports"
+      ],
+      "limitations": [
+        "Dry thorn forest has a weaker backscatter contrast than rainforest; results may under-detect."
+      ],
+      "status": "pending-data",
+      "precomputedId": "gran-chaco-paraguay",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "hakaluki-haor",
+      "module": "surface-water",
+      "title": "Hakaluki Haor Seasonal Wetland",
+      "location": "Hakaluki Haor, Moulvibazar and Sylhet",
+      "country": "Bangladesh",
+      "eventPeriod": "Annual dry-to-wet cycle",
+      "summary": "Hakaluki Haor is a large freshwater marsh wetland in north-eastern Bangladesh (about 181 sq km, lying between 24.58-24.73 N and 92.00-92.13 E). In the wet season its many beels merge into one large water body, and it shrinks again in the dry season.",
+      "causesAndImpacts": "A designated Ecologically Critical Area and Ramsar site; seasonal inundation supports fisheries, agriculture and migratory birds, and the wetland is under degradation pressure.",
+      "suggestedDates": {
+        "before": [
+          "2023-02-15",
+          "2023-03-15"
+        ],
+        "after": [
+          "2023-08-01",
+          "2023-08-31"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          92.07,
+          24.66
+        ],
+        "halfSizeKm": 9,
+        "verifyInGEE": true,
+        "note": "Frame the whole haor; the box from the published coordinates is about 15 x 17 km."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Banglapedia: Hakaluki Haor",
+          "url": "https://en.banglapedia.org/index.php/Hakaluki_Haor"
+        },
+        {
+          "name": "UNDP assessment report, district level planning (Hakaluki)",
+          "url": "https://info.undp.org/docs/pdc/Documents/BGD/9. Assessment Report_District Level Planning 29 August 2018 copy.pdf"
+        }
+      ],
+      "validateAgainst": [
+        "Sentinel-2 optical water index for clear-sky dates",
+        "JRC Global Surface Water"
+      ],
+      "limitations": [
+        "Emergent vegetation and flooded crops can hide water from SAR in the wet season."
+      ],
+      "status": "pending-data",
+      "precomputedId": "hakaluki-haor",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "poyang-lake",
+      "module": "surface-water",
+      "title": "Poyang Lake Seasonal Water Extent",
+      "location": "Poyang Lake, Jiangxi",
+      "country": "China",
+      "eventPeriod": "Annual: rainy season April-September, dry season October-March",
+      "summary": "Poyang Lake is China's largest freshwater lake and expands and shrinks dramatically each year. Studies using Sentinel-1 SAR monitor its water area because cloud cover limits optical imagery.",
+      "causesAndImpacts": "Its extent follows the monsoon and the flow of the Ganjiang, Xinjiang and other rivers; the wet-season water area averages above 2500 sq km according to a Sentinel-1 based study.",
+      "suggestedDates": {
+        "before": [
+          "2023-01-15",
+          "2023-02-15"
+        ],
+        "after": [
+          "2023-07-01",
+          "2023-07-31"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          116.3,
+          29.1
+        ],
+        "halfSizeKm": 25,
+        "verifyInGEE": true,
+        "note": "Large AOI: export at 40-60 m scale to keep files small."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "Zeng et al. (2017), Poyang Lake water area using Sentinel-1",
+          "url": "https://elib.dlr.de/116059"
+        },
+        {
+          "name": "Remote Sensing 9(6):521, Poyang Lake Sentinel-1 water index",
+          "url": "https://0-dx-doi-org.brum.beds.ac.uk/10.3390/rs9060521"
+        },
+        {
+          "name": "JRC Global Surface Water Explorer",
+          "url": "https://global-surface-water.appspot.com"
+        }
+      ],
+      "validateAgainst": [
+        "JRC Global Surface Water monthly history",
+        "Sentinel-2 clear-sky images"
+      ],
+      "limitations": [
+        "Mudflats, wet marsh and wind can confuse a fixed water threshold."
+      ],
+      "status": "pending-data",
+      "precomputedId": "poyang-lake",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    },
+    {
+      "id": "lake-urmia",
+      "module": "surface-water",
+      "title": "Lake Urmia Shrinkage and Partial Recovery",
+      "location": "Lake Urmia, north-west Iran",
+      "country": "Iran",
+      "eventPeriod": "Decades of decline; fluctuation since 2015",
+      "summary": "NASA's Scientific Visualization Studio reports that Lake Urmia's area fell by about 88 percent since the 1970s, a change linked mainly to agriculture and development rather than drought alone. Studies show it shrank sharply to 2015, partly recovered around 2019 and has declined again since.",
+      "causesAndImpacts": "Dams, irrigation and groundwater use reduce inflow; the exposed lake bed leaves salt crust that dust storms carry into the air.",
+      "suggestedDates": {
+        "before": [
+          "2019-09-01",
+          "2019-09-30"
+        ],
+        "after": [
+          "2023-09-01",
+          "2023-09-30"
+        ]
+      },
+      "aoi": {
+        "centerLonLat": [
+          45.5,
+          37.65
+        ],
+        "halfSizeKm": 40,
+        "verifyInGEE": true,
+        "note": "Very large lake; export at 60-100 m scale or frame only the southern basin."
+      },
+      "datasets": [
+        "Sentinel-1 C-band SAR (GRD, IW mode, VV) via Google Earth Engine collection COPERNICUS/S1_GRD"
+      ],
+      "sourceLinks": [
+        {
+          "name": "NASA SVS: Vanishing Lake (Lake Urmia)",
+          "url": "https://svs.gsfc.nasa.gov/cgi-bin/details.cgi?aid=11748"
+        },
+        {
+          "name": "Rahimi and Breuste (2021), Why is Lake Urmia drying up?",
+          "url": "https://www.frontiersin.org/articles/10.3389/fenvs.2021.603916/full"
+        }
+      ],
+      "validateAgainst": [
+        "JRC Global Surface Water",
+        "Landsat-based area time series (published values differ by study; cite the study you use)"
+      ],
+      "limitations": [
+        "Shallow hypersaline water and salt crust affect radar backscatter; verify masks visually.",
+        "Published area numbers differ across studies; quote only the cited ones."
+      ],
+      "status": "pending-data",
+      "precomputedId": "lake-urmia",
+      "attribution": "Contains modified Copernicus Sentinel data, processed with Google Earth Engine / TerraPulse pipeline",
+      "dataSources": [
+        {
+          "name": "Copernicus Data Space Ecosystem (Sentinel-1)",
+          "url": "https://dataspace.copernicus.eu"
+        },
+        {
+          "name": "Google Earth Engine - COPERNICUS/S1_GRD",
+          "url": "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+        },
+        {
+          "name": "NASA Earthdata",
+          "url": "https://www.earthdata.nasa.gov"
+        },
+        {
+          "name": "Alaska Satellite Facility (ASF) Data Search",
+          "url": "https://search.asf.alaska.edu"
+        }
+      ]
+    }
+  ]
+}

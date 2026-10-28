@@ -1,0 +1,56 @@
+{
+  "mode": "deforestation",
+  "changeMapUrl": "change-map.png",
+  "percentChanged": 0.22,
+  "affectedAreaKm2": 0.55,
+  "confidence": 39.57,
+  "signalStrength": 39.57,
+  "totalAreaKm2": 253.99,
+  "bounds": {
+    "south": 21.137897624502813,
+    "west": 92.08324550312614,
+    "north": 21.28216705913241,
+    "east": 92.23685741671058
+  },
+  "dates": {
+    "a": "2017-01-01",
+    "b": "2018-01-01",
+    "days": 365
+  },
+  "categories": [
+    {
+      "id": "forest_loss",
+      "label": "Forest Canopy Loss",
+      "areaKm2": 0.55,
+      "kind": "loss"
+    }
+  ],
+  "metrics": {
+    "forestLossKm2": 0.55,
+    "lossThresholdDb": -3.0
+  },
+  "params": {
+    "mode": "deforestation",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": -3.0,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [
+    "VV-only input is less sensitive to forest loss when only one band is present. Cross-polarization (VH) provides superior volume scattering sensitivity."
+  ],
+  "band": 1,
+  "polarization": "VV",
+  "aoiId": "cox-bazar-kutupalong-2017",
+  "center": [
+    21.21003234181761,
+    92.16005145991835
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

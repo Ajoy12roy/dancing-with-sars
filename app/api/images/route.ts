@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { isKnownCaseId } from '@/lib/case-studies';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -17,6 +18,10 @@ export async function GET(request: Request) {
   // Sanitize path parameters to prevent directory traversal
   const cleanAoi = aoi.replace(/[^a-zA-Z0-9_-]/g, '');
   const cleanType = type.replace(/[^a-zA-Z0-9_-]/g, '');
+
+  if (!isKnownCaseId(cleanAoi)) {
+    return new NextResponse('Unknown or invalid AOI', { status: 400 });
+  }
 
   try {
     const candidates = [

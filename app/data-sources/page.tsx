@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getReadyCaseStudies, type CaseStudyModule } from '@/lib/case-studies';
 
 export const metadata: Metadata = {
   title: 'Data Sources & Methodology — Dancing with the SARs',
@@ -6,57 +7,15 @@ export const metadata: Metadata = {
     'Dataset citations, Sentinel-1 acquisition dates for demo AOIs, processing software stack, project license, and satellite attribution.',
 };
 
+const CASE_STUDY_MODULES: { id: CaseStudyModule; title: string }[] = [
+  { id: 'flood', title: 'Flood Inundation' },
+  { id: 'river-erosion', title: 'River Bank Erosion' },
+  { id: 'deforestation', title: 'Forest Canopy Loss' },
+  { id: 'surface-water', title: 'Surface Water Dynamics' },
+];
+
 export default function DataSourcesPage() {
-  const demoAois = [
-    {
-      id: 'sylhet',
-      name: 'Sylhet Flood 2022',
-      mode: 'Flood Inundation',
-      dateA: '2022-05-01',
-      dateB: '2022-06-21',
-      interval: '51 days',
-      bounds: '24.8499°N – 24.9802°N, 91.7999°E – 91.9501°E',
-      monitoredArea: '218.10 km²',
-      primaryResult: 'Flooded Area: 37.19 km²',
-      description: 'Pre-monsoon wetland baseline to peak monsoon inundation across the Surma river basin in northeastern Bangladesh.',
-    },
-    {
-      id: 'jamuna',
-      name: 'Jamuna River Erosion 2019 to 2024',
-      mode: 'River Erosion & Accretion',
-      dateA: '2019-02-15',
-      dateB: '2024-02-15',
-      interval: '1,826 days (5.0 years)',
-      bounds: '24.2998°N – 24.5501°N, 89.6498°E – 89.9500°E',
-      monitoredArea: '842.38 km²',
-      primaryResult: 'Erosion: 47.59 km² (9.52 km²/yr), Accretion: 42.38 km²',
-      description: 'Five-year braided channel migration along the Brahmaputra-Jamuna river corridor, compared at identical low-water dry season epochs.',
-    },
-    {
-      id: 'amazon',
-      name: 'Amazon Deforestation',
-      mode: 'Forest Canopy Loss',
-      dateA: '2021-01-01',
-      dateB: '2023-01-01',
-      interval: '730 days (2.0 years)',
-      bounds: '10.3500°S – 10.1499°S, 62.2001°W – 61.9999°W',
-      monitoredArea: '485.21 km²',
-      primaryResult: 'Forest Canopy Loss: 0.62 km²',
-      description: 'Two-year multi-temporal canopy backscatter loss detection in the Rondônia region of the southern Amazon basin.',
-    },
-    {
-      id: 'tanguar',
-      name: 'Tanguar Haor Seasonal Water',
-      mode: 'Surface Water Dynamics',
-      dateA: '2023-02-15',
-      dateB: '2023-08-15',
-      interval: '181 days',
-      bounds: '25.0498°N – 25.2201°N, 90.9798°E – 91.2002°E',
-      monitoredArea: '418.40 km²',
-      primaryResult: 'Initial: 35.99 km² → Final: 298.31 km² (+262.32 km²)',
-      description: 'Cyclic pre-monsoon dry season baseline to peak monsoon wetland expansion across a Ramsar-designated freshwater haor.',
-    },
-  ];
+  const demoAois = getReadyCaseStudies();
 
   const softwareStack = [
     {
@@ -173,14 +132,14 @@ export default function DataSourcesPage() {
               <div>
                 <div className="flex items-center justify-between border-b border-hairline pb-2 mb-3">
                   <h3 className="font-headline font-semibold text-base text-text-primary">
-                    {aoi.name}
+                    {aoi.name || aoi.title}
                   </h3>
                   <span className="text-xs font-data px-2 py-0.5 bg-surface-2 border border-hairline text-teal">
-                    {aoi.mode}
+                    {aoi.modeLabel || aoi.module}
                   </span>
                 </div>
                 <p className="text-xs text-text-secondary leading-relaxed mb-4">
-                  {aoi.description}
+                  {aoi.description || aoi.summary}
                 </p>
 
                 <div className="space-y-2 text-xs font-data border-t border-hairline pt-3">
@@ -202,7 +161,7 @@ export default function DataSourcesPage() {
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-0.5">
                     <span className="text-text-secondary">Geographic Bounds:</span>
-                    <span className="text-text-secondary text-[11px] wrap-break-word">{aoi.bounds}</span>
+                    <span className="text-text-secondary text-[11px] wrap-break-word">{aoi.boundsLabel || aoi.aoi?.note}</span>
                   </div>
                 </div>
               </div>
@@ -215,6 +174,88 @@ export default function DataSourcesPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Case Study Sources & Attributions by Module */}
+      <section className="border-t border-hairline pt-8 mb-12">
+        <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary mb-2">
+          Case Study Sources & Citations
+        </h2>
+        <p className="text-sm text-text-secondary mb-6 font-sans">
+          External reference citations, disaster mapping datasets, and satellite imagery attributions for every ready analysis case study.
+        </p>
+
+        <div className="space-y-8">
+          {CASE_STUDY_MODULES.map((mod) => {
+            const readyStudies = getReadyCaseStudies(mod.id);
+            if (readyStudies.length === 0) return null;
+
+            return (
+              <div key={mod.id} className="border border-hairline bg-surface p-5 rounded-[2px] space-y-4">
+                <div className="flex items-center justify-between border-b border-hairline pb-3">
+                  <h3 className="font-headline font-semibold text-lg text-text-primary">
+                    {mod.title}
+                  </h3>
+                  <span className="text-xs font-data px-2 py-0.5 bg-surface-2 border border-hairline text-teal">
+                    {readyStudies.length} Ready Case {readyStudies.length === 1 ? 'Study' : 'Studies'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {readyStudies.map((cs) => (
+                    <div
+                      key={cs.id}
+                      className="border border-hairline bg-surface-2 p-4 rounded-[2px] flex flex-col justify-between space-y-3"
+                    >
+                      <div>
+                        <h4 className="font-headline font-semibold text-sm text-text-primary mb-1">
+                          {cs.title}
+                        </h4>
+                        {(cs.location || cs.country) && (
+                          <p className="text-xs text-text-secondary font-sans mb-3">
+                            {[cs.location, cs.country].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+
+                        {/* Source Links */}
+                        {cs.sourceLinks && cs.sourceLinks.length > 0 && (
+                          <div className="space-y-1.5 mt-2">
+                            <span className="text-[11px] font-sans text-text-secondary block font-medium">
+                              Reference Citations & Validation Links:
+                            </span>
+                            <ul className="space-y-1">
+                              {cs.sourceLinks.map((link, idx) => (
+                                <li key={idx}>
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-data text-teal hover:underline inline-flex items-center gap-1.5 transition-colors"
+                                  >
+                                    <span>{link.name}</span>
+                                    <span className="text-[10px] text-text-secondary" aria-hidden="true">↗</span>
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Attribution Line */}
+                      {cs.attribution && (
+                        <div className="text-[11px] font-sans text-text-secondary pt-2 border-t border-hairline">
+                          <span className="font-medium text-text-primary">Attribution: </span>
+                          <span>{cs.attribution}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

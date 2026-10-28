@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:cases": "node tools/check-case-studies.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

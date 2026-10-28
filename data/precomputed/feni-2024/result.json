@@ -1,0 +1,67 @@
+{
+  "mode": "flood",
+  "changeMapUrl": "change-map.png",
+  "percentChanged": 9.39,
+  "affectedAreaKm2": 30.17,
+  "confidence": 56.44,
+  "signalStrength": 56.44,
+  "totalAreaKm2": 321.27,
+  "bounds": {
+    "south": 22.939019769162453,
+    "west": 91.31267065240841,
+    "north": 23.101075846417615,
+    "east": 91.4876624697549
+  },
+  "dates": {
+    "a": "2024-08-05",
+    "b": "2024-08-21",
+    "days": 16
+  },
+  "categories": [
+    {
+      "id": "flooded",
+      "label": "Flooded Area",
+      "areaKm2": 30.17,
+      "kind": "loss"
+    },
+    {
+      "id": "persistent_water",
+      "label": "Persistent Water",
+      "areaKm2": 1.14,
+      "kind": "persistent"
+    },
+    {
+      "id": "receded_water",
+      "label": "Receded Water",
+      "areaKm2": 0.73,
+      "kind": "gain"
+    }
+  ],
+  "metrics": {
+    "floodedAreaKm2": 30.17,
+    "persistentWaterKm2": 1.14,
+    "recededWaterKm2": 0.73
+  },
+  "params": {
+    "mode": "flood",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [],
+  "band": 1,
+  "polarization": "VV",
+  "aoiId": "feni-2024",
+  "center": [
+    23.020047807790036,
+    91.40016656108165
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

@@ -1,0 +1,67 @@
+{
+  "mode": "flood",
+  "changeMapUrl": "change-map.png",
+  "percentChanged": 12.08,
+  "affectedAreaKm2": 191.42,
+  "confidence": 91.26,
+  "signalStrength": 91.26,
+  "totalAreaKm2": 1585.12,
+  "bounds": {
+    "south": 26.21993668135218,
+    "west": 67.45072176034158,
+    "north": 26.579981447227286,
+    "east": 67.85011273566111
+  },
+  "dates": {
+    "a": "2022-07-20",
+    "b": "2022-08-30",
+    "days": 41
+  },
+  "categories": [
+    {
+      "id": "flooded",
+      "label": "Flooded Area",
+      "areaKm2": 191.42,
+      "kind": "loss"
+    },
+    {
+      "id": "persistent_water",
+      "label": "Persistent Water",
+      "areaKm2": 333.29,
+      "kind": "persistent"
+    },
+    {
+      "id": "receded_water",
+      "label": "Receded Water",
+      "areaKm2": 39.44,
+      "kind": "gain"
+    }
+  ],
+  "metrics": {
+    "floodedAreaKm2": 191.42,
+    "persistentWaterKm2": 333.29,
+    "recededWaterKm2": 39.44
+  },
+  "params": {
+    "mode": "flood",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [],
+  "band": 1,
+  "polarization": "VV",
+  "aoiId": "sindh-pakistan-2022",
+  "center": [
+    26.39995906428973,
+    67.65041724800135
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

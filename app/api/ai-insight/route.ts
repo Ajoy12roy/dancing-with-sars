@@ -4,12 +4,12 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { generateFallbackInsight, InsightPayload } from '@/lib/ai-insight-fallback';
+import { isKnownCaseId } from '@/lib/case-studies';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-// Known valid AOIs and Modes
-const KNOWN_AOIS = new Set(['sylhet', 'jamuna', 'amazon', 'tanguar']);
+// Known valid Modes
 const KNOWN_MODES = new Set(['flood', 'river-erosion', 'erosion', 'deforestation', 'surface-water', 'water']);
 
 // Allowed numeric metrics keys from result.json
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
     const aoiStr = body.aoi;
     const modeStr = body.mode;
 
-    if (typeof aoiStr !== 'string' || !KNOWN_AOIS.has(aoiStr)) {
+    if (typeof aoiStr !== 'string' || !isKnownCaseId(aoiStr)) {
       return NextResponse.json({ error: 'Unknown or invalid AOI' }, { status: 400 });
     }
     if (typeof modeStr !== 'string' || !KNOWN_MODES.has(modeStr)) {

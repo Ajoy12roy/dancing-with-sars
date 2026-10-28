@@ -8,12 +8,17 @@ import StatsPanel from '@/components/visualization/StatsPanel';
 import CategoryBreakdownChart from '@/components/visualization/CategoryBreakdownChart';
 import { ChangeMap } from '@/components/visualization/ChangeMap';
 import ShorelineShiftCard from '@/components/visualization/ShorelineShiftCard';
+import CaseStudyCard from '@/components/visualization/CaseStudyCard';
 import { AIInsightPanel } from '@/components/ai/AIInsightPanel';
 import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { useAnalysisMode } from '@/context';
-import { DEMO_AOIS } from '@/constants';
+import {
+  getReadyDemoAois,
+  getReadyCaseStudies,
+  getCaseStudyById,
+} from '@/lib/case-studies';
 import type { AreaOfInterest, AnalysisMode } from '@/types';
 
 function parseModeParam(param: string | null): AnalysisMode | null {
@@ -38,26 +43,38 @@ function ExploreContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const readyAois = useMemo(() => getReadyDemoAois(), []);
+  const activeModeCaseStudies = useMemo(() => getReadyCaseStudies(mode), [mode]);
+  const currentCaseStudy = useMemo(() => getCaseStudyById(selectedAoi), [selectedAoi]);
+
   const rawModeParam = searchParams.get('mode');
 
   // Synchronize URL search param -> context state on load or URL param change.
   // URL is the single source of truth when a search parameter is present.
   useEffect(() => {
     const parsed = parseModeParam(rawModeParam);
+    const targetMode = parsed || mode;
+
     if (parsed && parsed !== mode) {
       setMode(parsed);
-      if (activeTab === 'demo') {
-        const matching = DEMO_AOIS.find((a) => a.mode === parsed);
-        if (matching && matching.id !== selectedAoi) {
-          setSelectedAoi(matching.id);
-        }
+    }
+
+    // Ensure selectedAoi belongs to the active/target mode
+    const current = getCaseStudyById(selectedAoi);
+    if (!current || current.module !== targetMode || current.status !== 'ready') {
+      const validCases = getReadyCaseStudies(targetMode);
+      if (validCases.length > 0 && validCases[0]) {
+        setSelectedAoi(validCases[0].id);
       }
     }
-  }, [rawModeParam, mode, selectedAoi, activeTab, setMode, setSelectedAoi]);
+  }, [rawModeParam, mode, selectedAoi, setMode, setSelectedAoi]);
 
   // Quick Demo State
   const { data: demoData, loading: demoLoading, error: demoError } = useChangeData(selectedAoi);
-  const activeDemoAoi = DEMO_AOIS.find((a) => a.id === selectedAoi) || DEMO_AOIS[0];
+  const activeDemoAoi =
+    readyAois.find((a) => a.id === selectedAoi) ||
+    readyAois.find((a) => a.mode === mode) ||
+    readyAois[0];
 
   // Upload State
   const [beforeFile, setBeforeFile] = useState<File | null>(null);
@@ -144,10 +161,11 @@ function ExploreContent() {
   const handleModeSelect = useCallback((newMode: AnalysisMode) => {
     if (newMode !== mode) {
       setMode(newMode);
-      if (activeTab === 'demo') {
-        const matching = DEMO_AOIS.find((a) => a.mode === newMode);
-        if (matching && matching.id !== selectedAoi) {
-          setSelectedAoi(matching.id);
+      const validCases = getReadyCaseStudies(newMode);
+      if (validCases.length > 0 && validCases[0]) {
+        const current = getCaseStudyById(selectedAoi);
+        if (!current || current.module !== newMode) {
+          setSelectedAoi(validCases[0].id);
         }
       }
     }
@@ -155,16 +173,16 @@ function ExploreContent() {
     if (rawModeParam !== targetParam) {
       router.replace(`/explore?mode=${targetParam}`, { scroll: false });
     }
-  }, [mode, selectedAoi, activeTab, rawModeParam, router, setMode, setSelectedAoi]);
+  }, [mode, selectedAoi, rawModeParam, router, setMode, setSelectedAoi]);
 
   // Switch demo AOI select and sync URL
   const handleAoiSelect = useCallback((aoiId: string) => {
     if (aoiId !== selectedAoi) {
       setSelectedAoi(aoiId);
     }
-    const found = DEMO_AOIS.find((a) => a.id === aoiId);
-    if (found?.mode) {
-      const targetMode = found.mode as AnalysisMode;
+    const found = getCaseStudyById(aoiId);
+    if (found?.module) {
+      const targetMode = found.module as AnalysisMode;
       if (targetMode !== mode) {
         setMode(targetMode);
       }
@@ -235,114 +253,126 @@ function ExploreContent() {
     });
   }, [displayData?.categories]);
 
+  const displayTitle =
+    activeTab === 'demo'
+      ? currentCaseStudy?.title || activeDemoAoi?.name || 'Precomputed Case Studies'
+      : 'Custom SAR Analysis';
+
+  const displayDescription =
+    activeTab === 'demo'
+      ? currentCaseStudy?.description || currentCaseStudy?.summary || activeDemoAoi?.description || 'Sentinel-1 radar backscatter variation analysis'
+      : 'Upload co-registered Before and After SAR GeoTIFF imagery to detect ground surface change.';
+
   return (
     <div className="min-h-screen bg-paper text-ink p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 12-Column CSS Grid Layout with consistent 24px gap (gap-6) */}
         <div className="grid grid-cols-12 gap-6">
-          {/* ── Row 1: Page Header + AOI Select / Mode Switcher (12 columns) ── */}
-          <div className="col-span-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-hairline">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold font-headline text-ink">
-                {activeTab === 'demo'
-                  ? activeDemoAoi?.name || 'Precomputed Case Studies'
-                  : 'Custom SAR Analysis'}
-              </h1>
-              <p className="text-text-secondary text-sm mt-1 font-sans">
-                {activeTab === 'demo'
-                  ? activeDemoAoi?.description || 'Sentinel-1 radar backscatter variation analysis'
-                  : 'Upload co-registered Before and After SAR GeoTIFF imagery to detect ground surface change.'}
-              </p>
-            </div>
+          {/* ── Row 1: Centered Case Study Title and Description (12 cols) ── */}
+          <div className="col-span-12 text-center space-y-2 pb-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+              {displayTitle}
+            </h1>
+            <p className="text-text-secondary text-sm sm:text-base max-w-3xl mx-auto font-sans leading-relaxed">
+              {displayDescription}
+            </p>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-4 shrink-0">
-              {/* Quick Demo vs Upload Toggle */}
-              <div className="inline-flex border border-hairline rounded-[2px] p-0.5 bg-surface-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('demo')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
-                    activeTab === 'demo'
-                      ? 'bg-accent text-text-on-accent font-semibold'
-                      : 'text-text-secondary hover:text-ink'
-                  }`}
-                >
-                  Quick Demo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('upload')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
-                    activeTab === 'upload'
-                      ? 'bg-accent text-text-on-accent font-semibold'
-                      : 'text-text-secondary hover:text-ink'
-                  }`}
-                >
-                  Upload Your Own
-                </button>
+          {/* ── Row 2: Two-Sided Controls (Left: Quick Demo & Upload, Right: Case Study Selector) ── */}
+          <div className="col-span-12 pb-4 border-b border-hairline">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {/* Left side — Quick Demo and Upload controls (immediately above SAR Image Comparison) */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex border border-hairline rounded-[2px] p-0.5 bg-surface-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('demo')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
+                      activeTab === 'demo'
+                        ? 'bg-accent text-text-on-accent font-semibold'
+                        : 'text-text-secondary hover:text-ink'
+                    }`}
+                  >
+                    Quick Demo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('upload')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
+                      activeTab === 'upload'
+                        ? 'bg-accent text-text-on-accent font-semibold'
+                        : 'text-text-secondary hover:text-ink'
+                    }`}
+                  >
+                    Upload Your Own
+                  </button>
+                </div>
+
+                {/* Reset Upload button (when in Upload mode with data) */}
+                {activeTab === 'upload' && uploadData && (
+                  <button
+                    type="button"
+                    onClick={handleResetUpload}
+                    className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer"
+                  >
+                    Upload Another Pair
+                  </button>
+                )}
+
+                {/* Server Status indicator (when in Upload mode and API URL configured) */}
+                {activeTab === 'upload' && apiUrl && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-data">
+                    {serverStatus === 'ready' && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
+                        <span className="text-teal font-medium">Server ready</span>
+                      </>
+                    )}
+                    {serverStatus === 'waking' && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
+                        <span className="text-text-secondary">Server waking up</span>
+                      </>
+                    )}
+                    {serverStatus === 'offline' && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
+                        <span className="text-rust">Server offline</span>
+                      </>
+                    )}
+                    {serverStatus === 'idle' && (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
+                        <span className="text-text-secondary">Connecting...</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* AOI Select (when in Quick Demo mode) */}
-              {activeTab === 'demo' && (
-                <div className="flex items-center gap-2">
-                  <label htmlFor="aoi-select" className="text-xs font-medium text-text-secondary shrink-0 font-sans">
-                    Case Study:
-                  </label>
-                  <select
-                    id="aoi-select"
-                    value={selectedAoi}
-                    onChange={(e) => handleAoiSelect(e.target.value)}
-                    className="bg-surface border border-hairline text-ink rounded-[2px] py-1.5 px-3 text-xs font-data focus:outline-none focus:border-accent cursor-pointer"
-                  >
-                    {DEMO_AOIS.map((aoi) => (
-                      <option key={aoi.id} value={aoi.id}>
-                        {aoi.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Reset Upload button (when in Upload mode with data) */}
-              {activeTab === 'upload' && uploadData && (
-                <button
-                  type="button"
-                  onClick={handleResetUpload}
-                  className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer"
+              {/* Right side — Case Study selector (immediately above Flood Detection and analysis sections) */}
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+                <label htmlFor="aoi-select" className="text-xs font-medium text-text-secondary shrink-0 font-sans">
+                  Case Study:
+                </label>
+                <select
+                  id="aoi-select"
+                  value={selectedAoi}
+                  onChange={(e) => {
+                    handleAoiSelect(e.target.value);
+                    if (activeTab !== 'demo') {
+                      setActiveTab('demo');
+                    }
+                  }}
+                  className="bg-surface border border-hairline text-ink rounded-[2px] py-1.5 px-3 text-xs font-data focus:outline-none focus:border-accent cursor-pointer flex-1 sm:flex-initial max-w-full sm:max-w-xs md:max-w-md truncate"
                 >
-                  Upload Another Pair
-                </button>
-              )}
-
-              {/* Server Status indicator (when in Upload mode and API URL configured) */}
-              {activeTab === 'upload' && apiUrl && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-data">
-                  {serverStatus === 'ready' && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
-                      <span className="text-teal font-medium">Server ready</span>
-                    </>
-                  )}
-                  {serverStatus === 'waking' && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
-                      <span className="text-text-secondary">Server waking up</span>
-                    </>
-                  )}
-                  {serverStatus === 'offline' && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                      <span className="text-rust">Server offline</span>
-                    </>
-                  )}
-                  {serverStatus === 'idle' && (
-                    <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
-                      <span className="text-text-secondary">Connecting...</span>
-                    </>
-                  )}
-                </div>
-              )}
+                  {activeModeCaseStudies.map((cs) => (
+                    <option key={cs.id} value={cs.id} className="font-normal font-sans text-ink">
+                      {cs.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -550,6 +580,17 @@ function ExploreContent() {
                   <ShorelineShiftCard data={displayData} mode={mode} />
                 )}
               </div>
+
+              {/* ── Case Study Card (under the viewer for the selected demo) ── */}
+              {activeTab === 'demo' && currentCaseStudy && (
+                <div className="col-span-12">
+                  <CaseStudyCard
+                    caseStudy={currentCaseStudy}
+                    dateBefore={displayData.dateBefore}
+                    dateAfter={displayData.dateAfter}
+                  />
+                </div>
+              )}
 
               {/* ── Row 2: Left = Category Breakdown (7 cols), Right = Radar Interpretation (5 cols) ── */}
               <div className="col-span-12 lg:col-span-7 flex">

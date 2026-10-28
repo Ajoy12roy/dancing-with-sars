@@ -1,0 +1,85 @@
+{
+  "mode": "river-erosion",
+  "changeMapUrl": "change-map.png",
+  "percentChanged": 16.63,
+  "affectedAreaKm2": 65.92,
+  "confidence": 100.0,
+  "signalStrength": 100.0,
+  "totalAreaKm2": 396.43,
+  "bounds": {
+    "south": 23.310023981503814,
+    "west": 90.23271601783992,
+    "north": 23.490046364441366,
+    "east": 90.42765043449386
+  },
+  "dates": {
+    "a": "2017-01-15",
+    "b": "2024-01-15",
+    "days": 2556
+  },
+  "categories": [
+    {
+      "id": "erosion",
+      "label": "Bank erosion (land-to-water near channel)",
+      "areaKm2": 65.92,
+      "kind": "loss"
+    },
+    {
+      "id": "accretion",
+      "label": "River Accretion / Deposition",
+      "areaKm2": 36.52,
+      "kind": "gain"
+    },
+    {
+      "id": "persistent_river",
+      "label": "Persistent River Channel",
+      "areaKm2": 55.86,
+      "kind": "persistent"
+    },
+    {
+      "id": "other_new_water",
+      "label": "Other New Water",
+      "areaKm2": 0.47,
+      "kind": "other"
+    },
+    {
+      "id": "other_lost_water",
+      "label": "Other Lost Water",
+      "areaKm2": 0.31,
+      "kind": "other"
+    }
+  ],
+  "metrics": {
+    "erosionAreaKm2": 65.92,
+    "accretionAreaKm2": 36.52,
+    "netLandChangeKm2": -29.4,
+    "erosionRateKm2PerYear": 9.4199,
+    "riverAreaKm2": 55.86,
+    "otherNewWaterAreaKm2": 0.47,
+    "otherLostWaterAreaKm2": 0.31
+  },
+  "params": {
+    "mode": "river-erosion",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": 5,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [
+    "Erosion is estimated as land-to-water change connected to the persistent river channel. It also includes flow-stage differences and sandbar migration between the two dates, so it should be validated against optical imagery."
+  ],
+  "band": 1,
+  "polarization": "VV",
+  "aoiId": "padma-naria",
+  "center": [
+    23.40003517297259,
+    90.3301832261669
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}

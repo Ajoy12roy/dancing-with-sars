@@ -1,0 +1,67 @@
+{
+  "mode": "flood",
+  "changeMapUrl": "change-map.png",
+  "percentChanged": 17.27,
+  "affectedAreaKm2": 154.25,
+  "confidence": 82.2,
+  "signalStrength": 82.2,
+  "totalAreaKm2": 892.96,
+  "bounds": {
+    "south": -30.165067914619886,
+    "west": -51.364949293726944,
+    "north": -29.894854677156733,
+    "east": -51.05485085764889
+  },
+  "dates": {
+    "a": "2024-04-14",
+    "b": "2024-05-08",
+    "days": 24
+  },
+  "categories": [
+    {
+      "id": "flooded",
+      "label": "Flooded Area",
+      "areaKm2": 154.25,
+      "kind": "loss"
+    },
+    {
+      "id": "persistent_water",
+      "label": "Persistent Water",
+      "areaKm2": 85.94,
+      "kind": "persistent"
+    },
+    {
+      "id": "receded_water",
+      "label": "Receded Water",
+      "areaKm2": 0.48,
+      "kind": "gain"
+    }
+  ],
+  "metrics": {
+    "floodedAreaKm2": 154.25,
+    "persistentWaterKm2": 85.94,
+    "recededWaterKm2": 0.48
+  },
+  "params": {
+    "mode": "flood",
+    "waterThresholdDb": -16.0,
+    "minPixels": 20,
+    "riverBuffer": null,
+    "lossThresholdDb": null,
+    "detectedScaleA": "dB",
+    "detectedScaleB": "dB",
+    "band": 1,
+    "polarization": "VV",
+    "filterSize": 5
+  },
+  "warnings": [],
+  "band": 1,
+  "polarization": "VV",
+  "aoiId": "rio-grande-do-sul-2024",
+  "center": [
+    -30.02996129588831,
+    -51.20990007568791
+  ],
+  "beforeImageUrl": "before.png",
+  "afterImageUrl": "after.png"
+}
