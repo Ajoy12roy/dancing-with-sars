@@ -1,6 +1,8 @@
 {
-  "name": "dancing-with-sars",
+  "name": "terra-pulse",
   "version": "0.1.0",
+  "description": "SAR before/after change-detection platform making NASA-accessible radar data easy for everyone",
+  "author": "Team Nova Strike's",
   "private": true,
   "scripts": {
     "dev": "next dev",
