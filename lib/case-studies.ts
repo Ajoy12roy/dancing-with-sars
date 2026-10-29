@@ -3,7 +3,8 @@
 // Central data-driven registry for all SAR analysis case studies.
 // ========================================================================
 
-import type { AreaOfInterest, BoundingBox, DateRange } from '@/types';
+import type { AreaOfInterest, BoundingBox, DateRange, SensitivityData } from '@/types';
+import { getSensitivityForCase } from '@/lib/sensitivity';
 import seedData from '@/data/case-studies/seed.json';
 import sylhetResult from '@/data/precomputed/sylhet/result.json';
 import jamunaResult from '@/data/precomputed/jamuna/result.json';
@@ -72,6 +73,9 @@ export interface CaseStudy {
   beforeRange?: DateRange;
   afterRange?: DateRange;
   honestyNote?: string;
+
+  // Day 3 sensitivity analysis
+  sensitivity?: SensitivityData;
 }
 
 interface RawBounds {
@@ -468,6 +472,7 @@ export function getAllCaseStudies(): CaseStudy[] {
   return ALL_CASE_STUDIES.map((cs) => ({
     ...cs,
     status: isPrecomputedReady(cs.precomputedId) ? 'ready' : 'pending-data',
+    sensitivity: cs.sensitivity || getSensitivityForCase(cs.precomputedId || cs.id) || undefined,
   }));
 }
 
@@ -642,6 +647,7 @@ export function toAreaOfInterest(cs: CaseStudy): AreaOfInterest {
     beforeRange: cs.beforeRange,
     afterRange: cs.afterRange,
     honestyNote: cs.honestyNote,
+    sensitivity: cs.sensitivity || getSensitivityForCase(cs.precomputedId || cs.id) || undefined,
     sceneBefore: {
       id: `S1-${cs.id}-pre`,
       aoiId: cs.id,

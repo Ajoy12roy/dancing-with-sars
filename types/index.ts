@@ -3,6 +3,10 @@
 // Core domain types for SAR scene data, change detection results, and AI insights.
 // ========================================================================
 
+import type { SensitivityData, SensitivityStep } from '@/lib/sensitivity';
+
+export type { SensitivityData, SensitivityStep };
+
 /** Date range for radar median composites */
 export interface DateRange {
   start: string;
@@ -72,6 +76,7 @@ export interface AreaOfInterest {
   beforeRange?: DateRange;
   afterRange?: DateRange;
   honestyNote?: string;
+  sensitivity?: SensitivityData;
 }
 
 /** Result of running the change-detection pipeline */
@@ -109,6 +114,7 @@ export interface ChangeResult {
   beforeRange?: DateRange;
   afterRange?: DateRange;
   honestyNote?: string;
+  sensitivity?: SensitivityData;
 }
 
 /** Histogram bin for change intensity distribution */

@@ -79,3 +79,4 @@ def test_sensitivity_output_schema():
             assert isinstance(step["percentChanged"], (int, float))
             assert step["areaKm2"] >= 0.0
             assert step["percentChanged"] >= 0.0
+
