@@ -165,13 +165,13 @@
       "summary": "Heavy rain from late April into early May 2024 caused flooding on a massive scale in Rio Grande do Sul. Lake Guaiba reached record levels at Porto Alegre and the Copernicus Emergency Management Service rapid mapping (EMSR720) was activated on 2 May.",
       "causesAndImpacts": "Extreme rainfall raised the Jacui, Cai and Sinos rivers, which drain into Lake Guaiba; floodwater inundated the Porto Alegre metropolitan region, the airport area and farmland.",
       "suggestedDates": {
-        "before": [
-          "2024-04-14",
+       "before": [
+          "2023-01-01",
           "2024-04-26"
         ],
         "after": [
-          "2024-05-08",
-          "2024-05-14"
+          "2024-05-01",
+          "2024-05-20"
         ]
       },
       "aoi": {
