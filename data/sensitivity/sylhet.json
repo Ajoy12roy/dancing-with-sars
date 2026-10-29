@@ -1,0 +1,38 @@
+{
+  "caseId": "sylhet",
+  "mode": "flood",
+  "parameterName": "water_threshold",
+  "unit": "dB",
+  "centre": -16.0,
+  "steps": [
+    {
+      "value": -18.0,
+      "areaKm2": 30.85,
+      "percentChanged": 14.15
+    },
+    {
+      "value": -17.0,
+      "areaKm2": 34.1,
+      "percentChanged": 15.64
+    },
+    {
+      "value": -16.0,
+      "areaKm2": 37.19,
+      "percentChanged": 17.05
+    },
+    {
+      "value": -15.0,
+      "areaKm2": 40.69,
+      "percentChanged": 18.66
+    },
+    {
+      "value": -14.0,
+      "areaKm2": 44.01,
+      "percentChanged": 20.18
+    }
+  ],
+  "minAreaKm2": 30.85,
+  "maxAreaKm2": 44.01,
+  "computedBy": "python-service/sensitivity.py",
+  "gitCommit": "a5a850488b7f09bd472abc99eea00336d630a8f2"
+}

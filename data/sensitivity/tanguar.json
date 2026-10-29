@@ -1,0 +1,38 @@
+{
+  "caseId": "tanguar",
+  "mode": "surface-water",
+  "parameterName": "water_threshold",
+  "unit": "dB",
+  "centre": -16.0,
+  "steps": [
+    {
+      "value": -18.0,
+      "areaKm2": 249.87,
+      "percentChanged": 59.72
+    },
+    {
+      "value": -17.0,
+      "areaKm2": 259.15,
+      "percentChanged": 61.94
+    },
+    {
+      "value": -16.0,
+      "areaKm2": 262.88,
+      "percentChanged": 62.83
+    },
+    {
+      "value": -15.0,
+      "areaKm2": 265.85,
+      "percentChanged": 63.54
+    },
+    {
+      "value": -14.0,
+      "areaKm2": 267.93,
+      "percentChanged": 64.04
+    }
+  ],
+  "minAreaKm2": 249.87,
+  "maxAreaKm2": 267.93,
+  "computedBy": "python-service/sensitivity.py",
+  "gitCommit": "a5a850488b7f09bd472abc99eea00336d630a8f2"
+}

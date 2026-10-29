@@ -188,6 +188,40 @@ uvicorn api:app --host 127.0.0.1 --port 8000 --reload
 
 ---
 
+## Reproduce the Sensitivity Analysis
+
+To evaluate how sensitive change detection results are to variations in the classification threshold, Terra Pulse includes a standalone sensitivity analysis pipeline (`python-service/sensitivity.py`).
+
+### Input Folder Layout
+The sensitivity pipeline expects paired GeoTIFF scenes for each case study in:
+```
+data/samples/<caseId>/
+├── image_a.tif    # Pre-event / baseline GeoTIFF
+└── image_b.tif    # Post-event / current GeoTIFF
+```
+
+### Running the Analysis
+To compute sensitivity ranges across all 10 ready cases and verify exact reproduction against stored precomputed benchmarks:
+```bash
+cd python-service
+python sensitivity.py
+```
+Outputs are saved as JSON files in `data/sensitivity/<caseId>.json`.
+
+To run sensitivity for a single case:
+```bash
+cd python-service
+python sensitivity.py --case sylhet
+```
+
+To run the sensitivity test suite (schema validation and centre-value integrity checks):
+```bash
+cd python-service
+python -m pytest test_sensitivity.py
+```
+
+---
+
 ## Offline Demo Reliability
 
 The web application is engineered for zero-dependency offline resilience during hackathon judging and presentations:

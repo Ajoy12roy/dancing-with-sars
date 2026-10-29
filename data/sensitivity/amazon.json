@@ -1,0 +1,38 @@
+{
+  "caseId": "amazon",
+  "mode": "deforestation",
+  "parameterName": "loss_threshold_db",
+  "unit": "dB",
+  "centre": -3.0,
+  "steps": [
+    {
+      "value": -4.0,
+      "areaKm2": 0.05,
+      "percentChanged": 0.01
+    },
+    {
+      "value": -3.5,
+      "areaKm2": 0.19,
+      "percentChanged": 0.04
+    },
+    {
+      "value": -3.0,
+      "areaKm2": 0.62,
+      "percentChanged": 0.13
+    },
+    {
+      "value": -2.5,
+      "areaKm2": 1.67,
+      "percentChanged": 0.34
+    },
+    {
+      "value": -2.0,
+      "areaKm2": 4.64,
+      "percentChanged": 0.96
+    }
+  ],
+  "minAreaKm2": 0.05,
+  "maxAreaKm2": 4.64,
+  "computedBy": "python-service/sensitivity.py",
+  "gitCommit": "a5a850488b7f09bd472abc99eea00336d630a8f2"
+}
