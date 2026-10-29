@@ -125,28 +125,30 @@ function buildPrompt(payload: InsightPayload): string {
     case 'flood': {
       const flooded = (payload.affectedAreaKm2 ?? 0).toFixed(2);
       const pct = (payload.percentChanged ?? 0).toFixed(2);
-      const signal = (payload.confidence ?? payload.signalStrength ?? 0).toFixed(1);
+      const rawSignal = payload.confidence ?? payload.signalStrength;
+      const signal = rawSignal != null ? `${rawSignal.toFixed(1)}%` : 'not available';
 
       modeFacts = `
 - Analysis Mode: Flood Inundation
 - Observation Dates: ${dateA} to ${dateB}${daysStr}
 - Flooded Ground Area: ${flooded} km²
 - Percentage of Footprint Inundated: ${pct}%
-- Radar Backscatter Signal Strength: ${signal}%`;
+- Radar Backscatter Signal Strength: ${signal}`;
       break;
     }
 
     case 'deforestation': {
       const loss = ((metrics.forestLossKm2 as number) ?? payload.affectedAreaKm2 ?? 0).toFixed(2);
       const pct = (payload.percentChanged ?? 0).toFixed(2);
-      const signal = (payload.confidence ?? payload.signalStrength ?? 0).toFixed(1);
+      const rawSignal = payload.confidence ?? payload.signalStrength;
+      const signal = rawSignal != null ? `${rawSignal.toFixed(1)}%` : 'not available';
 
       modeFacts = `
 - Analysis Mode: Forest Canopy Loss / Disturbance
 - Observation Dates: ${dateA} to ${dateB}${daysStr}
 - Forest Canopy Loss Area: ${loss} km²
 - Percentage of Surveyed Area Affected: ${pct}%
-- Radar Backscatter Signal Strength: ${signal}%`;
+- Radar Backscatter Signal Strength: ${signal}`;
       break;
     }
 
@@ -167,12 +169,14 @@ function buildPrompt(payload: InsightPayload): string {
     }
 
     default: {
+      const rawSignal = payload.confidence ?? payload.signalStrength;
+      const signal = rawSignal != null ? `${rawSignal.toFixed(1)}%` : 'not available';
       modeFacts = `
 - Analysis Mode: SAR Change Detection
 - Observation Dates: ${dateA} to ${dateB}${daysStr}
 - Affected Area: ${(payload.affectedAreaKm2 ?? 0).toFixed(2)} km²
 - Percentage of Scene Changed: ${(payload.percentChanged ?? 0).toFixed(2)}%
-- Signal Strength: ${(payload.confidence ?? payload.signalStrength ?? 0).toFixed(1)}%`;
+- Signal Strength: ${signal}`;
       break;
     }
   }
@@ -386,7 +390,7 @@ export async function POST(request: NextRequest) {
       0;
 
     const pct = validatedMetrics.percentChanged ?? 0;
-    const confidence = validatedMetrics.confidence ?? validatedMetrics.signalStrength ?? 85.0;
+    const confidence = validatedMetrics.confidence ?? validatedMetrics.signalStrength;
 
     payload = {
       mode: resolvedMode,

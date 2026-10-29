@@ -41,7 +41,7 @@ export function DataSourcesSection() {
       <div className="border border-hairline p-6 bg-surface rounded-[2px]">
 
         <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-3xl">
-          All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and processed via Alaska Satellite Facility (ASF DAAC). Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
+          All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and obtained through Google Earth Engine (also available from NASA&apos;s Alaska Satellite Facility ASF DAAC). Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-data">
@@ -50,8 +50,8 @@ export function DataSourcesSection() {
             <span className="text-text-primary font-medium">Copernicus Sentinel-1 (C-band)</span>
           </div>
           <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
-            <span className="text-text-caption block text-[11px] mb-1">ARCHIVE DISTRIBUTION</span>
-            <span className="text-text-primary font-medium">ASF DAAC / NASA Earthdata</span>
+            <span className="text-text-caption block text-[11px] mb-1">DATA ACCESS &amp; ARCHIVES</span>
+            <span className="text-text-primary font-medium">Google Earth Engine (also from ASF DAAC)</span>
           </div>
           <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
             <span className="text-text-caption block text-[11px] mb-1">GEOSPATIAL PROCESSING</span>

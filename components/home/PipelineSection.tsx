@@ -9,7 +9,7 @@ const STEPS = [
     name: 'GeoTIFF Ingestion & Calibration',
     codeRef: 'rasterio & affine',
     summary:
-      'Reads paired Sentinel-1 or NISAR GeoTIFFs (image_a.tif and image_b.tif), extracts coordinate reference systems and affine matrices, and converts raw linear amplitude to calibrated decibels (dB) when needed.',
+      'Reads paired Sentinel-1 SAR GeoTIFFs (image_a.tif and image_b.tif), extracts coordinate reference systems and affine matrices, and converts raw linear amplitude to calibrated decibels (dB) when needed.',
   },
   {
     step: '02',

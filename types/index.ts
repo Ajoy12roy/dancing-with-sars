@@ -16,7 +16,7 @@ export interface SarScene {
   id: string;
   aoiId: string;
   date: string; // ISO 8601
-  satellite: 'Sentinel-1' | 'NISAR' | string;
+  satellite: 'Sentinel-1' | string;
   polarization: 'VV' | 'VH' | 'HH' | 'HV' | string;
   previewUrl: string; // path to preprocessed PNG/WebP
   geotiffUrl?: string; // path to raw GeoTIFF (optional, server-side only)

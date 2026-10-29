@@ -23,8 +23,8 @@ export function Footer() {
   return (
     <footer className="border-t border-footer-border bg-footer-bg text-footer-text transition-colors duration-150">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 pb-8">
-        {/* 4 Columns (desktop 4 cols, 2 cols below 1024px, 1 col below 640px) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1.1fr_0.8fr] gap-8 lg:gap-12">
+        {/* 5 Columns (desktop 5 cols, 2 cols below 1024px, 1 col below 640px) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr_0.6fr] gap-8 lg:gap-10">
           {/* Column 1: Brand */}
           <div className="flex flex-col items-start">
             <TerraPulseLogo size={44} tone="auto" />
@@ -101,46 +101,115 @@ export function Footer() {
                   href="/data-sources"
                   className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
-                  Data Source
+                  Data Sources
                 </Link>
-              </li>
-              <li>
-                <a
-                  href="https://www.spaceappschallenge.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
-                >
-                  <span>NASA Space Apps Challenge</span>
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.earthdata.nasa.gov"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
-                >
-                  <span>NASA Earthdata</span>
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://search.asf.alaska.edu"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
-                >
-                  <span>ASF Data Search</span>
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
-                </a>
               </li>
             </ul>
           </div>
 
-          {/* Column 4: Connect */}
+          {/* Column 4: NASA & open data */}
+          <div>
+            <h3 className="font-body font-semibold text-[16px] text-footer-heading mb-3">
+              NASA &amp; Open Data
+            </h3>
+            
+            {/* Group 1: Used in this project */}
+            <div className="mb-4">
+              <span className="block text-[11px] font-data tracking-wider uppercase text-footer-text opacity-75 mb-1.5 font-medium">
+                Used in this project
+              </span>
+              <ul className="flex flex-col space-y-1">
+                <li>
+                  <a
+                    href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-7 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>Copernicus Sentinel-1 GRD (ESA) via GEE</span>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Group 2: NASA platforms for the same SAR data */}
+            <div>
+              <span className="block text-[11px] font-data tracking-wider uppercase text-footer-text opacity-75 mb-1.5 font-medium">
+                NASA platforms for the same SAR data (open access)
+              </span>
+              <ul className="flex flex-col space-y-0.5">
+                <li>
+                  <a
+                    href="https://www.earthdata.nasa.gov/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>NASA Earthdata</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://asf.alaska.edu/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>ASF DAAC (NASA&apos;s SAR data center)</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://search.asf.alaska.edu/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>ASF Data Search (Vertex)</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://hyp3-docs.asf.alaska.edu/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>ASF HyP3 on-demand processing docs</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://nisar.jpl.nasa.gov/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>NISAR mission (NASA-ISRO) (future work)</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.spaceappschallenge.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
+                  >
+                    <span>NASA Space Apps Challenge</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Column 5: Connect */}
           <div>
             <h3 className="font-body font-semibold text-[16px] text-footer-heading mb-3">
               Connect
@@ -167,7 +236,8 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[13px] text-footer-text">
           <div className="flex flex-col">
             <p>© 2026 TerraPulse. Built for the NASA International Space Apps Challenge 2026.</p>
-            <p className="mt-1 text-[12px]">Independent hackathon project, not endorsed by NASA.</p>
+            <p className="mt-1 text-[12px]">Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.</p>
+            <p className="mt-0.5 text-[12px]">Independent hackathon project, not endorsed by NASA.</p>
           </div>
           <div className="flex flex-wrap items-center gap-6">
             <Link

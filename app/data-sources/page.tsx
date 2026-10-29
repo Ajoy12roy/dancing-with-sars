@@ -64,8 +64,8 @@ export default function DataSourcesPage() {
           <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
             Satellite Datasets
           </h2>
-          <span className="text-xs font-data px-2.5 py-1 bg-surface-2 border border-hairline text-rust">
-            Pending Statement
+          <span className="text-xs font-data px-2.5 py-1 bg-surface-2 border border-hairline text-teal">
+            Verified Datasets
           </span>
         </div>
 
@@ -85,14 +85,14 @@ export default function DataSourcesPage() {
           </div>
 
           <p className="text-sm text-text-secondary leading-relaxed">
-            SAR data used across our demo analyses is sourced from Copernicus Sentinel-1 via{' '}
-            <strong className="text-text-primary">Google Earth Engine (GEE)</strong> and the{' '}
+            SAR data used across our demo analyses is captured by Copernicus Sentinel-1 C-band (ESA), obtained through{' '}
+            <strong className="text-text-primary">Google Earth Engine (GEE)</strong>. Identical scenes are also archived and freely distributed by NASA&apos;s{' '}
             <strong className="text-text-primary">Alaska Satellite Facility (ASF) DAAC</strong>.
           </p>
 
           <div className="mt-4 p-3 bg-surface-2 border border-hairline rounded-[2px]">
-            <p className="text-xs font-data text-rust leading-relaxed">
-              <strong>Official Challenge Status:</strong> Dataset selections and finalized asset catalogs are to be finalized after the 28 October 2026 official challenge statement.
+            <p className="text-xs font-data text-teal leading-relaxed">
+              <strong>Required Attribution:</strong> Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
             </p>
           </div>
 
@@ -108,6 +108,122 @@ export default function DataSourcesPage() {
             <div>
               <span className="text-text-secondary block">Access Gateways:</span>
               <span className="text-text-primary">GEE & ASF Vertex DAAC</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How anyone can get this NASA-accessible SAR data */}
+      <section className="border-t border-hairline pt-8 mb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+            How anyone can get this NASA-accessible SAR data
+          </h2>
+          <span className="text-xs font-data px-2.5 py-1 bg-surface-2 border border-hairline text-teal">
+            Open Access Guide
+          </span>
+        </div>
+
+        <div className="bg-surface border border-hairline p-6 rounded-[2px] space-y-6">
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Our demo cases were fetched through Google Earth Engine; the same Sentinel-1 scenes are also distributed by NASA&apos;s ASF DAAC. Any researcher, student, or disaster response team can independently access and download identical radar datasets for free using the steps below:
+          </p>
+
+          <ol className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+            <li className="border border-hairline p-4 bg-surface-2 rounded-sm space-y-1.5">
+              <span className="font-data text-teal font-semibold text-sm">Step 1: Open ASF Vertex</span>
+              <p className="text-text-secondary leading-relaxed">
+                Navigate to the <a href="https://search.asf.alaska.edu/" target="_blank" rel="noopener noreferrer" className="text-teal underline">ASF Data Search (Vertex)</a> portal, NASA&apos;s primary search and discovery interface for SAR imagery.
+              </p>
+            </li>
+            <li className="border border-hairline p-4 bg-surface-2 rounded-sm space-y-1.5">
+              <span className="font-data text-teal font-semibold text-sm">Step 2: Draw Your Area</span>
+              <p className="text-text-secondary leading-relaxed">
+                Use the interactive map drawing tools to define your Area of Interest (AOI) bounding box or polygon over any region worldwide.
+              </p>
+            </li>
+            <li className="border border-hairline p-4 bg-surface-2 rounded-sm space-y-1.5">
+              <span className="font-data text-teal font-semibold text-sm">Step 3: Choose Sentinel-1 GRD</span>
+              <p className="text-text-secondary leading-relaxed">
+                Under Dataset filters, select <strong>Sentinel-1</strong> and choose <strong>GRD (Ground Range Detected)</strong> imagery in IW (Interferometric Wide) mode with VV or VH polarization.
+              </p>
+            </li>
+            <li className="border border-hairline p-4 bg-surface-2 rounded-sm space-y-1.5">
+              <span className="font-data text-teal font-semibold text-sm">Step 4: Pick Dates &amp; Download</span>
+              <p className="text-text-secondary leading-relaxed">
+                Select your before and after acquisition dates to match your event window. Download the paired GeoTIFFs directly, or submit an on-demand Radiometric Terrain Correction (RTC) job using <a href="https://hyp3-docs.asf.alaska.edu/" target="_blank" rel="noopener noreferrer" className="text-teal underline">ASF HyP3</a>.
+              </p>
+            </li>
+          </ol>
+
+          <div className="border-t border-hairline pt-4">
+            <span className="text-xs font-data uppercase tracking-wider text-text-primary block mb-3">
+              Official NASA &amp; Open Data Portals:
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-data">
+              <a
+                href="https://www.earthdata.nasa.gov/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>NASA Earthdata</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
+              <a
+                href="https://asf.alaska.edu/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>ASF DAAC (SAR Data Center)</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
+              <a
+                href="https://search.asf.alaska.edu/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>ASF Data Search (Vertex)</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
+              <a
+                href="https://hyp3-docs.asf.alaska.edu/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>ASF HyP3 On-Demand Docs</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
+              <a
+                href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>GEE: COPERNICUS/S1_GRD</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
+              <a
+                href="https://nisar.jpl.nasa.gov/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>NISAR Mission (Future Work)</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
+              <a
+                href="https://www.spaceappschallenge.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
+              >
+                <span>NASA Space Apps Challenge</span>
+                <span className="text-text-secondary" aria-hidden="true">↗</span>
+              </a>
             </div>
           </div>
         </div>
@@ -307,12 +423,12 @@ export default function DataSourcesPage() {
                 Project Software License
               </h3>
               <span className="text-xs font-data text-teal px-2 py-0.5 bg-surface-2 border border-hairline">
-                Apache License 2.0
+                MIT License
               </span>
             </div>
             <p className="text-xs text-text-secondary leading-relaxed">
               This application and its companion Python processing service (<code className="font-data text-xs">python-service/process_change.py</code>)
-              are released under the <strong className="text-text-primary">Apache License 2.0</strong>. You are free to inspect,
+              are released under the <strong className="text-text-primary">MIT License</strong>. You are free to inspect,
               modify, distribute, and utilize the code for academic research, humanitarian disaster management, and commercial applications.
             </p>
           </div>
@@ -323,11 +439,11 @@ export default function DataSourcesPage() {
                 Copernicus Sentinel Data
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                Contains modified Copernicus Sentinel data [2019–2024], processed by the European Space Agency (ESA).
+                Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
                 Sentinel data is made freely available under the European Commission&apos;s Copernicus Open Access Policy.
               </p>
               <div className="mt-3 text-[11px] font-data text-text-secondary">
-                Attribution: © European Space Agency (ESA) / Copernicus Sentinel
+                Attribution: Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
               </div>
             </div>
 

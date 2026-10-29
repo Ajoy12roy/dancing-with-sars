@@ -36,7 +36,7 @@ export default function TermsPage() {
             2. Satellite Data & Attribution
           </h2>
           <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            Earth observation data accessed through this platform is provided under public open-access licenses by the European Space Agency (ESA Copernicus Sentinel-1) and NASA/ISRO (NISAR) via the Alaska Satellite Facility (ASF DAAC). Users agree to maintain appropriate attribution as detailed in our Data Sources page when reproducing imagery or findings.
+            Earth observation data accessed through this platform is provided under public open-access licenses. The demo cases use Copernicus Sentinel-1 C-band GRD data (ESA), obtained through Google Earth Engine. NISAR L-band support is planned future work; not used in any current case. Users agree to maintain appropriate attribution as detailed in our Data Sources page when reproducing imagery or findings.
           </p>
         </section>
 
@@ -46,7 +46,7 @@ export default function TermsPage() {
           </h2>
           <div className="mt-3 p-5 bg-surface border border-hairline rounded-[2px]">
             <p className="text-xs font-data text-text-secondary leading-relaxed">
-              TerraPulse is distributed under the <span className="text-text-primary font-medium">Apache License, Version 2.0</span>. You are free to inspect, modify, and distribute the software in accordance with the terms of the Apache 2.0 license.
+              TerraPulse is distributed under the <span className="text-text-primary font-medium">MIT License</span>. You are free to inspect, modify, and distribute the software in accordance with the terms of the MIT License.
             </p>
           </div>
         </section>

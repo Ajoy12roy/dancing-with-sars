@@ -54,19 +54,20 @@ export const DEMO_AOIS: AreaOfInterest[] = getReadyDemoAois();
 export const DATASET_INFO = {
   sentinel1: {
     name: 'Sentinel-1 SAR GRD',
-    provider: 'European Space Agency (ESA) via ASF DAAC',
+    provider: 'European Space Agency (ESA) via Google Earth Engine (also available from NASA ASF DAAC)',
     license: 'Free and open under Copernicus data policy',
     resolution: '10m ground range',
     band: 'C-band (5.405 GHz)',
-    url: 'https://search.asf.alaska.edu/',
+    url: 'https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD',
   },
   nisar: {
-    name: 'NISAR L-Band SAR',
-    provider: 'NASA / ISRO via ASF DAAC',
+    name: 'NISAR L-Band SAR (Future Work)',
+    provider: 'NASA / ISRO (Planned Future Mission)',
     license: 'Free and open (NASA open data policy)',
     resolution: '3-10m',
     band: 'L-band (1.257 GHz) + S-band',
     url: 'https://nisar.jpl.nasa.gov/',
+    note: 'NISAR L-band support is planned future work; not used in any current case.',
   },
 } as const;
 
@@ -76,8 +77,8 @@ export const APP_CONFIG = {
   tagline: 'See the Earth change in radar\'s eyes',
   version: '0.1.0',
   challenge: 'NASA Space Apps Challenge 2026',
-  team: 'Team Bangladesh',
-  github: 'https://github.com/your-team/dancing-with-sars',
+  team: 'Team Nova Strike\'s',
+  github: 'https://github.com/Ajoy12roy/dancing-with-sars',
 } as const;
 
 // ── Config-driven Metric Cards Table ──────────────────────────────────────

@@ -208,7 +208,7 @@ export function HowItWorksClient() {
                     <strong className="text-text-primary">Percent Changed:</strong> (Flooded pixels ÷ Total valid pixels) × 100%.
                   </li>
                   <li>
-                    <strong className="text-text-primary">Confidence / Signal:</strong> Mean absolute dB change across flooded pixels, clipped at 10 dB and scaled to 0–100%.
+                    <strong className="text-text-primary">Signal strength:</strong> Mean absolute dB change across changed pixels, clipped at 10 dB and scaled to 0–100%. This measures the magnitude of radar backscatter difference; it is not a statistical probability or classification accuracy score.
                   </li>
                 </ul>
               </div>

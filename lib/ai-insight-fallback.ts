@@ -28,7 +28,7 @@ export function generateFallbackInsight(payload: InsightPayload): string {
   const warnings = payload.warnings || [];
   const percentChanged = payload.percentChanged ?? 0;
   const affectedAreaKm2 = payload.affectedAreaKm2 ?? 0;
-  const confidence = payload.confidence ?? payload.signalStrength ?? 0;
+  const confidence = payload.confidence ?? payload.signalStrength;
 
   const dateA = dates?.a || 'the baseline date';
   const dateB = dates?.b || 'the follow-up date';
@@ -61,10 +61,10 @@ export function generateFallbackInsight(payload: InsightPayload): string {
     case 'flood': {
       const floodedAreaKm2 = affectedAreaKm2.toFixed(2);
       const pct = percentChanged.toFixed(2);
-      const signal = confidence.toFixed(1);
+      const signalPart = confidence != null ? ` with a backscatter change signal strength of ${confidence.toFixed(1)}%` : '';
 
       const s1 = `Between ${dateA} and ${dateB}, radar backscatter analysis detected ${floodedAreaKm2} km² of newly inundated ground.`;
-      const s2 = `This inundation spans ${pct}% of the surveyed scene with a backscatter change signal strength of ${signal}%.`;
+      const s2 = `This inundation spans ${pct}% of the surveyed scene${signalPart}.`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
@@ -76,10 +76,10 @@ export function generateFallbackInsight(payload: InsightPayload): string {
     case 'deforestation': {
       const forestLossKm2 = ((metrics.forestLossKm2 as number) ?? affectedAreaKm2).toFixed(2);
       const pct = percentChanged.toFixed(2);
-      const signal = confidence.toFixed(1);
+      const signalPart = confidence != null ? ` with a signal intensity of ${confidence.toFixed(1)}%` : '';
 
       const s1 = `Between ${dateA} and ${dateB}, SAR backscatter analysis identified ${forestLossKm2} km² of forest canopy disturbance.`;
-      const s2 = `The detected canopy loss encompasses ${pct}% of the analyzed footprint with a signal intensity of ${signal}%.`;
+      const s2 = `The detected canopy loss encompasses ${pct}% of the analyzed footprint${signalPart}.`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
@@ -109,10 +109,10 @@ export function generateFallbackInsight(payload: InsightPayload): string {
     default: {
       const area = affectedAreaKm2.toFixed(2);
       const pct = percentChanged.toFixed(2);
-      const signal = confidence.toFixed(1);
+      const signalPart = confidence != null ? ` with a signal strength of ${confidence.toFixed(1)}%` : '';
 
       const s1 = `Between ${dateA} and ${dateB}, SAR analysis detected ${area} km² of ground surface change.`;
-      const s2 = `The detected changes cover ${pct}% of the analyzed area with a signal strength of ${signal}%.`;
+      const s2 = `The detected changes cover ${pct}% of the analyzed area${signalPart}.`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
