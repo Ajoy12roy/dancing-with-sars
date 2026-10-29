@@ -17,6 +17,7 @@ import {
   animate,
 } from 'framer-motion';
 import { DataPanel } from '@/components/ui/DataPanel';
+import type { DateRange } from '@/types';
 
 interface BeforeAfterViewerProps {
   beforeImage: string;
@@ -24,6 +25,8 @@ interface BeforeAfterViewerProps {
   changeMapImage: string;
   dateBefore?: string;
   dateAfter?: string;
+  beforeRange?: DateRange;
+  afterRange?: DateRange;
 }
 
 const SWEEP_DURATION_SECONDS = 8;
@@ -34,6 +37,8 @@ export default function BeforeAfterViewer({
   changeMapImage,
   dateBefore,
   dateAfter,
+  beforeRange,
+  afterRange,
 }: BeforeAfterViewerProps) {
   const shouldReduceMotion = useReducedMotion();
   const [isPlaying, setIsPlaying] = useState(!shouldReduceMotion);
@@ -324,16 +329,28 @@ export default function BeforeAfterViewer({
           {/* Date captions: 14px, solid colors */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-[14px] font-data">
             <div className="flex items-center gap-1.5">
-              <span className="text-text-secondary">Before:</span>
+              {beforeRange?.start && beforeRange?.end ? (
+                <span className="text-text-secondary">Before:</span>
+              ) : null}
               <span className="text-ink font-semibold">
-                {dateBefore || 'Scene A'}
+                {beforeRange?.start && beforeRange?.end
+                  ? `median of Sentinel-1 scenes, ${beforeRange.start} to ${beforeRange.end}`
+                  : dateBefore
+                  ? `Reference date: ${dateBefore} (image is a median composite of scenes around this date; full range not recorded)`
+                  : 'Scene A'}
               </span>
             </div>
             <span className="text-hairline hidden sm:inline" aria-hidden="true">|</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-text-secondary">After:</span>
+              {afterRange?.start && afterRange?.end ? (
+                <span className="text-text-secondary">After:</span>
+              ) : null}
               <span className="text-ink font-semibold">
-                {dateAfter || 'Scene B'}
+                {afterRange?.start && afterRange?.end
+                  ? `median of Sentinel-1 scenes, ${afterRange.start} to ${afterRange.end}`
+                  : dateAfter
+                  ? `Reference date: ${dateAfter} (image is a median composite of scenes around this date; full range not recorded)`
+                  : 'Scene B'}
               </span>
             </div>
           </div>

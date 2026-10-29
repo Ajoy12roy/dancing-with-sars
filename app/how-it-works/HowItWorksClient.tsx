@@ -68,6 +68,7 @@ export function HowItWorksClient() {
             <p className="text-sm text-text-secondary leading-relaxed max-w-3xl">
               All modes execute a shared sequence of deterministic preprocessing steps before specialized
               analysis. Every calculation operates on physical units without black-box approximations.
+              Sentinel-1 observation imagery uses median composites—several radar scenes acquired over a date window combined into a single pixel median to reduce speckle noise and suppress transient radar artifacts.
             </p>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">

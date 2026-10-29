@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { isKnownCaseId } from '@/lib/case-studies';
+import { getCaseStudyById, isKnownCaseId } from '@/lib/case-studies';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -28,13 +28,18 @@ export async function GET(request: Request) {
     const fileContent = fs.readFileSync(dataPath, 'utf-8');
     const data = JSON.parse(fileContent);
 
+    const cs = getCaseStudyById(cleanAoi);
+
     // Provide URLs to images assuming they are served via our API, passing all new fields unchanged
     return NextResponse.json({
       aoiId: data.aoiId || cleanAoi,
-      name: data.name || cleanAoi,
+      name: cs?.title || data.name || cleanAoi,
       dateBefore: data.dateBefore || (data.dates?.a ? data.dates.a : 'Before Scene'),
       dateAfter: data.dateAfter || (data.dates?.b ? data.dates.b : 'After Scene'),
       ...data,
+      beforeRange: cs?.beforeRange,
+      afterRange: cs?.afterRange,
+      honestyNote: cs?.honestyNote,
       beforeImage: `/api/images?aoi=${cleanAoi}&type=before`,
       afterImage: `/api/images?aoi=${cleanAoi}&type=after`,
       changeMapImage: `/api/images?aoi=${cleanAoi}&type=change-map`,

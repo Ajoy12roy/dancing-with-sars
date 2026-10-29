@@ -3,7 +3,7 @@
 // Central data-driven registry for all SAR analysis case studies.
 // ========================================================================
 
-import type { AreaOfInterest, BoundingBox } from '@/types';
+import type { AreaOfInterest, BoundingBox, DateRange } from '@/types';
 import seedData from '@/data/case-studies/seed.json';
 import sylhetResult from '@/data/precomputed/sylhet/result.json';
 import jamunaResult from '@/data/precomputed/jamuna/result.json';
@@ -67,6 +67,11 @@ export interface CaseStudy {
   boundsLabel?: string;
   monitoredArea?: string;
   primaryResult?: string;
+
+  // Day 2 honesty fields
+  beforeRange?: DateRange;
+  afterRange?: DateRange;
+  honestyNote?: string;
 }
 
 interface RawBounds {
@@ -211,6 +216,8 @@ const EXISTING_DEMO_ENTRIES: CaseStudy[] = [
     boundsLabel: '24.8499°N – 24.9802°N, 91.7999°E – 91.9501°E',
     monitoredArea: '218.10 km²',
     primaryResult: 'Flooded Area: 37.19 km²',
+    beforeRange: { start: '2022-05-01', end: '2022-05-10' },
+    afterRange: { start: '2022-06-20', end: '2022-06-21' },
   },
   {
     id: 'jamuna',
@@ -254,6 +261,8 @@ const EXISTING_DEMO_ENTRIES: CaseStudy[] = [
     boundsLabel: '24.2998°N – 24.5501°N, 89.6498°E – 89.9500°E',
     monitoredArea: '842.38 km²',
     primaryResult: 'Erosion: 47.59 km² (9.52 km²/yr), Accretion: 42.38 km²',
+    beforeRange: { start: '2019-02-01', end: '2019-02-28' },
+    afterRange: { start: '2024-02-01', end: '2024-02-28' },
   },
   {
     id: 'amazon',
@@ -297,18 +306,20 @@ const EXISTING_DEMO_ENTRIES: CaseStudy[] = [
     boundsLabel: '10.3500°S – 10.1499°S, 62.2001°W – 61.9999°W',
     monitoredArea: '485.21 km²',
     primaryResult: 'Forest Canopy Loss: 0.62 km²',
+    beforeRange: { start: '2021-01-01', end: '2021-01-15' },
+    afterRange: { start: '2023-01-01', end: '2023-01-15' },
   },
   {
     id: 'tanguar',
     module: 'surface-water',
-    title: 'Tanguar Haor Seasonal Water',
-    name: 'Tanguar Haor Seasonal Water',
+    title: 'Tanguar Haor region (study-area box, 418.40 km²)',
+    name: 'Tanguar Haor region (study-area box, 418.40 km²)',
     modeLabel: 'Surface Water Dynamics',
-    location: 'Sunamganj, Sylhet Basin',
+    location: 'Sunamganj, Sylhet Basin (study-area box, 418.40 km²)',
     country: 'Bangladesh',
     eventPeriod: '2023-02-15 to 2023-08-15',
-    summary: 'Seasonal surface water expansion and contraction in Tanguar Haor, a Ramsar protected wetland basin in Sunamganj, Bangladesh.',
-    description: 'Cyclic pre-monsoon dry season baseline to peak monsoon wetland expansion across a Ramsar-designated freshwater haor.',
+    summary: 'Seasonal surface water expansion and contraction in the Tanguar Haor region, monitored across a 418.40 km² study-area box in Sunamganj, Bangladesh.',
+    description: 'Cyclic pre-monsoon dry season baseline to peak monsoon wetland expansion across a 418.40 km² study-area box in northeastern Bangladesh.',
     causesAndImpacts: undefined,
     suggestedDates: {
       before: '2023-02-15',
@@ -319,7 +330,7 @@ const EXISTING_DEMO_ENTRIES: CaseStudy[] = [
     aoi: {
       centerLonLat: [91.08998, 25.13495],
       halfSizeKm: 20,
-      note: 'Tanguar Haor Ramsar Wetland Basin',
+      note: 'Tanguar Haor 418.40 km² Study-Area Box',
     },
     datasets: ['Copernicus Sentinel-1 C-Band SAR (GRD)'],
     sourceLinks: [
@@ -329,7 +340,7 @@ const EXISTING_DEMO_ENTRIES: CaseStudy[] = [
       },
     ],
     validateAgainst: 'Ramsar Sites Information Service (RSIS)',
-    limitations: 'Aquatic vegetation and emergent reeds may attenuate water specular backscatter.',
+    limitations: 'Aquatic vegetation and emergent reeds may attenuate water specular backscatter. Figures cover the whole study-area box, not only the haor wetland boundary.',
     attribution: 'Contains modified Copernicus Sentinel data (2023), processed with Google Earth Engine.',
     dataSources: 'Copernicus Sentinel-1 C-Band SAR (GRD)',
     precomputedId: 'tanguar',
@@ -340,6 +351,9 @@ const EXISTING_DEMO_ENTRIES: CaseStudy[] = [
     boundsLabel: '25.0498°N – 25.2201°N, 90.9798°E – 91.2002°E',
     monitoredArea: '418.40 km²',
     primaryResult: 'Initial: 35.99 km² → Final: 298.31 km² (+262.32 km²)',
+    beforeRange: { start: '2023-02-01', end: '2023-02-28' },
+    afterRange: { start: '2023-08-01', end: '2023-08-31' },
+    honestyNote: 'Figures cover the whole study-area box, not only the haor wetland boundary.',
   },
 ];
 
@@ -358,6 +372,11 @@ const SEED_ENTRIES: CaseStudy[] = rawSeedList.map((raw) => {
   const ready = isPrecomputedReady(precomputedId);
   const res = ready ? loadPrecomputedResult(precomputedId) : null;
 
+  let title = String(raw.title || '');
+  let name = String(raw.name || raw.title || '');
+  let modeLabel: string | undefined = typeof raw.modeLabel === 'string' ? raw.modeLabel : undefined;
+  let honestyNote: string | undefined = typeof raw.honestyNote === 'string' ? raw.honestyNote : undefined;
+
   let dateA: string | undefined = typeof raw.dateA === 'string' ? raw.dateA : undefined;
   let dateB: string | undefined = typeof raw.dateB === 'string' ? raw.dateB : undefined;
   let interval: string | undefined = typeof raw.interval === 'string' ? raw.interval : undefined;
@@ -365,10 +384,39 @@ const SEED_ENTRIES: CaseStudy[] = rawSeedList.map((raw) => {
   let boundsLabel: string | undefined = typeof raw.boundsLabel === 'string' ? raw.boundsLabel : undefined;
   let primaryResult: string | undefined = typeof raw.primaryResult === 'string' ? raw.primaryResult : undefined;
 
+  // Extract real date ranges if recorded
+  let beforeRange: DateRange | undefined = undefined;
+  const rawDates = raw.suggestedDates as CaseStudyDates | undefined;
+  if (Array.isArray(rawDates?.before) && rawDates.before.length >= 2) {
+    beforeRange = {
+      start: String(rawDates.before[0]),
+      end: String(rawDates.before[1]),
+    };
+  }
+  let afterRange: DateRange | undefined = undefined;
+  if (Array.isArray(rawDates?.after) && rawDates.after.length >= 2) {
+    afterRange = {
+      start: String(rawDates.after[0]),
+      end: String(rawDates.after[1]),
+    };
+  }
+
+  // Step 3: Neutral headline and honesty caveat for Padma
+  if (precomputedId === 'padma-naria') {
+    title = 'Padma River: Net Shoreline & Channel Change (Naria reach)';
+    name = 'Padma River: Net Shoreline & Channel Change (Naria reach)';
+    modeLabel = 'Net shoreline / river-channel change';
+    honestyNote =
+      'This figure is net land-to-water change between two composites. It can include water-level differences and sandbar movement, so it is not a direct measure of bank erosion.';
+  }
+
   if (res) {
     if (!dateA) dateA = res.dateBefore || res.dates?.a;
     if (!dateB) dateB = res.dateAfter || res.dates?.b;
-    if (!interval && res.dates?.days) interval = `${res.dates.days} days`;
+    if (!interval && res.dates?.days) {
+      const yrs = (res.dates.days / 365.25).toFixed(1);
+      interval = `${res.dates.days.toLocaleString()} days (~${yrs} years)`;
+    }
     if (!monitoredArea && typeof res.totalAreaKm2 === 'number') {
       monitoredArea = `${res.totalAreaKm2.toFixed(2)} km²`;
     }
@@ -377,7 +425,11 @@ const SEED_ENTRIES: CaseStudy[] = rawSeedList.map((raw) => {
     }
     if (!primaryResult && typeof res.affectedAreaKm2 === 'number') {
       const pct = typeof res.percentChanged === 'number' ? ` (${res.percentChanged.toFixed(2)}%)` : '';
-      primaryResult = `Affected Area: ${res.affectedAreaKm2.toFixed(2)} km²${pct}`;
+      if (precomputedId === 'padma-naria') {
+        primaryResult = `Net Land-to-Water Change: ${res.affectedAreaKm2.toFixed(2)} km²${pct}`;
+      } else {
+        primaryResult = `Affected Area: ${res.affectedAreaKm2.toFixed(2)} km²${pct}`;
+      }
     }
   }
 
@@ -385,7 +437,9 @@ const SEED_ENTRIES: CaseStudy[] = rawSeedList.map((raw) => {
     ...raw,
     id: String(raw.id || ''),
     module: raw.module as CaseStudyModule,
-    title: String(raw.title || ''),
+    title,
+    name,
+    modeLabel,
     country: String(raw.country || ''),
     summary: String(raw.summary || ''),
     precomputedId,
@@ -397,6 +451,9 @@ const SEED_ENTRIES: CaseStudy[] = rawSeedList.map((raw) => {
     monitoredArea,
     boundsLabel,
     primaryResult,
+    beforeRange,
+    afterRange,
+    honestyNote,
   } as CaseStudy;
 });
 
@@ -563,22 +620,28 @@ export function toAreaOfInterest(cs: CaseStudy): AreaOfInterest {
     'surface-water': 'waterDeltaKm2',
   };
 
+  const activeModeLabel = cs.modeLabel || modeLabels[cs.module] || cs.module;
+
   return {
     id: cs.id,
     mode: cs.module,
     name: cs.title,
     description: cs.summary,
     country: cs.country,
+    modeLabel: activeModeLabel,
     displayMetadata: {
       mode: cs.module,
-      modeLabel: modeLabels[cs.module] || cs.module,
-      badge: modeLabels[cs.module] || cs.module,
+      modeLabel: activeModeLabel,
+      badge: activeModeLabel,
       primaryMetricKey: metricKeys[cs.module] || 'affectedAreaKm2',
-      hazardLabel: modeLabels[cs.module] || 'Changed Area',
+      hazardLabel: activeModeLabel,
     },
     bounds,
     center,
     zoom,
+    beforeRange: cs.beforeRange,
+    afterRange: cs.afterRange,
+    honestyNote: cs.honestyNote,
     sceneBefore: {
       id: `S1-${cs.id}-pre`,
       aoiId: cs.id,

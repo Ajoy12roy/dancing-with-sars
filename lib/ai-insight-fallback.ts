@@ -46,6 +46,13 @@ export function generateFallbackInsight(payload: InsightPayload): string {
           ? `${Number(metrics.erosionRateKm2PerYear).toFixed(2)} km² per year`
           : 'an uncalculated annual rate pending multi-date inputs';
 
+      if (payload.aoiId === 'padma-naria') {
+        const s1 = `Between ${dateA} and ${dateB}, radar analysis detected about ${erosionAreaKm2} km² of net land-to-water transition near the channel corridor.`;
+        const s2 = `Concurrently, sediment deposition and sandbar formation accounted for ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
+        const s3 = `Notice: This figure is net land-to-water change between two composites. It can include water-level differences and sandbar movement, so it is not a direct measure of bank erosion.`;
+        return `${s1} ${s2} ${s3}`;
+      }
+
       const s1 = `Between ${dateA} and ${dateB}, about ${erosionAreaKm2} km² of riverbank turned to water, an average of ${rate}.`;
       const s2 = `Concurrently, sediment deposition formed ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
       const s3 =
@@ -95,6 +102,13 @@ export function generateFallbackInsight(payload: InsightPayload): string {
       const deltaKm2 = deltaNum >= 0 ? `+${deltaNum.toFixed(2)}` : deltaNum.toFixed(2);
       const deltaPctNum = (metrics.waterDeltaPercent as number) ?? percentChanged;
       const deltaPct = deltaPctNum >= 0 ? `+${deltaPctNum.toFixed(1)}` : deltaPctNum.toFixed(1);
+
+      if (payload.aoiId === 'tanguar') {
+        const s1 = `Between ${dateA} and ${dateB}, open surface water across the 418.40 km² study-area box transitioned from ${waterA} km² to ${waterB} km².`;
+        const s2 = `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;
+        const s3 = `Notice: Figures cover the whole study-area box, not only the haor wetland boundary.`;
+        return `${s1} ${s2} ${s3}`;
+      }
 
       const s1 = `Between ${dateA} and ${dateB}, open surface water transitioned from ${waterA} km² to ${waterB} km².`;
       const s2 = `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;

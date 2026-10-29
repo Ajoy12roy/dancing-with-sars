@@ -562,6 +562,16 @@ function ExploreContent() {
           {/* ── Results View: Rendered for both Demo and Upload Success ── */}
           {displayData && activeAoi && (activeTab === 'demo' ? !demoLoading && !demoError : !uploadLoading) && (
             <>
+              {/* ── Visible Honesty Note (Steps 2b & 3b) ── */}
+              {activeTab === 'demo' && (currentCaseStudy?.honestyNote || displayData.honestyNote) && (
+                <div className="col-span-12 border border-hairline bg-surface-2 p-3 text-xs text-ink flex items-start gap-2.5 rounded-[2px]">
+                  <span className="text-teal font-semibold font-data uppercase tracking-wider shrink-0 mt-0.5">Note:</span>
+                  <span className="font-sans leading-relaxed">
+                    {currentCaseStudy?.honestyNote || displayData.honestyNote}
+                  </span>
+                </div>
+              )}
+
               {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
               <div className="col-span-12 lg:col-span-7 flex">
                 <BeforeAfterViewer
@@ -570,6 +580,8 @@ function ExploreContent() {
                   changeMapImage={displayData.changeMapImage}
                   dateBefore={displayData.dateBefore}
                   dateAfter={displayData.dateAfter}
+                  beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
+                  afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
                 />
               </div>
 
@@ -588,6 +600,8 @@ function ExploreContent() {
                     caseStudy={currentCaseStudy}
                     dateBefore={displayData.dateBefore}
                     dateAfter={displayData.dateAfter}
+                  beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
+                  afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
                   />
                 </div>
               )}

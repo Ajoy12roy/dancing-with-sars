@@ -128,9 +128,11 @@ export default function ShorelineShiftCard({ data, mode: propMode, className }: 
   // Dates caption from result.dates
   const dateCaption =
     data.dates?.a && data.dates?.b
-      ? `${data.dates.a} → ${data.dates.b}${data.dates.days ? ` (${data.dates.days} days)` : ''}`
+      ? (data.beforeRange && data.afterRange
+          ? `Composites: ${data.beforeRange.start}..${data.beforeRange.end} → ${data.afterRange.start}..${data.afterRange.end}`
+          : `Reference: ${data.dates.a} → ${data.dates.b} (median composites)`)
       : data.dateBefore && data.dateAfter
-      ? `${data.dateBefore} → ${data.dateAfter}`
+      ? `Reference: ${data.dateBefore} → ${data.dateAfter} (median composites)`
       : 'Temporal interval';
 
   // Strict bounds check from result.bounds

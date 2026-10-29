@@ -261,11 +261,19 @@ export default function DataSourcesPage() {
                 <div className="space-y-2 text-xs font-data border-t border-hairline pt-3">
                   <div className="flex justify-between">
                     <span className="text-text-secondary">Baseline Date (A):</span>
-                    <span className="text-text-primary">{aoi.dateA}</span>
+                    <span className="text-text-primary text-right">
+                      {aoi.beforeRange
+                        ? `Median of Sentinel-1 scenes, ${aoi.beforeRange.start} to ${aoi.beforeRange.end}`
+                        : `Reference date: ${aoi.dateA} (median composite; full range not recorded)`}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-secondary">Comparison Date (B):</span>
-                    <span className="text-text-primary">{aoi.dateB}</span>
+                    <span className="text-text-primary text-right">
+                      {aoi.afterRange
+                        ? `Median of Sentinel-1 scenes, ${aoi.afterRange.start} to ${aoi.afterRange.end}`
+                        : `Reference date: ${aoi.dateB} (median composite; full range not recorded)`}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-secondary">Interval Duration:</span>

@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { generateFallbackInsight, InsightPayload } from '@/lib/ai-insight-fallback';
-import { isKnownCaseId } from '@/lib/case-studies';
+import { getCaseStudyById, isKnownCaseId } from '@/lib/case-studies';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -111,14 +111,21 @@ function buildPrompt(payload: InsightPayload): string {
           : 'not calculated (multi-date interval required)';
       const river = metrics.riverAreaKm2 != null ? `${Number(metrics.riverAreaKm2).toFixed(2)} km²` : 'not reported';
 
+      const isPadma = payload.aoiId === 'padma-naria';
+      const modeTitle = isPadma ? 'Net Shoreline & River-Channel Change' : 'River Bank Erosion & Accretion';
+      const changeDesc = isPadma ? 'Net Land-to-Water Transition Area' : 'Bank Erosion Area';
+
       modeFacts = `
-- Analysis Mode: River Bank Erosion & Accretion
+- Analysis Mode: ${modeTitle}
 - Observation Dates: ${dateA} to ${dateB}${daysStr}
-- Bank Erosion Area: ${erosion} km² (land converted to river water)
+- ${changeDesc}: ${erosion} km² (land converted to river water)
 - Bank Accretion Area: ${accretion} km² (river water converted to sediment/sandbars)
 - Net Land Change: ${net} km²
-- Annualized Erosion Rate: ${rate}
+- Annualized Change Rate: ${rate}
 - Persistent River Channel Area: ${river}`;
+      if (isPadma) {
+        modeFacts += `\n- Caveat: This figure is net land-to-water change between two composites. It includes water-level differences and sandbar movement, so it is not a direct measure of bank erosion.`;
+      }
       break;
     }
 
@@ -165,6 +172,9 @@ function buildPrompt(payload: InsightPayload): string {
 - Final Water Area (Scene B): ${waterB} km²
 - Net Water Extent Change: ${delta} km²
 - Relative Water Extent Variation: ${deltaPct}%`;
+      if (payload.aoiId === 'tanguar') {
+        modeFacts += `\n- Study Area: Figures cover the whole 418.40 km² study-area box, not only the haor wetland boundary.`;
+      }
       break;
     }
 
@@ -300,9 +310,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to read precomputed data' }, { status: 500 });
     }
 
+    const cs = getCaseStudyById(cleanAoi);
+    const honestyWarnings = cs?.honestyNote ? [cs.honestyNote] : [];
+
     payload = {
       mode: normalizedMode,
-      aoiName: (resultData.name as string) || cleanAoi,
+      aoiName: cs?.title || (resultData.name as string) || cleanAoi,
       aoiId: cleanAoi,
       percentChanged: typeof resultData.percentChanged === 'number' ? resultData.percentChanged : 0,
       affectedAreaKm2: typeof resultData.affectedAreaKm2 === 'number' ? resultData.affectedAreaKm2 : 0,
@@ -312,7 +325,7 @@ export async function POST(request: NextRequest) {
       metrics: (resultData.metrics as InsightPayload['metrics']) || {},
       categories: (resultData.categories as InsightPayload['categories']) || [],
       dates: resultData.dates as InsightPayload['dates'],
-      warnings: (resultData.warnings as string[]) || [],
+      warnings: [...((resultData.warnings as string[]) || []), ...honestyWarnings],
     };
 
     cacheKey = `${cleanAoi}:${normalizedMode}`;

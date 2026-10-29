@@ -3,6 +3,12 @@
 // Core domain types for SAR scene data, change detection results, and AI insights.
 // ========================================================================
 
+/** Date range for radar median composites */
+export interface DateRange {
+  start: string;
+  end: string;
+}
+
 /** Geographic bounding box for an Area of Interest */
 export interface BoundingBox {
   north: number;
@@ -56,12 +62,16 @@ export interface AreaOfInterest {
   description: string;
   country: string;
   mode?: AnalysisMode | string;
+  modeLabel?: string;
   displayMetadata?: Record<string, unknown>;
   bounds: BoundingBox;
   center: [number, number]; // [lat, lng]
   zoom: number;
   sceneBefore: SarScene;
   sceneAfter: SarScene;
+  beforeRange?: DateRange;
+  afterRange?: DateRange;
+  honestyNote?: string;
 }
 
 /** Result of running the change-detection pipeline */
@@ -96,6 +106,9 @@ export interface ChangeResult {
   params?: ResultParams;
   warnings?: string[];
   chartData?: Array<{ category: string; value: number }>;
+  beforeRange?: DateRange;
+  afterRange?: DateRange;
+  honestyNote?: string;
 }
 
 /** Histogram bin for change intensity distribution */

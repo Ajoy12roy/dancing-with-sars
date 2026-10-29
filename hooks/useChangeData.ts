@@ -5,7 +5,7 @@ export interface ChartDataPoint {
   value: number;
 }
 
-import type { AnalysisMode, ResultBounds, ResultCategory, ResultDates, ResultMetrics, ResultParams } from '@/types';
+import type { AnalysisMode, DateRange, ResultBounds, ResultCategory, ResultDates, ResultMetrics, ResultParams } from '@/types';
 
 export interface ChangeData {
   aoiId: string;
@@ -30,6 +30,9 @@ export interface ChangeData {
   metrics?: ResultMetrics;
   params?: ResultParams;
   warnings?: string[];
+  beforeRange?: DateRange;
+  afterRange?: DateRange;
+  honestyNote?: string;
 }
 
 export { useUploadChangeData } from './useUploadChangeData';
