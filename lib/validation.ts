@@ -61,3 +61,4 @@ export function getAgreementSummary(iou: number, refName: string): string {
   }
   return `Low agreement with ${refName} (IoU ${pct}%) - see notes`;
 }
+

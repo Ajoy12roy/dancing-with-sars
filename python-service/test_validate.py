@@ -125,3 +125,4 @@ def test_reproject_raster_to_grid_synthetic():
 
     assert dst.shape == (20, 20)
     assert np.array_equal(dst, src_data)
+

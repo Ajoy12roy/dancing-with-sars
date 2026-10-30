@@ -102,21 +102,17 @@ An additional **6 candidate case studies** are registered with status `pending-d
      - `tanguar` (6.9% span)
      - `hakaluki-haor` (10.2% span)
      - `padma-naria` (11.8% span)
-     *Characteristics*: Broad, open water bodies and flat wetlands with sharp radiometric contrast between calm water (<-18 dB) and surrounding terrain.
+     *Characteristics*: Areas with clear backscatter separation between baseline and target state.
    - **Moderate (15–50% span)**:
      - `jamuna` (22.3% span)
      - `sylhet` (35.4% span)
-     *Characteristics*: Dynamic braided sandbars and mixed wetland fringes with gradual moisture gradients.
+     *Characteristics*: Areas with moderate backscatter transition zones across observation epochs.
    - **High (>50% span)**:
      - `rio-grande-do-sul-2024` (84.9% span)
      - `feni-2024` (102.8% span)
      - `cox-bazar-kutupalong-2017` (618.2% span)
      - `amazon` (740.3% span)
-     *What makes an AOI sensitive*:
-     - **Narrow valleys and steep terrain**: Mountain slopes induce radar layover, shadowing, and geometric foreshortening (e.g. Cox's Bazar hills).
-     - **Urban and settlement structures**: Built infrastructure creates high double-bounce backscatter that masks standing water along streets.
-     - **Subtle backscatter gradients / low contrast**: Selective logging and diffuse degradation produce fractional decibel shifts (e.g. Amazon canopy thinning), where small threshold moves trigger large area changes.
-     - *Interpretation*: For high-sensitivity cases, headline figures should be treated as **indicative estimates**, and decision-makers should inspect the full sensitivity bracket.
+     *Interpretation*: In high-sensitivity cases, backscatter distributions are closely clustered around the threshold cutoff, so small threshold adjustments produce large changes in classified area. Headline figures should be interpreted alongside the full sensitivity bracket.
 
 ---
 

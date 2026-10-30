@@ -32,28 +32,28 @@ const VALIDATION_CANDIDATES: Record<
     candidateReference: 'JRC Global Surface Water recurrence layer',
   },
   'cox-bazar-kutupalong-2017': {
-    notes: '2017 refugee influx clearing; steep topography creates radar layover/shadow effects.',
-    candidateReference: 'REACH / UNHCR settlement extent boundary maps, Copernicus EMS EMSR235',
+    notes: 'Vegetation clearing observation across Kutupalong reach.',
+    candidateReference: 'REACH / UNHCR settlement extent boundary maps',
   },
   'feni-2024': {
     notes: '2 granules confirmed in NASA CMR archive (OPERA_L3_DSWX-S1_V1); awaiting local tile ingest.',
     candidateReference: 'NASA OPERA DSWx-S1 dynamic surface water extent, Copernicus EMS',
   },
   'hakaluki-haor': {
-    notes: 'Largest haor wetland in Bangladesh; rapid monsoon extent transition vs permanent water.',
+    notes: 'Haor wetland in Bangladesh; monsoon extent transition vs baseline water.',
     candidateReference: 'JRC Global Surface Water recurrence layer',
   },
   'padma-naria': {
-    notes: 'Net land-to-water transition includes sandbar shift, bank erosion, and river stage differences.',
+    notes: 'Net land-to-water transition between dry-season composites across Naria reach.',
     candidateReference: 'JRC Global Surface Water occurrence, CEGIS historical channel maps',
   },
   'rio-grande-do-sul-2024': {
-    notes: 'Catastrophic Jacuí river delta and Porto Alegre urban inundation in May 2024.',
+    notes: 'Inundation observation around Porto Alegre in May 2024.',
     candidateReference: 'Copernicus EMS EMSR720 Rapid Mapping activation, Copernicus Global Flood Monitoring (GFM)',
   },
   'sindh-pakistan-2022': {
-    notes: 'Pre-dates OPERA S1; historic Indus basin monsoon inundation around Lake Manchar.',
-    candidateReference: 'Copernicus EMS EMSR580 Rapid Mapping activation, UNOSAT inundation maps',
+    notes: 'Observation around Lake Manchar during 2022 monsoon event.',
+    candidateReference: 'UNOSAT inundation maps',
   },
 };
 

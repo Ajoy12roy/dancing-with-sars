@@ -525,7 +525,7 @@ export function HowItWorksClient() {
                   Based on the span ratio <span className="font-data text-teal">(max − min) / centre</span>, each case is classified into:
                   <br />• <strong className="text-emerald-700 dark:text-emerald-300">Stable (&lt;15% span)</strong>: High physical contrast, minimal threshold sensitivity.
                   <br />• <strong className="text-amber-700 dark:text-amber-300">Moderate (15–50% span)</strong>: Noticeable variation across wetland margins.
-                  <br />• <strong className="text-rust">High (&gt;50% span)</strong>: Steep topography, narrow valleys, or dense structures make results threshold-dependent; headline numbers are indicative only.
+                  <br />• <strong className="text-rust">High (&gt;50% span)</strong>: High threshold sensitivity where small threshold adjustments yield large area changes; headline numbers are indicative only.
                 </p>
               </div>
 

@@ -17,7 +17,9 @@ L.Icon.Default.mergeOptions({
 });
 
 // Guard Leaflet DomUtil methods against undefined elements during unmount / fast switching
-if (typeof window !== 'undefined' && L && L.DomUtil) {
+let hasPatchedDomUtil = false;
+if (typeof window !== 'undefined' && L && L.DomUtil && !hasPatchedDomUtil) {
+  hasPatchedDomUtil = true;
   const originalGetPosition = L.DomUtil.getPosition;
   L.DomUtil.getPosition = function (el: HTMLElement) {
     if (!el) {

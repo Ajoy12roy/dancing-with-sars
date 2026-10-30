@@ -59,3 +59,4 @@ Object.keys(CASES).forEach(function(caseId) {
     maxPixels: 1e9
   });
 });
+

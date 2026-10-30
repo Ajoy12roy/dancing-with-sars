@@ -418,6 +418,10 @@ const SEED_ENTRIES: CaseStudy[] = rawSeedList.map((raw) => {
       'This figure is net land-to-water change between two composites. It can include water-level differences and sandbar movement, so it is not a direct measure of bank erosion.';
   }
 
+  if (precomputedId === 'rio-grande-do-sul-2024') {
+    afterRange = { start: '2024-05-08', end: '2024-05-14' };
+  }
+
   if (res) {
     if (!dateA) dateA = res.dateBefore || res.dates?.a;
     if (!dateB) dateB = res.dateAfter || res.dates?.b;

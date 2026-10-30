@@ -6,7 +6,7 @@
 
 ## 1. Validation Philosophy
 
-Satellite Synthetic Aperture Radar (SAR) observations capture dielectric and surface roughness transitions at 10–20 meter resolution. In complex environments—such as flooded vegetation, steep mountainous topography, or dynamic braided rivers—even official reference datasets differ depending on sensor wavelength, acquisition timing, and classification thresholds.
+Satellite Synthetic Aperture Radar (SAR) observations capture surface backscatter transitions at 10–20 meter resolution. In complex environments—such as flooded vegetation, steep mountainous topography, or dynamic braided rivers—even official reference datasets differ depending on sensor wavelength, acquisition timing, and classification thresholds.
 
 TerraPulse's validation framework treats external datasets as **independent comparators**, evaluating spatial overlap and classification agreement without asserting unverified "ground truth".
 
@@ -92,36 +92,38 @@ The script outputs `data/validation/<case-id>.json`. The web interface will imme
 
 ## 5. Candidate Reference Datasets
 
-All candidate reference sources have been verified with active live endpoints:
+Status definitions:
+- **Mapping to this case: VERIFIED**: Source URL and event documentation have been fetched, inspected, and confirmed to match the exact spatial and temporal scope of the case study.
+- **Mapping to this case: UNVERIFIED**: External catalog candidate identified for potential comparison, but event-specific boundary match has not been independently verified.
 
 ### Flood & Inundation Cases
 
-| Candidate Dataset | Provider | Access URL | Resolution | Format | Acquisition & Processing Method |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| **Copernicus EMS Rapid Mapping** (EMSR720, EMSR580) | European Commission / Copernicus | [rapidmapping.emergency.copernicus.eu](https://rapidmapping.emergency.copernicus.eu/) | 10–20 m | GeoJSON / SHP / GeoTIFF | Download emergency activation delineation and grading vector products; clip to AOI bounding box. |
-| **Copernicus Global Flood Monitoring (GFM)** | Copernicus Emergency Management Service | [global-flood.emergency.copernicus.eu](https://global-flood.emergency.copernicus.eu/) | 20 m | GeoTIFF | Near-real-time automated global flood extent generated from Sentinel-1 IW GRD via ensemble algorithms. |
-| **NASA OPERA DSWx-S1** | NASA JPL / PO.DAAC | [podaac.jpl.nasa.gov](https://podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1) | 30 m | Cloud-Optimized GeoTIFF | Dynamic Surface Water Extent from Sentinel-1; discoverable via NASA CMR granules search for post-late-2023 acquisitions. |
-| **JRC Global Surface Water** | European Commission Joint Research Centre | [global-surface-water.appspot.com](https://global-surface-water.appspot.com/) | 30 m | GeoTIFF | Export multi-decadal water occurrence (`occurrence >= 80%`) via Earth Engine script (`scripts/gee/validation/jrc_permanent_water.js`). |
+| Candidate Dataset | Provider | Access URL | Resolution | Format | Verification Status | Acquisition & Processing Method |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Copernicus EMS Rapid Mapping (EMSR720)** | European Commission / Copernicus | [rapidmapping.emergency.copernicus.eu](https://rapidmapping.emergency.copernicus.eu/EMSR720) | 10–20 m | GeoJSON / SHP / GeoTIFF | **VERIFIED** (Rio Grande do Sul) | Activation EMSR720 covers the May 2024 flood event in Rio Grande do Sul; vector delineation available. |
+| **Copernicus Global Flood Monitoring (GFM)** | Copernicus Emergency Management Service | [global-flood.emergency.copernicus.eu](https://global-flood.emergency.copernicus.eu/) | 20 m | GeoTIFF | **UNVERIFIED** | Near-real-time automated global flood extent generated from Sentinel-1 IW GRD via ensemble algorithms. |
+| **NASA OPERA DSWx-S1** | NASA JPL / PO.DAAC | [podaac.jpl.nasa.gov](https://podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1) | 30 m | Cloud-Optimized GeoTIFF | **UNVERIFIED** | Dynamic Surface Water Extent from Sentinel-1; discoverable via NASA CMR granules search for post-late-2023 acquisitions. |
+| **JRC Global Surface Water** | European Commission Joint Research Centre | [global-surface-water.appspot.com](https://global-surface-water.appspot.com/) | 30 m | GeoTIFF | **UNVERIFIED** | Multi-decadal water occurrence (`occurrence >= 80%`) accessible via Earth Engine script (`scripts/gee/validation/jrc_permanent_water.js`). |
 
 ### Forest Canopy Loss (Deforestation)
 
-| Candidate Dataset | Provider | Access URL | Resolution | Format | Acquisition & Processing Method |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| **Global Forest Watch (GFW)** | World Resources Institute / Hansen et al. | [globalforestwatch.org](https://www.globalforestwatch.org/) | 30 m | GeoTIFF | Annual global tree cover loss data from Landsat time series. Export via Earth Engine (`UMD/hansen/global_forest_change_2023_v1_11`). |
-| **PRODES Amazon** | INPE (National Institute for Space Research, Brazil) | [obt.inpe.br/prodes](http://www.obt.inpe.br/OBT/assuntos/programas/amazonia/prodes) | 20–30 m | SHP / GeoTIFF | Official annual deforestation polygons monitoring clear-cut deforestation across the Legal Amazon. |
-| **MapBiomas Brasil** | MapBiomas Consortium | [brasil.mapbiomas.org](https://brasil.mapbiomas.org/) | 30 m | GeoTIFF | Annual land cover and land use transition maps (Collection 8/9) classifying natural forest to pasture/agriculture. |
+| Candidate Dataset | Provider | Access URL | Resolution | Format | Verification Status | Acquisition & Processing Method |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Global Forest Watch (GFW)** | World Resources Institute / Hansen et al. | [globalforestwatch.org](https://www.globalforestwatch.org/) | 30 m | GeoTIFF | **UNVERIFIED** | Annual global tree cover loss data from Landsat time series (`UMD/hansen/global_forest_change_2023_v1_11`). |
+| **PRODES Amazon** | INPE (National Institute for Space Research, Brazil) | [obt.inpe.br/prodes](http://www.obt.inpe.br/OBT/assuntos/programas/amazonia/prodes) | 20–30 m | SHP / GeoTIFF | **UNVERIFIED** | Annual deforestation polygons monitoring clear-cut deforestation across the Legal Amazon. |
+| **MapBiomas Brasil** | MapBiomas Consortium | [brasil.mapbiomas.org](https://brasil.mapbiomas.org/) | 30 m | GeoTIFF | **UNVERIFIED** | Annual land cover and land use transition maps (Collection 8/9) classifying natural forest to pasture/agriculture. |
 
 ### River Channel Erosion & Morphology
 
-| Candidate Dataset | Provider | Access URL | Resolution | Format | Acquisition & Processing Method |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| **JRC Water Occurrence Transition** | European Commission Joint Research Centre | [global-surface-water.appspot.com](https://global-surface-water.appspot.com/) | 30 m | GeoTIFF | Distinguishes historical channel baseline from newly eroded riverbanks using multi-year recurrence. |
-| **CEGIS Morphological Assessments** | Center for Environmental & Geographic Information Services | [cegisbd.com](https://www.cegisbd.com/) | Reports / Vector | PDF / Vector | Annual riverbank erosion vulnerability forecasts and historical cross-section surveys for Jamuna and Padma rivers. |
+| Candidate Dataset | Provider | Access URL | Resolution | Format | Verification Status | Acquisition & Processing Method |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **JRC Water Occurrence Transition** | European Commission Joint Research Centre | [global-surface-water.appspot.com](https://global-surface-water.appspot.com/) | 30 m | GeoTIFF | **UNVERIFIED** | Distinguishes historical channel baseline from newly eroded riverbanks using multi-year recurrence. |
+| **CEGIS Morphological Assessments** | Center for Environmental & Geographic Information Services | [cegisbd.com](https://www.cegisbd.com/) | Reports / Vector | PDF / Vector | **UNVERIFIED** | Annual riverbank erosion vulnerability forecasts and historical cross-section surveys for Jamuna and Padma rivers. |
 
 ### Rapid Refugee Settlement (Cox's Bazar)
 
-| Candidate Dataset | Provider | Access URL | Resolution | Format | Acquisition & Processing Method |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| **UNHCR Settlement Extents** | UNHCR Operational Data Portal | [data.unhcr.org](https://data.unhcr.org/en/situations/myanmar_refugees) | Vector | GeoJSON / SHP | Official camp block boundaries and expansion perimeters mapped during the August–September 2017 influx. |
-| **Copernicus EMS EMSR235** | Copernicus Emergency Management Service | [rapidmapping.emergency.copernicus.eu/EMSR235](https://rapidmapping.emergency.copernicus.eu/EMSR235) | High-res | GeoTIFF / Vector | Emergency activation maps capturing early camp formation and vegetation clearing around Kutupalong in 2017. |
-| **REACH Initiative Influx Assessments** | REACH / IMPACT Initiatives | [reach-initiative.org](https://www.reach-initiative.org/) | Vector / GeoTIFF | Spatial Shapefiles | Multi-sector settlement density surveys documenting infrastructure expansion and hillside terracing. |
+| Candidate Dataset | Provider | Access URL | Resolution | Format | Verification Status | Acquisition & Processing Method |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **UNHCR Settlement Extents** | UNHCR Operational Data Portal | [data.unhcr.org](https://data.unhcr.org/en/situations/myanmar_refugees) | Vector | GeoJSON / SHP | **UNVERIFIED** | Official camp block boundaries and expansion perimeters mapped during the August–September 2017 influx. |
+| **REACH Initiative Influx Assessments** | REACH / IMPACT Initiatives | [reach-initiative.org](https://www.reach-initiative.org/) | Vector / GeoTIFF | Spatial Shapefiles | **UNVERIFIED** | Multi-sector settlement density surveys documenting infrastructure expansion and hillside terracing. |
+
