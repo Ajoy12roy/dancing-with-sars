@@ -480,7 +480,7 @@ export default function BeforeAfterViewer({
           }}
         >
           <div
-            className="w-9 h-9 rounded-[2px] flex items-center justify-center pointer-events-auto cursor-ew-resize focus:outline-none select-none"
+            className="w-9 h-9 rounded-[2px] flex items-center justify-center pointer-events-auto cursor-ew-resize focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 select-none"
             style={{
               border: '1.5px solid var(--color-comparison-line)',
               backgroundColor: 'var(--color-surface-2)',
@@ -491,14 +491,17 @@ export default function BeforeAfterViewer({
             aria-valuenow={displayPosition}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Scanning line comparison slider"
+            aria-label="Before/after split position"
             onKeyDown={(e) => {
+              if (['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+                e.preventDefault();
+              }
               setIsPlaying(false);
               const curr = progress.get();
-              if (e.key === 'ArrowLeft') {
+              if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
                 const next = Math.max(0, curr - 5);
                 progress.set(next);
-              } else if (e.key === 'ArrowRight') {
+              } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
                 const next = Math.min(100, curr + 5);
                 progress.set(next);
               } else if (e.key === 'Home') {

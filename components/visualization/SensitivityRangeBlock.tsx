@@ -149,12 +149,13 @@ export default function SensitivityRangeBlock({
 
         <div className="px-3 pb-3 pt-1 border-t border-hairline overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
+            <caption className="sr-only">Detailed sensitivity analysis across threshold offsets</caption>
             <thead>
               <tr className="border-b border-hairline text-text-secondary font-headline">
-                <th className="py-1.5 pr-3 font-semibold">Threshold ({sensitivity.unit})</th>
-                <th className="py-1.5 px-3 font-semibold">Detected Area</th>
-                <th className="py-1.5 px-3 font-semibold">Change %</th>
-                <th className="py-1.5 pl-3 font-semibold text-right">Status</th>
+                <th scope="col" className="py-1.5 pr-3 font-semibold">Threshold ({sensitivity.unit})</th>
+                <th scope="col" className="py-1.5 px-3 font-semibold">Detected Area</th>
+                <th scope="col" className="py-1.5 px-3 font-semibold">Change %</th>
+                <th scope="col" className="py-1.5 pl-3 font-semibold text-right">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline font-data">
@@ -165,9 +166,9 @@ export default function SensitivityRangeBlock({
                     key={st.value}
                     className={isCentre ? 'bg-surface-2 text-teal font-medium' : 'text-text-primary'}
                   >
-                    <td className="py-1.5 pr-3">
+                    <th scope="row" className="py-1.5 pr-3 text-left font-normal">
                       {st.value > 0 ? `+${st.value.toFixed(1)}` : st.value.toFixed(1)} {sensitivity.unit}
-                    </td>
+                    </th>
                     <td className="py-1.5 px-3">{st.areaKm2.toFixed(2)} km²</td>
                     <td className="py-1.5 px-3">{st.percentChanged.toFixed(2)}%</td>
                     <td className="py-1.5 pl-3 text-right">

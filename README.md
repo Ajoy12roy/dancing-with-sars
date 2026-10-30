@@ -293,6 +293,17 @@ The web application is engineered for zero-dependency offline resilience during 
 
 ---
 
+## Accessibility
+
+TerraPulse was built following WCAG 2.2 AA guidelines to ensure radar observations and hazard insights are accessible to everyone:
+- **Live Screen Reader Announcer**: An app-wide announcer (`aria-live="polite"` and `aria-live="assertive"`) vocalizes critical state transitions—such as case study selection, analysis progress and completion, upload validation errors, and AI interpretation updates—without requiring visual monitoring.
+- **Keyboard Navigation & High-Contrast Outlines**: Every interactive element, tab, case chip, and slider is reachable via Tab/Shift+Tab and activatable with Space/Enter. Focus indicators use high-contrast solid outlines (`outline: 2px solid var(--color-accent)`) rather than diffuse shadows, complying with DESIGN_SYSTEM.md tokens. A "Skip to main content" link is the first focusable element on every page.
+- **Operable Comparison Slider**: The before/after split slider is fully operable by keyboard (`role="slider"`, ArrowLeft/ArrowDown to decrease, ArrowRight/ArrowUp to increase, Home for 0%, End for 100%).
+- **Accessible Text Summaries for Maps**: Every geospatial classification map and visual raster provides an accessible text summary block (`<details>`) outlining case context, mode, observation period, headline affected area in km² and %, sensitivity bracket, and reliability notices.
+- **Reduced Motion Support**: All CSS transitions, Framer Motion animations, twinkling hero stars, and scanning sweeps respect `prefers-reduced-motion: reduce`, dropping to instant or static states for users sensitive to motion.
+
+---
+
 ## Future Work
 
 - **NASA/ISRO NISAR L-Band Integration**: Incorporate upcoming 24 cm L-band SAR data from the NASA-ISRO SAR mission (`https://nisar.jpl.nasa.gov/`) for enhanced forest canopy penetration and ground deformation monitoring.

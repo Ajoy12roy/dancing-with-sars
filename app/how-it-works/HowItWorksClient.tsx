@@ -623,6 +623,53 @@ export function HowItWorksClient() {
             </div>
           </div>
         </div>
+
+        {/* Accessibility Section */}
+        <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
+          <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">
+            <span className="inline-block w-2.5 h-2.5 bg-teal" />
+            <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+              Accessibility &amp; Assistive Technology
+            </h2>
+          </div>
+          <p className="text-sm text-text-secondary leading-relaxed mb-6">
+            TerraPulse was built following WCAG 2.2 AA guidelines so that satellite radar observations and scientific analysis remain operable and understandable for all researchers, responders, and citizens:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-text-secondary">
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                1. Live State Announcer
+              </h3>
+              <p className="leading-relaxed">
+                An application-wide live announcer provides <span className="font-data text-teal">aria-live=&quot;polite&quot;</span> and <span className="font-data text-rust">aria-live=&quot;assertive&quot;</span> vocalizations for state transitions that visual users notice instantly (such as case selection, analysis completion, file drop validation, and AI interpretation updates).
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                2. Keyboard Operability &amp; Outlines
+              </h3>
+              <p className="leading-relaxed">
+                All controls, tabs, case chips, and modal dialogues are operable via keyboard navigation. Focus rings strictly adhere to design system guidelines, utilizing crisp <span className="font-data text-teal">outline</span> rules rather than box shadows, maintaining at least 3:1 contrast against adjacent surfaces. A &quot;Skip to main content&quot; link is the first focusable item on every page.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                3. Text Alternatives for Map Visualizations
+              </h3>
+              <p className="leading-relaxed">
+                Visual rasters and map overlays convey no spatial semantics to screen reader users. The application attaches an accessible text summary below every map viewport, documenting case name, mode, observation periods, headline affected area in square kilometers, sensitivity classification, and reliability caveats.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                4. Reduced Motion Preferences
+              </h3>
+              <p className="leading-relaxed">
+                All animations, pulsing badges, starry hero animations, and imagery scanning sweeps respect the operating system <span className="font-data text-teal">prefers-reduced-motion</span> setting, immediately halting all non-essential visual motion.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ export function Footer() {
     <footer className="border-t border-footer-border bg-footer-bg text-footer-text transition-colors duration-150">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         {/* 5 Columns (desktop 5 cols, 2 cols below 1024px, 1 col below 640px) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr_0.6fr] gap-8 lg:gap-10">
+        <nav aria-label="Footer Navigation" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1.6fr_0.6fr] gap-8 lg:gap-10">
           {/* Column 1: Brand */}
           <div className="flex flex-col items-start">
             <TerraPulseLogo size={44} tone="auto" />
@@ -227,7 +227,7 @@ export function Footer() {
               </a>
             </div>
           </div>
-        </div>
+        </nav>
 
         {/* Full-width rule */}
         <div className="w-full border-t border-footer-rule mt-10 mb-6" />

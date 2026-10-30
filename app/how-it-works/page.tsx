@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { HowItWorksClient } from './HowItWorksClient';
 
 export const metadata: Metadata = {
-  title: 'How It Works — Dancing with the SARs',
+  title: 'How It Works — TerraPulse',
   description:
     'Learn how Synthetic Aperture Radar (SAR) works, why it matters for Earth observation, and how our change detection pipeline processes satellite data.',
 };

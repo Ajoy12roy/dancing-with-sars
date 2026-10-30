@@ -8,7 +8,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { AnalysisModeProvider } from '@/context';
+import { AnalysisModeProvider, AccessibilityProvider } from '@/context';
 import './globals.css';
 
 const sourceSerif = localFont({
@@ -131,11 +131,19 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col">
-        <AnalysisModeProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </AnalysisModeProvider>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-teal focus:text-white focus:outline-2 focus:outline-teal focus:outline-offset-2 focus:rounded text-sm font-medium"
+        >
+          Skip to main content
+        </a>
+        <AccessibilityProvider>
+          <AnalysisModeProvider>
+            <Navbar />
+            <main id="main-content" className="flex-1">{children}</main>
+            <Footer />
+          </AnalysisModeProvider>
+        </AccessibilityProvider>
       </body>
     </html>
   );

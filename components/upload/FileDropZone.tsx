@@ -2,6 +2,7 @@
 
 import { useRef, useState, DragEvent, ChangeEvent } from 'react';
 import { Upload, FileCheck, X } from 'lucide-react';
+import { useAccessibility } from '@/context';
 
 interface FileDropZoneProps {
   label: string;
@@ -33,6 +34,7 @@ export function FileDropZone({
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { announce } = useAccessibility();
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -50,13 +52,18 @@ export function FileDropZone({
   const processFile = (selectedFile: File) => {
     setValidationError(null);
     if (!isValidGeoTiff(selectedFile.name)) {
-      setValidationError('Only .tif or .tiff files are supported.');
+      const errMsg = 'Only .tif or .tiff files are supported.';
+      setValidationError(errMsg);
+      announce(`Upload rejected: ${errMsg}`, 'assertive');
       return;
     }
     if (selectedFile.size > 60 * 1024 * 1024) {
-      setValidationError(`File exceeds the 60 MB maximum limit (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB).`);
+      const errMsg = `File exceeds the 60 MB maximum limit (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB).`;
+      setValidationError(errMsg);
+      announce(`Upload rejected: ${errMsg}`, 'assertive');
       return;
     }
+    announce(`Custom SAR GeoTIFF file accepted for ${label}: ${selectedFile.name}`, 'polite');
     onFileSelect(selectedFile);
   };
 

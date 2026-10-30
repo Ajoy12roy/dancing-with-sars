@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAnalysisMode } from '@/context';
+import { useAnalysisMode, useAccessibility } from '@/context';
 import { generateFallbackInsight, type InsightPayload } from '@/lib/ai-insight-fallback';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
@@ -110,6 +110,7 @@ export function AIInsightPanel({
   const activeWarnings = data?.warnings || propWarnings;
   const activeTotalArea = data?.totalAreaKm2 || propTotalArea;
 
+  const { announce } = useAccessibility();
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [usedFallback, setUsedFallback] = useState<boolean>(false);
@@ -268,6 +269,7 @@ export function AIInsightPanel({
       .finally(() => {
         if (currentKeyRef.current === cacheKey) {
           setLoading(false);
+          announce('AI interpretation updated', 'polite');
         }
       });
   }, [
@@ -282,6 +284,7 @@ export function AIInsightPanel({
     activeCategories,
     activeDates,
     activeWarnings,
+    announce,
   ]);
 
   return (

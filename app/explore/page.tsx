@@ -14,7 +14,8 @@ import { AIInsightPanel } from '@/components/ai/AIInsightPanel';
 import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
-import { useAnalysisMode } from '@/context';
+import { MapTextSummary } from '@/components/visualization/MapTextSummary';
+import { useAnalysisMode, useAccessibility } from '@/context';
 import {
   getReadyDemoAois,
   getReadyCaseStudies,
@@ -41,6 +42,7 @@ function modeToParam(m: AnalysisMode): string {
 function ExploreContent() {
   const [activeTab, setActiveTab] = useState<'demo' | 'upload'>('demo');
   const { mode, setMode, selectedAoi, setSelectedAoi } = useAnalysisMode();
+  const { emitEvent } = useAccessibility();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -162,6 +164,11 @@ function ExploreContent() {
   const handleModeSelect = useCallback((newMode: AnalysisMode) => {
     if (newMode !== mode) {
       setMode(newMode);
+      emitEvent({
+        type: 'mode-changed',
+        message: `Switched to ${newMode} mode`,
+        data: { mode: newMode },
+      });
       const validCases = getReadyCaseStudies(newMode);
       if (validCases.length > 0 && validCases[0]) {
         const current = getCaseStudyById(selectedAoi);
@@ -174,7 +181,7 @@ function ExploreContent() {
     if (rawModeParam !== targetParam) {
       router.replace(`/explore?mode=${targetParam}`, { scroll: false });
     }
-  }, [mode, selectedAoi, rawModeParam, router, setMode, setSelectedAoi]);
+  }, [mode, selectedAoi, rawModeParam, router, setMode, setSelectedAoi, emitEvent]);
 
   // Switch demo AOI select and sync URL
   const handleAoiSelect = useCallback((aoiId: string) => {
@@ -182,6 +189,13 @@ function ExploreContent() {
       setSelectedAoi(aoiId);
     }
     const found = getCaseStudyById(aoiId);
+    if (found) {
+      emitEvent({
+        type: 'case-selected',
+        message: `Loaded ${found.title || aoiId} case study, ${found.module || mode} mode`,
+        data: { caseId: aoiId, title: found.title, mode: found.module || mode },
+      });
+    }
     if (found?.module) {
       const targetMode = found.module as AnalysisMode;
       if (targetMode !== mode) {
@@ -192,7 +206,7 @@ function ExploreContent() {
         router.replace(`/explore?mode=${targetParam}`, { scroll: false });
       }
     }
-  }, [selectedAoi, mode, rawModeParam, router, setSelectedAoi, setMode]);
+  }, [selectedAoi, mode, rawModeParam, router, setSelectedAoi, setMode, emitEvent]);
 
 
   // Build upload AOI representation for ChangeMap / BeforeAfterViewer
@@ -579,7 +593,7 @@ function ExploreContent() {
               )}
 
               {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
-              <div className="col-span-12 lg:col-span-7 flex">
+              <div className="col-span-12 lg:col-span-7 flex" role="region" aria-label="SAR Imagery Comparison Viewport">
                 <BeforeAfterViewer
                   beforeImage={displayData.beforeImage}
                   afterImage={displayData.afterImage}
@@ -591,12 +605,21 @@ function ExploreContent() {
                 />
               </div>
 
-              <div className="col-span-12 lg:col-span-5 flex">
+              <div className="col-span-12 lg:col-span-5 flex" role="region" aria-label="Geospatial Classification Map Viewport">
                 {mode === 'deforestation' ? (
                   <ChangeMap data={displayData} aoi={activeAoi} />
                 ) : (
                   <ShorelineShiftCard data={displayData} mode={mode} />
                 )}
+              </div>
+
+              {/* ── Accessible Text Summary of Visualizations (WCAG 2.2 AA) ── */}
+              <div className="col-span-12">
+                <MapTextSummary
+                  data={displayData}
+                  aoi={activeAoi}
+                  caseStudy={currentCaseStudy}
+                />
               </div>
 
               {/* ── Case Study Card (under the viewer for the selected demo) ── */}

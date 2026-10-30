@@ -3,7 +3,7 @@ import { getReadyCaseStudies, type CaseStudyModule } from '@/lib/case-studies';
 import { getValidationForCase } from '@/lib/validation';
 
 export const metadata: Metadata = {
-  title: 'Data Sources & Methodology — Dancing with the SARs',
+  title: 'Data Sources & Methodology — TerraPulse',
   description:
     'Dataset citations, Sentinel-1 acquisition dates for demo AOIs, processing software stack, project license, and satellite attribution.',
 };
@@ -381,14 +381,15 @@ export default function DataSourcesPage() {
         {/* Table */}
         <div className="overflow-x-auto border border-hairline rounded-[2px] bg-surface">
           <table className="w-full text-left text-xs border-collapse">
+            <caption className="sr-only">Independent reference comparison and candidate sources by case study</caption>
             <thead>
               <tr className="border-b border-hairline bg-surface-2 text-text-primary font-headline uppercase tracking-wider text-[11px]">
-                <th className="p-3">Case Study</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Reference Used</th>
-                <th className="p-3">IoU</th>
-                <th className="p-3">Notes</th>
-                <th className="p-3">Candidate Reference for Future Work</th>
+                <th scope="col" className="p-3">Case Study</th>
+                <th scope="col" className="p-3">Status</th>
+                <th scope="col" className="p-3">Reference Used</th>
+                <th scope="col" className="p-3">IoU</th>
+                <th scope="col" className="p-3">Notes</th>
+                <th scope="col" className="p-3">Candidate Reference for Future Work</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline font-sans">
@@ -406,10 +407,10 @@ export default function DataSourcesPage() {
 
                 return (
                   <tr key={aoi.id} className="hover:bg-surface-2/60 transition-colors">
-                    <td className="p-3 font-medium text-text-primary">
+                    <th scope="row" className="p-3 font-medium text-text-primary text-left font-normal">
                       <div className="font-semibold">{aoi.name || aoi.title}</div>
                       <span className="font-data text-[10px] text-teal uppercase">{aoi.modeLabel || aoi.module}</span>
-                    </td>
+                    </th>
                     <td className="p-3 whitespace-nowrap">
                       <span
                         className={`font-data text-[10px] px-2 py-0.5 rounded-[2px] border ${

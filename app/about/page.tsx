@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About — Dancing with the SARs',
+  title: 'About — TerraPulse',
   description:
     'About the team, challenge context, and open-source license for the Dancing with the SARs project.',
 };

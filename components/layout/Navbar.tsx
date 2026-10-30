@@ -116,7 +116,7 @@ function NavbarContent() {
 
         {/* Desktop Nav Links + ThemeToggle at far right */}
         <div className="hidden md:flex items-center gap-4 lg:gap-6">
-          <nav className="flex items-center gap-4 lg:gap-6 xl:gap-7">
+          <nav aria-label="Main Navigation" className="flex items-center gap-4 lg:gap-6 xl:gap-7">
             {NAV_LINKS.map((link) => {
               const isActive = isLinkActive(link.href, pathname, currentMode);
               return (
