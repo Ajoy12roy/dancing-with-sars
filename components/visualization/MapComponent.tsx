@@ -16,6 +16,35 @@ L.Icon.Default.mergeOptions({
   imagePath: '/leaflet/images/',
 });
 
+// Guard Leaflet DomUtil methods against undefined elements during unmount / fast switching
+if (typeof window !== 'undefined' && L && L.DomUtil) {
+  const originalGetPosition = L.DomUtil.getPosition;
+  L.DomUtil.getPosition = function (el: HTMLElement) {
+    if (!el) {
+      return new L.Point(0, 0);
+    }
+    try {
+      return originalGetPosition ? originalGetPosition.call(L.DomUtil, el) : (el as unknown as { _leaflet_pos?: L.Point })._leaflet_pos || new L.Point(0, 0);
+    } catch {
+      return new L.Point(0, 0);
+    }
+  };
+
+  const originalSetPosition = L.DomUtil.setPosition;
+  L.DomUtil.setPosition = function (el: HTMLElement, point: L.Point) {
+    if (!el) return;
+    try {
+      if (originalSetPosition) {
+        originalSetPosition.call(L.DomUtil, el, point);
+      } else {
+        (el as unknown as { _leaflet_pos?: L.Point })._leaflet_pos = point;
+      }
+    } catch {
+      // Element destroyed during unmount
+    }
+  };
+}
+
 export type BasemapMode = 'radar' | 'street';
 
 export interface MapBounds {
@@ -38,7 +67,24 @@ export interface MapComponentProps {
   scrollZoom?: boolean;
 }
 
-// Automatically fit map viewport to the provided geospatial bounds
+// Clean up running animations on unmount
+function MapUnmountHandler() {
+  const map = useMap();
+  useEffect(() => {
+    return () => {
+      try {
+        if (map) {
+          map.stop();
+        }
+      } catch {
+        // Ignore during unmount
+      }
+    };
+  }, [map]);
+  return null;
+}
+
+// Automatically fit map viewport to the provided geospatial bounds (unmount-safe, non-animated for case switches)
 function MapBoundsUpdater({ leafletBounds }: { leafletBounds: [[number, number], [number, number]] }) {
   const map = useMap();
   useEffect(() => {
@@ -52,13 +98,23 @@ function MapBoundsUpdater({ leafletBounds }: { leafletBounds: [[number, number],
     ) {
       try {
         const container = map.getContainer();
-        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
-          map.fitBounds(leafletBounds, { padding: [16, 16], maxZoom: 14 });
+        if (container && container.clientWidth > 0 && container.clientHeight > 0 && container.parentElement) {
+          map.stop();
+          map.fitBounds(leafletBounds, { padding: [16, 16], maxZoom: 14, animate: false });
         }
       } catch {
         // Map container is not yet measured or unmounting
       }
     }
+    return () => {
+      try {
+        if (map) {
+          map.stop();
+        }
+      } catch {
+        // Ignore during unmount
+      }
+    };
   }, [leafletBounds, map]);
   return null;
 }
@@ -67,14 +123,28 @@ function MapBoundsUpdater({ leafletBounds }: { leafletBounds: [[number, number],
 function MetricScaleControl() {
   const map = useMap();
   useEffect(() => {
-    const scaleControl = L.control.scale({
-      metric: true,
-      imperial: false,
-      position: 'bottomleft',
-    });
-    scaleControl.addTo(map);
+    let scaleControl: L.Control.Scale | null = null;
+    try {
+      const container = map.getContainer();
+      if (container && container.parentElement) {
+        scaleControl = L.control.scale({
+          metric: true,
+          imperial: false,
+          position: 'bottomleft',
+        });
+        scaleControl.addTo(map);
+      }
+    } catch {
+      // Container not ready or unmounting
+    }
     return () => {
-      scaleControl.remove();
+      if (scaleControl) {
+        try {
+          scaleControl.remove();
+        } catch {
+          // Ignore during unmount
+        }
+      }
     };
   }, [map]);
   return null;
@@ -83,22 +153,51 @@ function MetricScaleControl() {
 // Dedicated Zoom Control with Plus/Minus buttons in top-left
 function CustomZoomControl() {
   const map = useMap();
-  const [zoom, setZoom] = useState(() => map.getZoom());
-  const [minZoom, setMinZoom] = useState(() => map.getMinZoom());
-  const [maxZoom, setMaxZoom] = useState(() => map.getMaxZoom());
+  const [zoom, setZoom] = useState(() => {
+    try {
+      return map.getZoom();
+    } catch {
+      return 11;
+    }
+  });
+  const [minZoom, setMinZoom] = useState(() => {
+    try {
+      return map.getMinZoom();
+    } catch {
+      return 0;
+    }
+  });
+  const [maxZoom, setMaxZoom] = useState(() => {
+    try {
+      return map.getMaxZoom();
+    } catch {
+      return 18;
+    }
+  });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateZoom = () => {
-      setZoom(map.getZoom());
-      setMinZoom(map.getMinZoom());
-      setMaxZoom(map.getMaxZoom());
+      try {
+        const container = map.getContainer();
+        if (container && container.parentElement) {
+          setZoom(map.getZoom());
+          setMinZoom(map.getMinZoom());
+          setMaxZoom(map.getMaxZoom());
+        }
+      } catch {
+        // Map unmounted or destroyed
+      }
     };
     map.on('zoomend', updateZoom);
     map.on('viewreset', updateZoom);
     return () => {
-      map.off('zoomend', updateZoom);
-      map.off('viewreset', updateZoom);
+      try {
+        map.off('zoomend', updateZoom);
+        map.off('viewreset', updateZoom);
+      } catch {
+        // Ignore
+      }
     };
   }, [map]);
 
@@ -122,7 +221,11 @@ function CustomZoomControl() {
         onClick={(e) => {
           e.stopPropagation();
           if (!isAtMax) {
-            map.zoomIn();
+            try {
+              map.zoomIn(1, { animate: false });
+            } catch {
+              // Ignore
+            }
           }
         }}
         disabled={isAtMax}
@@ -136,7 +239,11 @@ function CustomZoomControl() {
         onClick={(e) => {
           e.stopPropagation();
           if (!isAtMin) {
-            map.zoomOut();
+            try {
+              map.zoomOut(1, { animate: false });
+            } catch {
+              // Ignore
+            }
           }
         }}
         disabled={isAtMin}
@@ -182,12 +289,25 @@ function Graticule({ bounds }: { bounds: MapBounds }) {
   }, []);
 
   useEffect(() => {
-    const handleUpdate = () => setTick((t) => t + 1);
+    const handleUpdate = () => {
+      try {
+        const container = map.getContainer();
+        if (container && container.parentElement) {
+          setTick((t) => t + 1);
+        }
+      } catch {
+        // Map unmounting
+      }
+    };
     map.on('moveend', handleUpdate);
     map.on('zoomend', handleUpdate);
     return () => {
-      map.off('moveend', handleUpdate);
-      map.off('zoomend', handleUpdate);
+      try {
+        map.off('moveend', handleUpdate);
+        map.off('zoomend', handleUpdate);
+      } catch {
+        // Ignore during unmount
+      }
     };
   }, [map]);
 
@@ -421,6 +541,7 @@ export default function MapComponent({
         zoomControl={false}
         scrollWheelZoom={scrollZoom}
       >
+        <MapUnmountHandler />
         <MapBoundsUpdater leafletBounds={leafletBounds} />
         <MetricScaleControl />
         {scrollZoom === false && <CustomZoomControl />}
