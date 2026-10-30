@@ -5,6 +5,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { generateFallbackInsight, InsightPayload } from '@/lib/ai-insight-fallback';
 import { getCaseStudyById, isKnownCaseId } from '@/lib/case-studies';
+import { getSensitivityForCase, getSensitivityDelta, getSensitivityParameterLabel } from '@/lib/sensitivity';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -191,6 +192,14 @@ function buildPrompt(payload: InsightPayload): string {
     }
   }
 
+  if (payload.sensitivity) {
+    const sens = payload.sensitivity;
+    const delta = getSensitivityDelta(sens);
+    const deltaStr = delta % 1 === 0 ? delta.toFixed(0) : delta.toFixed(1);
+    const paramLabel = getSensitivityParameterLabel(sens.parameterName);
+    modeFacts += `\n- Sensitivity Analysis Range: Headline result ranges from ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² across ±${deltaStr} ${sens.unit} variation in ${paramLabel}.`;
+  }
+
   const catStr =
     categories.length > 0
       ? `\nCategorized Classes:\n${categories.map((c) => `  - ${c.label}: ${c.areaKm2.toFixed(2)} km² (${c.kind})`).join('\n')}`
@@ -312,6 +321,7 @@ export async function POST(request: NextRequest) {
 
     const cs = getCaseStudyById(cleanAoi);
     const honestyWarnings = cs?.honestyNote ? [cs.honestyNote] : [];
+    const sensitivityData = cs?.sensitivity || getSensitivityForCase(cleanAoi) || undefined;
 
     payload = {
       mode: normalizedMode,
@@ -326,6 +336,7 @@ export async function POST(request: NextRequest) {
       categories: (resultData.categories as InsightPayload['categories']) || [],
       dates: resultData.dates as InsightPayload['dates'],
       warnings: [...((resultData.warnings as string[]) || []), ...honestyWarnings],
+      sensitivity: sensitivityData,
     };
 
     cacheKey = `${cleanAoi}:${normalizedMode}`;

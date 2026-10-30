@@ -60,18 +60,19 @@ export function getSensitivityForCase(caseId: string | null | undefined): Sensit
   }
 
   // Dynamic server-side fallback if running in a Node.js process
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path');
-    const filePath = path.join(process.cwd(), 'data', 'sensitivity', `${cleanId}.json`);
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      return JSON.parse(raw) as SensitivityData;
+  if (typeof window === 'undefined') {
+    try {
+      const req = (0, eval)('require');
+      const fs = req('fs');
+      const path = req('path');
+      const filePath = path.join(process.cwd(), 'data', 'sensitivity', `${cleanId}.json`);
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(raw) as SensitivityData;
+      }
+    } catch {
+      // Ignore gracefully if file read fails
     }
-  } catch {
-    // Client-side execution or file read error: ignore gracefully
   }
 
   return null;
@@ -90,7 +91,7 @@ export function getSensitivityParameterLabel(parameterName: string): string {
  * Computes symmetric delta between centre and edge step.
  */
 export function getSensitivityDelta(sensitivity: SensitivityData): number {
-  if (!sensitivity.steps || sensitivity.steps.length === 0) return 0;
+  if (!sensitivity.steps || sensitivity.steps.length === 0 || !sensitivity.steps[0]) return 0;
   return Math.abs(sensitivity.centre - sensitivity.steps[0].value);
 }
 

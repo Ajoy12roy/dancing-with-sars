@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { getCaseStudyById, isKnownCaseId } from '@/lib/case-studies';
+import { getSensitivityForCase } from '@/lib/sensitivity';
 
 export const runtime = 'nodejs';
 export const maxDuration = 15;
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
       beforeRange: cs?.beforeRange,
       afterRange: cs?.afterRange,
       honestyNote: cs?.honestyNote,
+      sensitivity: cs?.sensitivity || getSensitivityForCase(cleanAoi) || undefined,
       beforeImage: `/api/images?aoi=${cleanAoi}&type=before`,
       afterImage: `/api/images?aoi=${cleanAoi}&type=after`,
       changeMapImage: `/api/images?aoi=${cleanAoi}&type=change-map`,

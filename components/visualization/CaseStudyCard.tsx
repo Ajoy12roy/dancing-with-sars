@@ -1,8 +1,10 @@
 'use client';
 
 import type { CaseStudy } from '@/lib/case-studies';
-import type { DateRange } from '@/types';
+import type { DateRange, SensitivityData } from '@/types';
+import { getSensitivityForCase } from '@/lib/sensitivity';
 import { DataPanel } from '@/components/ui/DataPanel';
+import SensitivityRangeBlock from './SensitivityRangeBlock';
 
 interface CaseStudyCardProps {
   caseStudy: CaseStudy;
@@ -10,6 +12,7 @@ interface CaseStudyCardProps {
   dateAfter?: string;
   beforeRange?: DateRange;
   afterRange?: DateRange;
+  sensitivity?: SensitivityData;
 }
 
 export default function CaseStudyCard({
@@ -18,6 +21,7 @@ export default function CaseStudyCard({
   dateAfter,
   beforeRange,
   afterRange,
+  sensitivity,
 }: CaseStudyCardProps) {
   // Normalize array or string for limitations and validation lists
   const limitationsList = Array.isArray(caseStudy.limitations)
@@ -38,6 +42,8 @@ export default function CaseStudyCard({
   const actualDates = actualBefore && actualAfter ? `${actualBefore} → ${actualAfter}` : null;
   const effectiveBeforeRange = beforeRange || caseStudy.beforeRange;
   const effectiveAfterRange = afterRange || caseStudy.afterRange;
+  const effectiveSensitivity =
+    sensitivity || caseStudy.sensitivity || getSensitivityForCase(caseStudy.precomputedId || caseStudy.id);
 
   const locationSubtitle = [caseStudy.location, caseStudy.country].filter(Boolean).join(', ');
 
@@ -67,6 +73,12 @@ export default function CaseStudyCard({
             <span className="leading-relaxed">{caseStudy.honestyNote}</span>
           </div>
         )}
+
+        {/* Sensitivity Range (Trust Layer) — Day 3 Step 3 */}
+        <SensitivityRangeBlock
+          sensitivity={effectiveSensitivity}
+          headlineResult={caseStudy.primaryResult}
+        />
 
         {/* Causes & Impacts (only show if exists) */}
         {caseStudy.causesAndImpacts && (

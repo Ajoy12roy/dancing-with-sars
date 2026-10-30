@@ -461,6 +461,73 @@ export function HowItWorksClient() {
           </div>
         </GraticuleFrame>
 
+        {/* Threshold Sensitivity Analysis Section (Trust Layer) */}
+        <GraticuleFrame>
+          <div className="p-6 md:p-8 bg-surface rounded-[2px]">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-block w-2 h-2 rounded-none bg-teal" />
+              <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+                Threshold Sensitivity & Uncertainty Analysis (Trust Layer)
+              </h2>
+            </div>
+            <p className="text-sm text-text-secondary leading-relaxed max-w-3xl">
+              Satellite radar classifications depend directly on calibrated backscatter cutoff values.
+              Rather than presenting a single headline number as an infallible ground truth, Terra Pulse
+              systematically perturbs core thresholds to quantify physical uncertainty and algorithmic stability.
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="border border-hairline p-4 rounded-[2px] bg-surface-2">
+                <h3 className="font-headline font-semibold text-base text-text-primary">
+                  1. Why Threshold Choice Matters
+                </h3>
+                <p className="mt-2 text-xs text-text-secondary leading-relaxed">
+                  SAR backscatter is a continuous radiometric measurement, not a discrete label. Specular open water
+                  reflects radar energy away from the sensor (low dB return), while land, vegetation, and urban structures
+                  scatter energy back. However, transitional zones—such as wet soil, mudflats, flooded vegetation, or shallow
+                  water edges—lie along a continuous dB gradient. The chosen threshold dictates where the classification boundary falls.
+                </p>
+              </div>
+
+              <div className="border border-hairline p-4 rounded-[2px] bg-surface-2">
+                <h3 className="font-headline font-semibold text-base text-text-primary">
+                  2. Physical Meaning of ±1 dB and ±2 dB
+                </h3>
+                <p className="mt-2 text-xs text-text-secondary leading-relaxed">
+                  Decibels are logarithmic: a change of <span className="font-data text-text-primary">1 dB</span> represents
+                  a <span className="font-data text-teal">~26% shift</span> in returned microwave power ratio, while{' '}
+                  <span className="font-data text-text-primary">2 dB</span> represents a{' '}
+                  <span className="font-data text-teal">~58% increase or ~37% drop</span>.
+                  Evaluating water thresholds across <span className="font-data text-text-primary">-18 to -14 dB</span> (or canopy loss across{' '}
+                  <span className="font-data text-text-primary">-4.0 to -2.0 dB</span>) tests whether detected boundaries reflect
+                  deep open water and clear-cut ground or ambiguous transitional terrain.
+                </p>
+              </div>
+
+              <div className="border border-hairline p-4 rounded-[2px] bg-surface-2">
+                <h3 className="font-headline font-semibold text-base text-text-primary">
+                  3. Narrow vs. Wide Sensitivity Span
+                </h3>
+                <p className="mt-2 text-xs text-text-secondary leading-relaxed">
+                  A <strong className="text-text-primary">narrow range</strong> indicates a steep radiometric cliff with high contrast
+                  between targets, meaning the computed area is highly stable regardless of threshold selection.
+                  A <strong className="text-text-primary">wide range</strong> indicates gradual gradients (e.g. extensive shallow water,
+                  saturated floodplains, or diffuse tree thinning), alerting the analyst that reported area is sensitive to thresholding
+                  and requires regional calibration.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-hairline text-xs font-sans text-text-secondary flex items-start gap-2">
+              <span className="text-teal font-semibold shrink-0 uppercase font-data text-[11px] mt-0.5">Scientific Caveat:</span>
+              <span className="leading-relaxed">
+                Sensitivity ranges show physical sensitivity to threshold selection. They quantify model uncertainty, but do not replace
+                in-situ validation or high-resolution optical truth data.
+              </span>
+            </div>
+          </div>
+        </GraticuleFrame>
+
         {/* Limitations Section */}
         <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
           <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">

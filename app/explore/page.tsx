@@ -600,8 +600,9 @@ function ExploreContent() {
                     caseStudy={currentCaseStudy}
                     dateBefore={displayData.dateBefore}
                     dateAfter={displayData.dateAfter}
-                  beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
-                  afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
+                    beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
+                    afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
+                    sensitivity={displayData.sensitivity || currentCaseStudy?.sensitivity}
                   />
                 </div>
               )}

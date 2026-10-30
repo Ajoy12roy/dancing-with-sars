@@ -4,7 +4,8 @@
 // Never uses hardcoded scientific values.
 // ========================================================================
 
-import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
+import type { ResultMetrics, ResultCategory, ResultDates, SensitivityData } from '@/types';
+import { getSensitivityDelta, getSensitivityParameterLabel } from '@/lib/sensitivity';
 
 export interface InsightPayload {
   mode: string;
@@ -19,6 +20,7 @@ export interface InsightPayload {
   categories?: ResultCategory[];
   dates?: ResultDates;
   warnings?: string[];
+  sensitivity?: SensitivityData;
 }
 
 export function generateFallbackInsight(payload: InsightPayload): string {
@@ -32,6 +34,15 @@ export function generateFallbackInsight(payload: InsightPayload): string {
 
   const dateA = dates?.a || 'the baseline date';
   const dateB = dates?.b || 'the follow-up date';
+
+  let sensitivitySentence: string | null = null;
+  if (payload.sensitivity) {
+    const sens = payload.sensitivity;
+    const delta = getSensitivityDelta(sens);
+    const deltaStr = delta % 1 === 0 ? delta.toFixed(0) : delta.toFixed(1);
+    const paramLabel = getSensitivityParameterLabel(sens.parameterName);
+    sensitivitySentence = `Threshold sensitivity analysis indicates the affected area spans ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² across a ±${deltaStr} ${sens.unit} variation in ${paramLabel}.`;
+  }
 
   switch (mode) {
     case 'river-erosion': {
@@ -48,13 +59,17 @@ export function generateFallbackInsight(payload: InsightPayload): string {
 
       if (payload.aoiId === 'padma-naria') {
         const s1 = `Between ${dateA} and ${dateB}, radar analysis detected about ${erosionAreaKm2} km² of net land-to-water transition near the channel corridor.`;
-        const s2 = `Concurrently, sediment deposition and sandbar formation accounted for ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
+        const s2 =
+          sensitivitySentence ||
+          `Concurrently, sediment deposition and sandbar formation accounted for ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
         const s3 = `Notice: This figure is net land-to-water change between two composites. It can include water-level differences and sandbar movement, so it is not a direct measure of bank erosion.`;
         return `${s1} ${s2} ${s3}`;
       }
 
       const s1 = `Between ${dateA} and ${dateB}, about ${erosionAreaKm2} km² of riverbank turned to water, an average of ${rate}.`;
-      const s2 = `Concurrently, sediment deposition formed ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
+      const s2 =
+        sensitivitySentence ||
+        `Concurrently, sediment deposition formed ${accretionAreaKm2} km² of accreted bars, yielding a net land shift of ${netLandChange} km².`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
@@ -70,8 +85,10 @@ export function generateFallbackInsight(payload: InsightPayload): string {
       const pct = percentChanged.toFixed(2);
       const signalPart = confidence != null ? ` with a backscatter change signal strength of ${confidence.toFixed(1)}%` : '';
 
-      const s1 = `Between ${dateA} and ${dateB}, radar backscatter analysis detected ${floodedAreaKm2} km² of newly inundated ground.`;
-      const s2 = `This inundation spans ${pct}% of the surveyed scene${signalPart}.`;
+      const s1 = sensitivitySentence
+        ? `Between ${dateA} and ${dateB}, radar backscatter analysis detected ${floodedAreaKm2} km² of newly inundated ground (${pct}% of the surveyed scene${signalPart}).`
+        : `Between ${dateA} and ${dateB}, radar backscatter analysis detected ${floodedAreaKm2} km² of newly inundated ground.`;
+      const s2 = sensitivitySentence || `This inundation spans ${pct}% of the surveyed scene${signalPart}.`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
@@ -85,8 +102,10 @@ export function generateFallbackInsight(payload: InsightPayload): string {
       const pct = percentChanged.toFixed(2);
       const signalPart = confidence != null ? ` with a signal intensity of ${confidence.toFixed(1)}%` : '';
 
-      const s1 = `Between ${dateA} and ${dateB}, SAR backscatter analysis identified ${forestLossKm2} km² of forest canopy disturbance.`;
-      const s2 = `The detected canopy loss encompasses ${pct}% of the analyzed footprint${signalPart}.`;
+      const s1 = sensitivitySentence
+        ? `Between ${dateA} and ${dateB}, SAR backscatter analysis identified ${forestLossKm2} km² of forest canopy disturbance (${pct}% of the analyzed footprint${signalPart}).`
+        : `Between ${dateA} and ${dateB}, SAR backscatter analysis identified ${forestLossKm2} km² of forest canopy disturbance.`;
+      const s2 = sensitivitySentence || `The detected canopy loss encompasses ${pct}% of the analyzed footprint${signalPart}.`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
@@ -104,14 +123,18 @@ export function generateFallbackInsight(payload: InsightPayload): string {
       const deltaPct = deltaPctNum >= 0 ? `+${deltaPctNum.toFixed(1)}` : deltaPctNum.toFixed(1);
 
       if (payload.aoiId === 'tanguar') {
-        const s1 = `Between ${dateA} and ${dateB}, open surface water across the 418.40 km² study-area box transitioned from ${waterA} km² to ${waterB} km².`;
-        const s2 = `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;
+        const s1 = sensitivitySentence
+          ? `Between ${dateA} and ${dateB}, open surface water across the 418.40 km² study-area box transitioned from ${waterA} km² to ${waterB} km² (${deltaKm2} km², ${deltaPct}%).`
+          : `Between ${dateA} and ${dateB}, open surface water across the 418.40 km² study-area box transitioned from ${waterA} km² to ${waterB} km².`;
+        const s2 = sensitivitySentence || `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;
         const s3 = `Notice: Figures cover the whole study-area box, not only the haor wetland boundary.`;
         return `${s1} ${s2} ${s3}`;
       }
 
-      const s1 = `Between ${dateA} and ${dateB}, open surface water transitioned from ${waterA} km² to ${waterB} km².`;
-      const s2 = `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;
+      const s1 = sensitivitySentence
+        ? `Between ${dateA} and ${dateB}, open surface water transitioned from ${waterA} km² to ${waterB} km² (${deltaKm2} km², ${deltaPct}%).`
+        : `Between ${dateA} and ${dateB}, open surface water transitioned from ${waterA} km² to ${waterB} km².`;
+      const s2 = sensitivitySentence || `This reflects a net water extent shift of ${deltaKm2} km² (${deltaPct}%).`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
@@ -125,8 +148,10 @@ export function generateFallbackInsight(payload: InsightPayload): string {
       const pct = percentChanged.toFixed(2);
       const signalPart = confidence != null ? ` with a signal strength of ${confidence.toFixed(1)}%` : '';
 
-      const s1 = `Between ${dateA} and ${dateB}, SAR analysis detected ${area} km² of ground surface change.`;
-      const s2 = `The detected changes cover ${pct}% of the analyzed area${signalPart}.`;
+      const s1 = sensitivitySentence
+        ? `Between ${dateA} and ${dateB}, SAR analysis detected ${area} km² of ground surface change (${pct}% of the analyzed area${signalPart}).`
+        : `Between ${dateA} and ${dateB}, SAR analysis detected ${area} km² of ground surface change.`;
+      const s2 = sensitivitySentence || `The detected changes cover ${pct}% of the analyzed area${signalPart}.`;
       const s3 =
         warnings.length > 0
           ? `Notice: ${warnings[0]}`
