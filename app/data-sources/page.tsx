@@ -1,10 +1,60 @@
 import type { Metadata } from 'next';
 import { getReadyCaseStudies, type CaseStudyModule } from '@/lib/case-studies';
+import { getValidationForCase } from '@/lib/validation';
 
 export const metadata: Metadata = {
   title: 'Data Sources & Methodology — Dancing with the SARs',
   description:
     'Dataset citations, Sentinel-1 acquisition dates for demo AOIs, processing software stack, project license, and satellite attribution.',
+};
+
+const VALIDATION_CANDIDATES: Record<
+  string,
+  {
+    notes: string;
+    candidateReference: string;
+  }
+> = {
+  sylhet: {
+    notes: '2022 event pre-dates OPERA S1 operational archive; seasonal haor wetland baseline required.',
+    candidateReference: 'Copernicus EMS Rapid Mapping, JRC Global Surface Water occurrence',
+  },
+  jamuna: {
+    notes: 'Multi-year braided river morphology; dry-season low water baseline compared across 5 years.',
+    candidateReference: 'JRC Global Surface Water occurrence, CEGIS Bangladesh morphological reports',
+  },
+  amazon: {
+    notes: 'Radar canopy backscatter loss compared against annual multi-sensor optical deforestation callsets.',
+    candidateReference: 'PRODES (INPE Brazil), Global Forest Watch (Hansen et al.), MapBiomas Brasil',
+  },
+  tanguar: {
+    notes: 'Wetland expansion in Ramsar wetland; seasonal surface water dynamics in haor basin.',
+    candidateReference: 'JRC Global Surface Water recurrence layer',
+  },
+  'cox-bazar-kutupalong-2017': {
+    notes: '2017 refugee influx clearing; steep topography creates radar layover/shadow effects.',
+    candidateReference: 'REACH / UNHCR settlement extent boundary maps, Copernicus EMS EMSR235',
+  },
+  'feni-2024': {
+    notes: '2 granules confirmed in NASA CMR archive (OPERA_L3_DSWX-S1_V1); awaiting local tile ingest.',
+    candidateReference: 'NASA OPERA DSWx-S1 dynamic surface water extent, Copernicus EMS',
+  },
+  'hakaluki-haor': {
+    notes: 'Largest haor wetland in Bangladesh; rapid monsoon extent transition vs permanent water.',
+    candidateReference: 'JRC Global Surface Water recurrence layer',
+  },
+  'padma-naria': {
+    notes: 'Net land-to-water transition includes sandbar shift, bank erosion, and river stage differences.',
+    candidateReference: 'JRC Global Surface Water occurrence, CEGIS historical channel maps',
+  },
+  'rio-grande-do-sul-2024': {
+    notes: 'Catastrophic Jacuí river delta and Porto Alegre urban inundation in May 2024.',
+    candidateReference: 'Copernicus EMS EMSR720 Rapid Mapping activation, Copernicus Global Flood Monitoring (GFM)',
+  },
+  'sindh-pakistan-2022': {
+    notes: 'Pre-dates OPERA S1; historic Indus basin monsoon inundation around Lake Manchar.',
+    candidateReference: 'Copernicus EMS EMSR580 Rapid Mapping activation, UNOSAT inundation maps',
+  },
 };
 
 const CASE_STUDY_MODULES: { id: CaseStudyModule; title: string }[] = [
@@ -298,6 +348,96 @@ export default function DataSourcesPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Validation Status & Independent Comparison Framework — Day 4 Step 4 */}
+      <section className="border-t border-hairline pt-8 mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+              Validation Status &amp; Independent Comparisons
+            </h2>
+            <p className="text-sm text-text-secondary mt-1 font-sans">
+              Status of comparisons against independent external datasets (e.g. Copernicus EMS, NASA OPERA DSWx-S1, JRC Global Surface Water).
+            </p>
+          </div>
+          <span className="text-xs font-data px-2.5 py-1 bg-surface-2 border border-hairline text-teal shrink-0 self-start sm:self-auto">
+            Truth &amp; Uncertainty Layer
+          </span>
+        </div>
+
+        {/* Required Scientific Disclaimer */}
+        <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] mb-6 space-y-1 text-xs font-sans">
+          <div className="font-semibold text-text-primary uppercase tracking-wider font-headline text-[11px] flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
+            <span>Honest Evaluation Notice</span>
+          </div>
+          <p className="text-text-secondary leading-relaxed">
+            We do not claim our results are validated ground truth. Where independent datasets exist, we measure agreement. Where they do not, we document candidate sources for future comparison.
+          </p>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto border border-hairline rounded-[2px] bg-surface">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-hairline bg-surface-2 text-text-primary font-headline uppercase tracking-wider text-[11px]">
+                <th className="p-3">Case Study</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Reference Used</th>
+                <th className="p-3">IoU</th>
+                <th className="p-3">Notes</th>
+                <th className="p-3">Candidate Reference for Future Work</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-hairline font-sans">
+              {demoAois.map((aoi) => {
+                const caseId = aoi.precomputedId || aoi.id;
+                const validation = getValidationForCase(caseId);
+                const isCompared = Boolean(validation);
+                const refUsed = validation ? validation.referenceName : 'None';
+                const iouStr = validation ? `${(validation.metrics.iou * 100).toFixed(1)}%` : '—';
+                const candidate = VALIDATION_CANDIDATES[caseId] || {
+                  notes: 'Pre-dates operational archives; candidate sources documented.',
+                  candidateReference: 'Copernicus EMS Rapid Mapping, NASA OPERA DSWx-S1, JRC GSW',
+                };
+                const displayNotes = validation?.notes?.join('; ') || candidate.notes;
+
+                return (
+                  <tr key={aoi.id} className="hover:bg-surface-2/60 transition-colors">
+                    <td className="p-3 font-medium text-text-primary">
+                      <div className="font-semibold">{aoi.name || aoi.title}</div>
+                      <span className="font-data text-[10px] text-teal uppercase">{aoi.modeLabel || aoi.module}</span>
+                    </td>
+                    <td className="p-3 whitespace-nowrap">
+                      <span
+                        className={`font-data text-[10px] px-2 py-0.5 rounded-[2px] border ${
+                          isCompared
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-medium'
+                            : 'bg-surface-2 border-hairline text-text-secondary'
+                        }`}
+                      >
+                        {isCompared ? 'Compared' : 'Reference not yet compared'}
+                      </span>
+                    </td>
+                    <td className="p-3 font-data text-ink text-xs whitespace-nowrap">
+                      {refUsed}
+                    </td>
+                    <td className="p-3 font-data font-semibold text-ink text-xs whitespace-nowrap">
+                      {iouStr}
+                    </td>
+                    <td className="p-3 text-text-secondary text-xs min-w-[200px] max-w-xs leading-relaxed">
+                      {displayNotes}
+                    </td>
+                    <td className="p-3 text-text-primary text-xs min-w-[200px] max-w-xs leading-relaxed">
+                      {candidate.candidateReference}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
 

@@ -1,11 +1,13 @@
 'use client';
 
 import type { CaseStudy } from '@/lib/case-studies';
-import type { DateRange, SensitivityData } from '@/types';
+import type { DateRange, SensitivityData, ValidationData } from '@/types';
 import { getSensitivityForCase } from '@/lib/sensitivity';
+import { getValidationForCase } from '@/lib/validation';
 import { DataPanel } from '@/components/ui/DataPanel';
 import SensitivityRangeBlock from './SensitivityRangeBlock';
 import SensitivityBadge from './SensitivityBadge';
+import ValidationBlock from './ValidationBlock';
 
 interface CaseStudyCardProps {
   caseStudy: CaseStudy;
@@ -14,6 +16,7 @@ interface CaseStudyCardProps {
   beforeRange?: DateRange;
   afterRange?: DateRange;
   sensitivity?: SensitivityData;
+  validation?: ValidationData | null;
 }
 
 export default function CaseStudyCard({
@@ -23,6 +26,7 @@ export default function CaseStudyCard({
   beforeRange,
   afterRange,
   sensitivity,
+  validation,
 }: CaseStudyCardProps) {
   // Normalize array or string for limitations and validation lists
   const limitationsList = Array.isArray(caseStudy.limitations)
@@ -45,6 +49,10 @@ export default function CaseStudyCard({
   const effectiveAfterRange = afterRange || caseStudy.afterRange;
   const effectiveSensitivity =
     sensitivity || caseStudy.sensitivity || getSensitivityForCase(caseStudy.precomputedId || caseStudy.id);
+  const effectiveValidation =
+    validation !== undefined
+      ? validation
+      : caseStudy.validation || getValidationForCase(caseStudy.precomputedId || caseStudy.id);
 
   const locationSubtitle = [caseStudy.location, caseStudy.country].filter(Boolean).join(', ');
 
@@ -83,6 +91,9 @@ export default function CaseStudyCard({
           sensitivity={effectiveSensitivity}
           headlineResult={caseStudy.primaryResult}
         />
+
+        {/* Independent Comparison (Validation Block) — Day 4 Step 4 */}
+        <ValidationBlock validation={effectiveValidation} />
 
         {/* Causes & Impacts (only show if exists) */}
         {caseStudy.causesAndImpacts && (

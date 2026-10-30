@@ -9,12 +9,15 @@ import type {
   SensitivityClass,
   SensitivityClassBadge,
 } from '@/lib/sensitivity';
+import type { ValidationData, ValidationMetrics } from '@/lib/validation';
 
 export type {
   SensitivityData,
   SensitivityStep,
   SensitivityClass,
   SensitivityClassBadge,
+  ValidationData,
+  ValidationMetrics,
 };
 
 /** Date range for radar median composites */
@@ -87,6 +90,7 @@ export interface AreaOfInterest {
   afterRange?: DateRange;
   honestyNote?: string;
   sensitivity?: SensitivityData;
+  validation?: ValidationData;
 }
 
 /** Result of running the change-detection pipeline */
@@ -125,6 +129,7 @@ export interface ChangeResult {
   afterRange?: DateRange;
   honestyNote?: string;
   sensitivity?: SensitivityData;
+  validation?: ValidationData;
 }
 
 /** Histogram bin for change intensity distribution */
