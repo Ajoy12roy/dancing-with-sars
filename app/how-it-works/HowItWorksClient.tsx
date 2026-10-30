@@ -670,6 +670,53 @@ export function HowItWorksClient() {
             </div>
           </div>
         </div>
+
+        {/* Chiku Voice Guide Section */}
+        <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
+          <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">
+            <span className="inline-block w-2.5 h-2.5 bg-teal" />
+            <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+              Chiku Voice Guide Architecture
+            </h2>
+          </div>
+          <p className="text-sm text-text-secondary leading-relaxed mb-4">
+            On the Explore interface, our interactive assistant <strong>Chiku</strong> translates complex Synthetic Aperture Radar metrics into concise, natural-language audio and visual explanations:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-text-secondary">
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                1. Client-Side Web Speech API
+              </h3>
+              <p className="leading-relaxed">
+                Narration runs entirely in-browser using standard Web Speech API synthesis (<span className="font-data text-teal">window.speechSynthesis</span>). No audio bytes are streamed over the internet, and no third-party cloud speech services are called.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                2. Off by Default &amp; Screen Reader Friendly
+              </h3>
+              <p className="leading-relaxed">
+                Voice narration is <strong>OFF by default</strong>. Users may turn voice on or off via the speaker toggle, which persists preference in local storage. Screen reader users are advised to keep voice off since all state updates are already announced by the live region announcer.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                3. Always-Visible Visual Text Bubble
+              </h3>
+              <p className="leading-relaxed">
+                All spoken text is concurrently displayed in a high-contrast text bubble for deaf or hard-of-hearing users. The bubble is designated <span className="font-data text-teal">aria-hidden=&quot;true&quot;</span> to avoid duplicate audio announcements for assistive technologies.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-semibold text-sm text-text-primary">
+                4. Cautious &amp; Short Utterances
+              </h3>
+              <p className="leading-relaxed">
+                All sentences are generated deterministically by pure functions (<span className="font-data text-teal">lib/chiku-script.ts</span>) and capped under 200 characters to prevent browser speech buffer truncation. For high-sensitivity cases, cautious phrasing is automatically enforced.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

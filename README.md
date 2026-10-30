@@ -302,6 +302,14 @@ TerraPulse was built following WCAG 2.2 AA guidelines to ensure radar observatio
 - **Accessible Text Summaries for Maps**: Every geospatial classification map and visual raster provides an accessible text summary block (`<details>`) outlining case context, mode, observation period, headline affected area in km² and %, sensitivity bracket, and reliability notices.
 - **Reduced Motion Support**: All CSS transitions, Framer Motion animations, twinkling hero stars, and scanning sweeps respect `prefers-reduced-motion: reduce`, dropping to instant or static states for users sensitive to motion.
 
+### Chiku Voice Guide
+
+TerraPulse features an interactive companion, **Chiku**, on the `/explore` dashboard:
+- **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), generating audio locally on your device with zero cloud API latency or telemetry.
+- **Off by Default**: Voice narration is strictly **OFF by default** to preserve accessibility etiquette and respect quiet environments. Users can toggle voice narration on or off via the volume button in the header; the preference is stored in `localStorage` under `terrapulse-chiku-voice`. Screen reader users are advised to keep voice off, as all events are already carried via the live announcer.
+- **Always Visible Text**: Spoken explanations are always mirrored in a clean text speech bubble for deaf and hard-of-hearing users. The text bubble is marked `aria-hidden="true"` so assistive technologies rely on the clean live announcer without duplicate vocalizations.
+- **Device Voices**: Uses system English voices (`en-US` / `en-GB`); available voice timbres vary naturally depending on the operating system and browser synthesis engine.
+
 ---
 
 ## Future Work

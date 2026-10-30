@@ -15,6 +15,7 @@ import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
+import { ChikuGuide } from '@/components/chiku/ChikuGuide';
 import { useAnalysisMode, useAccessibility } from '@/context';
 import {
   getReadyDemoAois,
@@ -705,6 +706,17 @@ function ExploreContent() {
           )}
         </div>
       </div>
+
+      {/* Chiku Voice & Character Guide */}
+      <ChikuGuide
+        contextData={{
+          caseTitle: currentCaseStudy?.title || activeDemoAoi?.name,
+          mode,
+          affectedAreaKm2: displayData?.affectedAreaKm2,
+          percentChanged: displayData?.percentChanged,
+          sensitivity: displayData?.sensitivity || currentCaseStudy?.sensitivity,
+        }}
+      />
     </div>
   );
 }
