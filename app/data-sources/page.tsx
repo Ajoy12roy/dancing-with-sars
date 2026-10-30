@@ -584,27 +584,29 @@ export default function DataSourcesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="border border-hairline bg-surface p-5 rounded-[2px]">
               <h3 className="font-headline font-semibold text-base text-text-primary mb-2">
-                Copernicus Sentinel Data
+                Copernicus Sentinel &amp; EMS Data
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
                 Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
-                Sentinel data is made freely available under the European Commission&apos;s Copernicus Open Access Policy.
+                Copernicus Emergency Management Service (EMS) Rapid Mapping delineations and EC JRC Global Surface Water datasets
+                are made available under the European Commission&apos;s open data and Copernicus Open Access Policy.
               </p>
               <div className="mt-3 text-[11px] font-data text-text-secondary">
-                Attribution: Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
+                Attribution: Contains modified Copernicus Sentinel data and European Commission JRC/EMS products.
               </div>
             </div>
 
             <div className="border border-hairline bg-surface p-5 rounded-[2px]">
               <h3 className="font-headline font-semibold text-base text-text-primary mb-2">
-                OpenStreetMap Contributors
+                NASA OPERA &amp; OpenStreetMap
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                Interactive map baselayers, reference coastlines, and geographic context are provided by OpenStreetMap.
-                Data is licensed under the Open Data Commons Open Database License (ODbL).
+                NASA OPERA Dynamic Surface Water Extent from Sentinel-1 (DSWx-S1) products are distributed through NASA PO.DAAC
+                under NASA&apos;s open science data policy. Map baselayers and geographic context are provided by OpenStreetMap
+                under the Open Data Commons Open Database License (ODbL).
               </p>
               <div className="mt-3 text-[11px] font-data text-text-secondary">
-                Attribution: © OpenStreetMap contributors
+                Attribution: NASA OPERA (JPL / PO.DAAC) &amp; © OpenStreetMap contributors
               </div>
             </div>
           </div>

@@ -96,6 +96,40 @@ An additional **6 candidate case studies** are registered with status `pending-d
 2. **Conservative VV-Only Forest Sensitivity**: When cross-polarized VH data is unavailable and single-band VV is used for deforestation analysis, forest loss estimates are conservative because VV is dominated by surface scattering rather than crown volume scattering.
 3. **River Erosion Dynamics**: Bankline erosion and accretion figures include seasonal river stage variations and sandbar (char) sedimentation effects; dry-season low-flow baseline pairs are required for long-term morphological stability.
 4. **Urban and Vegetated Flood Inundation**: Specular water detection can underestimate flooding in dense urban environments (due to double-bounce corner reflection off buildings) and beneath dense tree canopies.
+5. **Algorithmic Threshold Sensitivity Classes**: The sensitivity span ratio $\frac{\text{maxArea} - \text{minArea}}{\text{centreArea}}$ varies across geographic environments:
+   - **Stable (<15% span)**:
+     - `sindh-pakistan-2022` (6.8% span)
+     - `tanguar` (6.9% span)
+     - `hakaluki-haor` (10.2% span)
+     - `padma-naria` (11.8% span)
+     *Characteristics*: Broad, open water bodies and flat wetlands with sharp radiometric contrast between calm water (<-18 dB) and surrounding terrain.
+   - **Moderate (15–50% span)**:
+     - `jamuna` (22.3% span)
+     - `sylhet` (35.4% span)
+     *Characteristics*: Dynamic braided sandbars and mixed wetland fringes with gradual moisture gradients.
+   - **High (>50% span)**:
+     - `rio-grande-do-sul-2024` (84.9% span)
+     - `feni-2024` (102.8% span)
+     - `cox-bazar-kutupalong-2017` (618.2% span)
+     - `amazon` (740.3% span)
+     *What makes an AOI sensitive*:
+     - **Narrow valleys and steep terrain**: Mountain slopes induce radar layover, shadowing, and geometric foreshortening (e.g. Cox's Bazar hills).
+     - **Urban and settlement structures**: Built infrastructure creates high double-bounce backscatter that masks standing water along streets.
+     - **Subtle backscatter gradients / low contrast**: Selective logging and diffuse degradation produce fractional decibel shifts (e.g. Amazon canopy thinning), where small threshold moves trigger large area changes.
+     - *Interpretation*: For high-sensitivity cases, headline figures should be treated as **indicative estimates**, and decision-makers should inspect the full sensitivity bracket.
+
+---
+
+## Validation Status & Independent Comparison
+
+> **Scientific Honesty Notice**: Agreement with another model or map is not proof of accuracy. Both are estimates. We do not claim our results are validated ground truth. Where independent datasets exist, we measure spatial agreement. Where they do not, we document candidate sources for future comparison.
+
+- **Current Validation Status**: Documented in full on [`/data-sources`](http://localhost:3000/data-sources) and in [`docs/VALIDATION.md`](docs/VALIDATION.md).
+- **NASA CMR Archive Coverage**: We queried the NASA Common Metadata Repository (CMR) for `OPERA_L3_DSWX-S1_V1` granules across all 10 ready cases:
+  - **Feni Flash Flood (2024)**: **2 granules confirmed available** in the NASA CMR archive.
+  - **Pre-2023 cases** (`sylhet`, `sindh-pakistan-2022`, `cox-bazar-kutupalong-2017`): Pre-date OPERA S1 operational archive launch (late 2023).
+  - **Full coverage table**: See [`docs/validation-coverage.md`](docs/validation-coverage.md).
+- **Candidate Reference Datasets**: Documented with verified working URLs in [`docs/VALIDATION.md`](docs/VALIDATION.md) (Copernicus EMS Rapid Mapping activations EMSR720, EMSR580, EMSR235; Copernicus GFM; NASA OPERA DSWx-S1; JRC Global Surface Water; Global Forest Watch; INPE PRODES; MapBiomas Brasil; CEGIS Bangladesh; REACH/UNHCR).
 
 ---
 
@@ -219,6 +253,38 @@ To run the sensitivity test suite (schema validation and centre-value integrity 
 cd python-service
 python -m pytest test_sensitivity.py
 ```
+
+---
+
+## Reproduce the Validation Checks
+
+To verify independent dataset availability, test spatial comparison algorithms, and evaluate agreement against reference rasters/vectors:
+
+### 1. Check NASA OPERA DSWx-S1 Coverage (CMR Query)
+Queries the NASA CMR API across all 10 ready cases for `OPERA_L3_DSWX-S1_V1` granules:
+```bash
+python scripts/validation/check_opera_coverage.py
+```
+Outputs a live coverage summary table and updates `docs/validation-coverage.md`.
+
+### 2. Run the Validation Test Suite
+Verifies binary metric calculations (IoU, precision, recall, F1) on synthetic binary arrays and rasterio coordinate reprojection:
+```bash
+pytest python-service/test_validate.py
+```
+*Expected: 5 passed.*
+
+### 3. Run an Independent Comparison
+To compare any ready case against an external GeoTIFF or GeoJSON reference dataset (with automatic pipeline integrity check):
+```bash
+python python-service/validate.py \
+  --case-id sylhet \
+  --ref-path data/reference/sylhet/reference.tif \
+  --ref-name "Copernicus EMS" \
+  --ref-source "Copernicus Emergency Management Service" \
+  --ref-date "2022-06-21"
+```
+Outputs `data/validation/<caseId>.json`, which is automatically rendered in the user interface.
 
 ---
 

@@ -476,7 +476,7 @@ export function HowItWorksClient() {
               systematically perturbs core thresholds to quantify physical uncertainty and algorithmic stability.
             </p>
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="border border-hairline p-4 rounded-[2px] bg-surface-2">
                 <h3 className="font-headline font-semibold text-base text-text-primary">
                   1. Why Threshold Choice Matters
@@ -514,6 +514,28 @@ export function HowItWorksClient() {
                   A <strong className="text-text-primary">wide range</strong> indicates gradual gradients (e.g. extensive shallow water,
                   saturated floodplains, or diffuse tree thinning), alerting the analyst that reported area is sensitive to thresholding
                   and requires regional calibration.
+                </p>
+              </div>
+
+              <div className="border border-hairline p-4 rounded-[2px] bg-surface-2">
+                <h3 className="font-headline font-semibold text-base text-text-primary">
+                  4. Sensitivity Classes (Stable, Moderate, High)
+                </h3>
+                <p className="mt-2 text-xs text-text-secondary leading-relaxed">
+                  Based on the span ratio <span className="font-data text-teal">(max − min) / centre</span>, each case is classified into:
+                  <br />• <strong className="text-emerald-700 dark:text-emerald-300">Stable (&lt;15% span)</strong>: High physical contrast, minimal threshold sensitivity.
+                  <br />• <strong className="text-amber-700 dark:text-amber-300">Moderate (15–50% span)</strong>: Noticeable variation across wetland margins.
+                  <br />• <strong className="text-rust">High (&gt;50% span)</strong>: Steep topography, narrow valleys, or dense structures make results threshold-dependent; headline numbers are indicative only.
+                </p>
+              </div>
+
+              <div className="border border-hairline p-4 rounded-[2px] bg-surface-2 md:col-span-2 lg:col-span-2">
+                <h3 className="font-headline font-semibold text-base text-text-primary">
+                  5. Independent Comparison Framework
+                </h3>
+                <p className="mt-2 text-xs text-text-secondary leading-relaxed">
+                  To test reliability against external science products, we evaluate spatial overlap (IoU / Jaccard index, Precision, Recall) against independent reference datasets (e.g. Copernicus EMS Rapid Mapping, NASA OPERA DSWx-S1, JRC Global Surface Water).
+                  Crucially, <strong className="text-text-primary">agreement with another model or map is not proof of accuracy</strong>—both are models with distinct physical limitations and acquisition windows.
                 </p>
               </div>
             </div>
