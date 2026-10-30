@@ -5,7 +5,7 @@
 // ========================================================================
 
 import type { ResultMetrics, ResultCategory, ResultDates, SensitivityData } from '@/types';
-import { getSensitivityDelta, getSensitivityParameterLabel } from '@/lib/sensitivity';
+import { getSensitivityDelta, getSensitivityParameterLabel, getSensitivityClass } from '@/lib/sensitivity';
 
 export interface InsightPayload {
   mode: string;
@@ -41,7 +41,12 @@ export function generateFallbackInsight(payload: InsightPayload): string {
     const delta = getSensitivityDelta(sens);
     const deltaStr = delta % 1 === 0 ? delta.toFixed(0) : delta.toFixed(1);
     const paramLabel = getSensitivityParameterLabel(sens.parameterName);
-    sensitivitySentence = `Threshold sensitivity analysis indicates the affected area spans ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² across a ±${deltaStr} ${sens.unit} variation in ${paramLabel}.`;
+    const cls = getSensitivityClass(sens);
+    if (cls === 'high') {
+      sensitivitySentence = `Due to high threshold sensitivity (span ratio > 50%), this headline figure is indicative rather than exact, spanning an estimated ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² across ±${deltaStr} ${sens.unit} variation in ${paramLabel}.`;
+    } else {
+      sensitivitySentence = `Threshold sensitivity analysis indicates the affected area spans ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² across a ±${deltaStr} ${sens.unit} variation in ${paramLabel}.`;
+    }
   }
 
   switch (mode) {

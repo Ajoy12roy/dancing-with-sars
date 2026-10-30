@@ -3,7 +3,13 @@ import { useAnalysisMode } from '@/context';
 import { generateFallbackInsight, type InsightPayload } from '@/lib/ai-insight-fallback';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
-import { isKnownCaseId } from '@/lib/case-studies';
+import { isKnownCaseId, getCaseStudyById } from '@/lib/case-studies';
+import {
+  getSensitivityForCase,
+  getSensitivityClass,
+  getSensitivityDelta,
+  getSensitivityParameterLabel,
+} from '@/lib/sensitivity';
 import { DataPanel } from '@/components/ui/DataPanel';
 
 interface AIInsightPanelProps {
@@ -24,11 +30,62 @@ interface AIInsightPanelProps {
 interface InsightCacheEntry {
   explanation: string;
   usedFallback: boolean;
+  notes?: string[];
 }
 
 // Module-level cache and in-flight request map keyed by `${aoi}:${mode}`
 const insightCache = new Map<string, InsightCacheEntry>();
 const inFlightRequests = new Map<string, Promise<InsightCacheEntry>>();
+
+function getLocalFallbackNotes(aoiId: string, payload: InsightPayload): string[] {
+  const notes: string[] = [];
+  if (aoiId && isKnownCaseId(aoiId)) {
+    const cs = getCaseStudyById(aoiId);
+    const sens = cs?.sensitivity || getSensitivityForCase(aoiId);
+    if (sens) {
+      const cls = getSensitivityClass(sens);
+      const delta = getSensitivityDelta(sens);
+      const deltaStr = delta % 1 === 0 ? delta.toFixed(0) : delta.toFixed(1);
+      const paramLabel = getSensitivityParameterLabel(sens.parameterName);
+      const classLabel =
+        cls === 'stable'
+          ? 'Stable under threshold changes'
+          : cls === 'moderate'
+          ? 'Moderately threshold-sensitive'
+          : 'Highly threshold-sensitive (treat headline number as indicative only)';
+      notes.push(
+        `Sensitivity analysis (${classLabel}): Result spans ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² when ${paramLabel} varies by ±${deltaStr} ${sens.unit}.`
+      );
+    }
+    if (cs?.honestyNote) {
+      notes.push(cs.honestyNote);
+    }
+    if (cs?.beforeRange && cs?.afterRange) {
+      notes.push(
+        `Composite dates: Imagery is a median composite of Sentinel-1 scenes acquired from ${cs.beforeRange.start} to ${cs.beforeRange.end} (Before) and ${cs.afterRange.start} to ${cs.afterRange.end} (After).`
+      );
+    } else if (payload.dates?.a && payload.dates?.b) {
+      notes.push(
+        `Composite dates: Reference dates (${payload.dates.a} and ${payload.dates.b}) represent median composites around those dates (full acquisition range not recorded).`
+      );
+    }
+    const rawSignal = payload.confidence ?? payload.signalStrength;
+    if (rawSignal == null || isNaN(rawSignal)) {
+      notes.push('Signal strength: Not available for this observation.');
+    }
+  } else {
+    const rawSignal = payload.confidence ?? payload.signalStrength;
+    if (rawSignal == null || isNaN(rawSignal)) {
+      notes.push('Signal strength: Not available for this custom upload.');
+    }
+    if (payload.warnings && payload.warnings.length > 0) {
+      for (const w of payload.warnings) {
+        notes.push(`Notice: ${w}`);
+      }
+    }
+  }
+  return notes;
+}
 
 export function AIInsightPanel({
   percentChanged,
@@ -56,6 +113,7 @@ export function AIInsightPanel({
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [usedFallback, setUsedFallback] = useState<boolean>(false);
+  const [notes, setNotes] = useState<string[] | undefined>(undefined);
   const currentKeyRef = useRef<string>('');
 
   useEffect(() => {
@@ -146,6 +204,9 @@ export function AIInsightPanel({
                 const entry: InsightCacheEntry = {
                   explanation: resJson.explanation,
                   usedFallback: true,
+                  notes: Array.isArray(resJson.notes)
+                    ? resJson.notes
+                    : getLocalFallbackNotes(aoiId, localFallbackPayload),
                 };
                 insightCache.set(cacheKey, entry);
                 return entry;
@@ -156,18 +217,24 @@ export function AIInsightPanel({
 
           const result = await response.json();
           const isFallback = Boolean(result.fallback ?? result.usedFallback);
+          const returnedNotes = Array.isArray(result.notes)
+            ? result.notes
+            : getLocalFallbackNotes(aoiId, localFallbackPayload);
           const entry: InsightCacheEntry = {
             explanation: result.explanation || generateFallbackInsight(localFallbackPayload),
             usedFallback: isFallback,
+            notes: returnedNotes.length > 0 ? returnedNotes : undefined,
           };
           insightCache.set(cacheKey, entry);
           return entry;
         } catch {
           // Fall back to offline text on timeout or fetch error; never show empty box
           const fallbackText = generateFallbackInsight(localFallbackPayload);
+          const fallbackNotes = getLocalFallbackNotes(aoiId, localFallbackPayload);
           const entry: InsightCacheEntry = {
             explanation: fallbackText,
             usedFallback: true,
+            notes: fallbackNotes.length > 0 ? fallbackNotes : undefined,
           };
           insightCache.set(cacheKey, entry);
           return entry;
@@ -186,13 +253,16 @@ export function AIInsightPanel({
         if (currentKeyRef.current === cacheKey) {
           setExplanation(entry.explanation);
           setUsedFallback(entry.usedFallback);
+          setNotes(entry.notes);
         }
       })
       .catch(() => {
         if (currentKeyRef.current === cacheKey) {
           const fallbackText = generateFallbackInsight(localFallbackPayload);
+          const fallbackNotes = getLocalFallbackNotes(aoiId, localFallbackPayload);
           setExplanation(fallbackText);
           setUsedFallback(true);
+          setNotes(fallbackNotes.length > 0 ? fallbackNotes : undefined);
         }
       })
       .finally(() => {
@@ -227,23 +297,40 @@ export function AIInsightPanel({
       className="h-full min-h-80 w-full"
       bodyClassName="justify-between overflow-y-auto"
     >
-        {loading ? (
+      {loading ? (
+        <div className="space-y-3">
+          <div className="h-3.5 bg-hairline rounded-sm w-full animate-pulse"></div>
+          <div className="h-3.5 bg-hairline rounded-sm w-5/6 animate-pulse"></div>
+          <div className="h-3.5 bg-hairline rounded-sm w-4/6 animate-pulse"></div>
+        </div>
+      ) : (
+        <div className="space-y-4 flex-1 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="h-3.5 bg-hairline rounded-sm w-full animate-pulse"></div>
-            <div className="h-3.5 bg-hairline rounded-sm w-5/6 animate-pulse"></div>
-            <div className="h-3.5 bg-hairline rounded-sm w-4/6 animate-pulse"></div>
-          </div>
-        ) : (
-          <div className="space-y-4 flex-1 flex flex-col justify-between">
             <p className="text-sm text-ink font-sans leading-relaxed">
               {explanation}
             </p>
-            <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-text-secondary font-data shrink-0">
-              <span>Target: {aoiName || aoiId}</span>
-              <span>{usedFallback ? 'Offline summary' : 'gemini-2.5-flash'}</span>
-            </div>
+            {notes && notes.length > 0 && (
+              <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-1.5 text-xs">
+                <div className="font-semibold text-text-primary uppercase tracking-wider font-headline text-[11px] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
+                  <span>Reliability notes (computed from data, not AI-written)</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-text-secondary font-sans leading-relaxed">
+                  {notes.map((note, idx) => (
+                    <li key={idx} className="leading-snug">
+                      <span className="text-ink">{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        )}
+          <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-text-secondary font-data shrink-0">
+            <span>Target: {aoiName || aoiId}</span>
+            <span>{usedFallback ? 'Offline summary' : 'gemini-2.5-flash'}</span>
+          </div>
+        </div>
+      )}
     </DataPanel>
   );
 }

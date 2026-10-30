@@ -5,10 +5,17 @@ import path from 'path';
 import crypto from 'crypto';
 import { generateFallbackInsight, InsightPayload } from '@/lib/ai-insight-fallback';
 import { getCaseStudyById, isKnownCaseId } from '@/lib/case-studies';
-import { getSensitivityForCase, getSensitivityDelta, getSensitivityParameterLabel } from '@/lib/sensitivity';
+import {
+  getSensitivityForCase,
+  getSensitivityDelta,
+  getSensitivityParameterLabel,
+  getSensitivityClass,
+} from '@/lib/sensitivity';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+const CACHE_VERSION = 'v2_reliability';
 
 // Known valid Modes
 const KNOWN_MODES = new Set(['flood', 'river-erosion', 'erosion', 'deforestation', 'surface-water', 'water']);
@@ -210,6 +217,11 @@ function buildPrompt(payload: InsightPayload): string {
       ? `\nProcessing Warnings (MUST be explicitly mentioned in the explanation):\n${warnings.map((w) => `  - ${w}`).join('\n')}`
       : '\nProcessing Warnings: None';
 
+  const isHighSensitivity = payload.sensitivity && getSensitivityClass(payload.sensitivity) === 'high';
+  const highSensRule = isHighSensitivity
+    ? '\n7. HIGH THRESHOLD SENSITIVITY: This observation exhibits high sensitivity to threshold perturbation (>50% variation). You MUST use cautious wording (e.g. "estimated", "indicative", "approximately") and explicitly note that the headline figure is indicative rather than exact.'
+    : '';
+
   return `You are an expert remote sensing analyst explaining Synthetic Aperture Radar (SAR) change detection results for ${aoiName}.
 
 MANDATORY RULES:
@@ -218,7 +230,7 @@ MANDATORY RULES:
 3. You MUST NOT invent, estimate, round differently, or add numbers.
 4. You MUST NOT name causes (for example climate change, dams, illegal logging, weather systems) that are not in the data.
 5. You MUST mention the processing warnings if any are provided below.
-6. Provide exactly 3 short sentences in plain English.
+6. Provide exactly 3 short sentences in plain English.${highSensRule}
 
 COMPUTED DATA:
 ${modeFacts.trim()}
@@ -226,6 +238,64 @@ ${catStr}
 ${warnStr}
 
 Provide exactly 3 short sentences in plain English:`;
+}
+
+// Compute reliability notes on the server from trusted data at response time
+function buildReliabilityNotes(cleanAoi: string | null, payload: InsightPayload): string[] {
+  const notes: string[] = [];
+
+  if (cleanAoi && isKnownCaseId(cleanAoi)) {
+    const cs = getCaseStudyById(cleanAoi);
+    const sens = cs?.sensitivity || getSensitivityForCase(cleanAoi);
+
+    if (sens) {
+      const cls = getSensitivityClass(sens);
+      const delta = getSensitivityDelta(sens);
+      const deltaStr = delta % 1 === 0 ? delta.toFixed(0) : delta.toFixed(1);
+      const paramLabel = getSensitivityParameterLabel(sens.parameterName);
+      const classLabel =
+        cls === 'stable'
+          ? 'Stable under threshold changes'
+          : cls === 'moderate'
+          ? 'Moderately threshold-sensitive'
+          : 'Highly threshold-sensitive (treat headline number as indicative only)';
+      notes.push(
+        `Sensitivity analysis (${classLabel}): Result spans ${sens.minAreaKm2.toFixed(2)} to ${sens.maxAreaKm2.toFixed(2)} km² when ${paramLabel} varies by ±${deltaStr} ${sens.unit}.`
+      );
+    }
+
+    if (cs?.honestyNote) {
+      notes.push(cs.honestyNote);
+    }
+
+    if (cs?.beforeRange && cs?.afterRange) {
+      notes.push(
+        `Composite dates: Imagery is a median composite of Sentinel-1 scenes acquired from ${cs.beforeRange.start} to ${cs.beforeRange.end} (Before) and ${cs.afterRange.start} to ${cs.afterRange.end} (After).`
+      );
+    } else if (payload.dates?.a && payload.dates?.b) {
+      notes.push(
+        `Composite dates: Reference dates (${payload.dates.a} and ${payload.dates.b}) represent median composites around those dates (full acquisition range not recorded).`
+      );
+    }
+
+    const rawSignal = payload.confidence ?? payload.signalStrength;
+    if (rawSignal == null || isNaN(rawSignal)) {
+      notes.push('Signal strength: Not available for this observation.');
+    }
+  } else {
+    // Custom upload
+    const rawSignal = payload.confidence ?? payload.signalStrength;
+    if (rawSignal == null || isNaN(rawSignal)) {
+      notes.push('Signal strength: Not available for this custom upload.');
+    }
+    if (payload.warnings && payload.warnings.length > 0) {
+      for (const w of payload.warnings) {
+        notes.push(`Notice: ${w}`);
+      }
+    }
+  }
+
+  return notes;
 }
 
 // Call Gemini with strict 12-second timeout
@@ -339,7 +409,7 @@ export async function POST(request: NextRequest) {
       sensitivity: sensitivityData,
     };
 
-    cacheKey = `${cleanAoi}:${normalizedMode}`;
+    cacheKey = `${cleanAoi}:${normalizedMode}:${CACHE_VERSION}`;
   } else {
     // ── Shape B: Uploaded Results { metrics: {...}, [mode] } ──
     if (body.mode !== undefined && (typeof body.mode !== 'string' || !KNOWN_MODES.has(body.mode))) {
@@ -435,8 +505,12 @@ export async function POST(request: NextRequest) {
       .map((k) => `${k}:${validatedMetrics[k]}`)
       .join(',');
     const metricsHash = crypto.createHash('sha256').update(sortedEntries).digest('hex').slice(0, 16);
-    cacheKey = `upload:${resolvedMode}:${metricsHash}`;
+    cacheKey = `upload:${resolvedMode}:${metricsHash}:${CACHE_VERSION}`;
   }
+
+  const activeAoiId = isShapeA ? (body.aoi as string).replace(/[^a-zA-Z0-9_-]/g, '') : null;
+  const reliabilityNotes = buildReliabilityNotes(activeAoiId, payload);
+  const notesField = reliabilityNotes.length > 0 ? reliabilityNotes : undefined;
 
   // 2. Per-IP Rate Limiting (10 requests per 10 minutes)
   const clientIp = getClientIp(request);
@@ -448,6 +522,7 @@ export async function POST(request: NextRequest) {
         explanation: fallbackText,
         fallback: true,
         usedFallback: true,
+        notes: notesField,
       },
       {
         status: 429,
@@ -464,6 +539,7 @@ export async function POST(request: NextRequest) {
       explanation: cached.explanation,
       fallback: cached.fallback,
       usedFallback: cached.fallback,
+      notes: notesField,
     });
   }
 
@@ -476,6 +552,7 @@ export async function POST(request: NextRequest) {
       explanation: fallbackText,
       fallback: true,
       usedFallback: true,
+      notes: notesField,
     });
   }
 
@@ -491,13 +568,16 @@ export async function POST(request: NextRequest) {
       explanation: cleanText,
       fallback: false,
       usedFallback: false,
+      notes: notesField,
     });
   } catch {
     const fallbackText = generateFallbackInsight(payload);
+    insightCache.set(cacheKey, { explanation: fallbackText, fallback: true, timestamp: now });
     return NextResponse.json({
       explanation: fallbackText,
       fallback: true,
       usedFallback: true,
+      notes: notesField,
     });
   }
 }
