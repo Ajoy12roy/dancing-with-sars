@@ -9,6 +9,7 @@ import CategoryBreakdownChart from '@/components/visualization/CategoryBreakdown
 import { ChangeMap } from '@/components/visualization/ChangeMap';
 import ShorelineShiftCard from '@/components/visualization/ShorelineShiftCard';
 import CaseStudyCard from '@/components/visualization/CaseStudyCard';
+import SensitivityBadge from '@/components/visualization/SensitivityBadge';
 import { AIInsightPanel } from '@/components/ai/AIInsightPanel';
 import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
@@ -270,9 +271,14 @@ function ExploreContent() {
         <div className="grid grid-cols-12 gap-6">
           {/* ── Row 1: Centered Case Study Title and Description (12 cols) ── */}
           <div className="col-span-12 text-center space-y-2 pb-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
-              {displayTitle}
-            </h1>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+                {displayTitle}
+              </h1>
+              {activeTab === 'demo' && (displayData?.sensitivity || currentCaseStudy?.sensitivity) && (
+                <SensitivityBadge sensitivity={displayData?.sensitivity || currentCaseStudy?.sensitivity} />
+              )}
+            </div>
             <p className="text-text-secondary text-sm sm:text-base max-w-3xl mx-auto font-sans leading-relaxed">
               {displayDescription}
             </p>

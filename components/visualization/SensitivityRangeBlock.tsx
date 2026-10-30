@@ -6,6 +6,7 @@ import {
   getSensitivityParameterLabel,
   getSensitivityDelta,
 } from '@/lib/sensitivity';
+import SensitivityBadge from './SensitivityBadge';
 
 interface SensitivityRangeBlockProps {
   sensitivity?: SensitivityData | null;
@@ -50,10 +51,13 @@ export default function SensitivityRangeBlock({
     <div className={`p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-3 ${className}`}>
       {/* Header and Headline Result */}
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-hairline pb-2.5">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary font-headline">
-            Sensitivity Range (Trust Layer)
-          </span>
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary font-headline">
+              Sensitivity Range (Trust Layer)
+            </span>
+            <SensitivityBadge sensitivity={sensitivity} />
+          </div>
           {headlineResult && (
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-xs text-text-secondary font-sans">Baseline Result:</span>

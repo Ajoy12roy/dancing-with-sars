@@ -5,6 +5,7 @@ import type { DateRange, SensitivityData } from '@/types';
 import { getSensitivityForCase } from '@/lib/sensitivity';
 import { DataPanel } from '@/components/ui/DataPanel';
 import SensitivityRangeBlock from './SensitivityRangeBlock';
+import SensitivityBadge from './SensitivityBadge';
 
 interface CaseStudyCardProps {
   caseStudy: CaseStudy;
@@ -52,9 +53,12 @@ export default function CaseStudyCard({
       title={caseStudy.title}
       subtitle={locationSubtitle || undefined}
       rightSlot={
-        <span className="text-xs font-data px-2.5 py-0.5 bg-surface-2 border border-hairline text-teal uppercase font-medium">
-          {caseStudy.module.replace('-', ' ')}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {effectiveSensitivity && <SensitivityBadge sensitivity={effectiveSensitivity} />}
+          <span className="text-xs font-data px-2.5 py-0.5 bg-surface-2 border border-hairline text-teal uppercase font-medium">
+            {caseStudy.module.replace('-', ' ')}
+          </span>
+        </div>
       }
       className="w-full"
     >

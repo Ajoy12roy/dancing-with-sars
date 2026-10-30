@@ -80,3 +80,49 @@ def test_sensitivity_output_schema():
             assert step["areaKm2"] >= 0.0
             assert step["percentChanged"] >= 0.0
 
+def test_sensitivity_classes_match_expected():
+    """Verify computed sensitivity classes match expected classifications based on spanRatio."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sens_dir = os.path.join(base_dir, "data", "sensitivity")
+
+    expected_classes = {
+        "sindh-pakistan-2022": "stable",
+        "tanguar": "stable",
+        "hakaluki-haor": "stable",
+        "padma-naria": "stable",
+        "jamuna": "moderate",
+        "sylhet": "moderate",
+        "feni-2024": "high",
+        "rio-grande-do-sul-2024": "high",
+        "amazon": "high",
+        "cox-bazar-kutupalong-2017": "high",
+    }
+
+    for case_id, expected_cls in expected_classes.items():
+        filepath = os.path.join(sens_dir, f"{case_id}.json")
+        assert os.path.exists(filepath), f"Sensitivity file for {case_id} must exist"
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        min_area = data["minAreaKm2"]
+        max_area = data["maxAreaKm2"]
+        centre_val = data["centre"]
+        centre_step = next((s for s in data["steps"] if s["value"] == centre_val), None)
+        assert centre_step is not None, f"Centre step missing for {case_id}"
+        centre_area = centre_step["areaKm2"]
+        assert centre_area > 0, f"Centre area must be positive for {case_id}"
+
+        span_ratio = (max_area - min_area) / centre_area
+        if span_ratio < 0.15:
+            computed_cls = "stable"
+        elif span_ratio <= 0.50:
+            computed_cls = "moderate"
+        else:
+            computed_cls = "high"
+
+        assert computed_cls == expected_cls, (
+            f"Case {case_id} classified as {computed_cls} (spanRatio={span_ratio:.4f}), "
+            f"expected {expected_cls}"
+        )
+
+

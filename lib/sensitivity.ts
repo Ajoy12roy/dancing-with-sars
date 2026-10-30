@@ -79,6 +79,81 @@ export function getSensitivityForCase(caseId: string | null | undefined): Sensit
 }
 
 /**
+ * Sensitivity Class thresholds:
+ * - Stable: spanRatio < 0.15 (<15% variation around centre headline area)
+ * - Moderate: 0.15 <= spanRatio <= 0.50 (15% to 50% variation)
+ * - High: spanRatio > 0.50 (>50% variation; headline number is indicative only)
+ */
+export const SENSITIVITY_STABLE_THRESHOLD = 0.15;
+export const SENSITIVITY_MODERATE_THRESHOLD = 0.50;
+
+export type SensitivityClass = 'stable' | 'moderate' | 'high';
+
+export interface SensitivityClassBadge {
+  cls: SensitivityClass;
+  label: string;
+  badgeLabel: string;
+  srText: string;
+  description: string;
+}
+
+/**
+ * Computes spanRatio = (maxAreaKm2 - minAreaKm2) / centre headline area.
+ */
+export function computeSensitivitySpanRatio(sensitivity: SensitivityData): number {
+  if (!sensitivity) return 0;
+  const centreStep =
+    sensitivity.steps?.find((s) => s.value === sensitivity.centre) ||
+    sensitivity.steps?.[Math.floor((sensitivity.steps?.length || 0) / 2)];
+  const centreArea = centreStep ? centreStep.areaKm2 : 0;
+  if (centreArea <= 0) return 0;
+  const span = sensitivity.maxAreaKm2 - sensitivity.minAreaKm2;
+  return span / centreArea;
+}
+
+/**
+ * Categorizes sensitivity into 'stable' | 'moderate' | 'high'.
+ */
+export function getSensitivityClass(sensitivity: SensitivityData): SensitivityClass {
+  const ratio = computeSensitivitySpanRatio(sensitivity);
+  if (ratio < SENSITIVITY_STABLE_THRESHOLD) return 'stable';
+  if (ratio <= SENSITIVITY_MODERATE_THRESHOLD) return 'moderate';
+  return 'high';
+}
+
+/**
+ * Returns accessible badge display metadata for a sensitivity class.
+ */
+export function getSensitivityClassBadgeInfo(cls: SensitivityClass): SensitivityClassBadge {
+  switch (cls) {
+    case 'stable':
+      return {
+        cls: 'stable',
+        label: 'Stable under threshold changes',
+        badgeLabel: 'Stable',
+        srText: 'Threshold sensitivity: Stable. Model variation across thresholds is under 15%.',
+        description: 'Result variation across thresholds is below 15%. The detected boundary is steep and sharp.',
+      };
+    case 'moderate':
+      return {
+        cls: 'moderate',
+        label: 'Moderately threshold-sensitive',
+        badgeLabel: 'Moderate Sensitivity',
+        srText: 'Threshold sensitivity: Moderate. Model variation across thresholds is between 15% and 50%.',
+        description: 'Result variation is between 15% and 50%. Boundary transitions involve typical radiometric gradients.',
+      };
+    case 'high':
+      return {
+        cls: 'high',
+        label: 'Highly threshold-sensitive: treat the headline number as indicative only',
+        badgeLabel: 'Highly Sensitive',
+        srText: 'Threshold sensitivity: High. Model variation across thresholds exceeds 50%. Treat the headline number as indicative only.',
+        description: 'Result variation exceeds 50%. The classification is sensitive to thresholding; treat the headline area as indicative only.',
+      };
+  }
+}
+
+/**
  * Returns parameter human-readable display label.
  */
 export function getSensitivityParameterLabel(parameterName: string): string {

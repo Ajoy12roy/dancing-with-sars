@@ -3,9 +3,19 @@
 // Core domain types for SAR scene data, change detection results, and AI insights.
 // ========================================================================
 
-import type { SensitivityData, SensitivityStep } from '@/lib/sensitivity';
+import type {
+  SensitivityData,
+  SensitivityStep,
+  SensitivityClass,
+  SensitivityClassBadge,
+} from '@/lib/sensitivity';
 
-export type { SensitivityData, SensitivityStep };
+export type {
+  SensitivityData,
+  SensitivityStep,
+  SensitivityClass,
+  SensitivityClassBadge,
+};
 
 /** Date range for radar median composites */
 export interface DateRange {
