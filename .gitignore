@@ -65,3 +65,8 @@ public/tiles/
 # Public sample GeoTIFFs for download
 !public/samples/*.tif
 !public/samples/*.tiff
+
+# Scratch and NISAR download cache
+.cache/
+data/samples/
+
