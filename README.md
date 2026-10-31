@@ -304,11 +304,15 @@ TerraPulse was built following WCAG 2.2 AA guidelines to ensure radar observatio
 
 ### Chiku Voice Guide
 
-TerraPulse features an interactive companion, **Chiku**, on the `/explore` dashboard:
-- **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), generating audio locally on your device with zero cloud API latency or telemetry.
-- **Off by Default**: Voice narration is strictly **OFF by default** to preserve accessibility etiquette and respect quiet environments. Users can toggle voice narration on or off via the volume button in the header; the preference is stored in `localStorage` under `terrapulse-chiku-voice`. Screen reader users are advised to keep voice off, as all events are already carried via the live announcer.
-- **Always Visible Text**: Spoken explanations are always mirrored in a clean text speech bubble for deaf and hard-of-hearing users. The text bubble is marked `aria-hidden="true"` so assistive technologies rely on the clean live announcer without duplicate vocalizations.
-- **Device Voices**: Uses system English voices (`en-US` / `en-GB`); available voice timbres vary naturally depending on the operating system and browser synthesis engine.
+TerraPulse features an interactive character guide, **Chiku**, on the `/explore` dashboard:
+- **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), generating audio locally on your device with zero cloud API latency, zero external network calls, and no model generation (scripts are pure deterministic functions).
+- **Off by Default & Gesture Activation**: Voice narration is strictly **OFF by default** to preserve accessibility etiquette and respect quiet environments. Modern browsers block speech synthesis until an explicit user gesture occurs; speech starts only after pressing **Voice on** or **Test voice**. For returning users with voice saved as enabled in `localStorage`, speech unlocks on the first click or keypress.
+- **Status Line & Test Voice Button**: The Chiku panel features an in-panel plain-text status line (`Voice off`, `Voice ready (<voice name>)`, `Speaking...`, `Blocked by browser: press Voice on`, `No voice found on this device`, `Voice error: <error>`), alongside a **Test voice** button to verify playback immediately.
+- **Voice Troubleshooting**:
+  - **Muted tab or application**: Verify that the browser tab or browser application is not muted in the operating system volume mixer (e.g. Windows Volume Mixer).
+  - **Missing speech voices**: Verify that an English voice is installed in system settings (e.g. Windows Settings > Time & language > Speech > Manage voices).
+  - **Online vs. Local voices**: Microsoft Edge and Chrome offer "Online (Natural)" voices that require an active network connection. Chiku automatically prioritizes local offline voices with automatic fallback retry on synthesis failure.
+- **Always-Visible Text Bubble**: Spoken explanations are always mirrored in a clean text speech bubble for deaf and hard-of-hearing users. The text bubble is marked `aria-hidden="true"` so assistive technologies rely on the clean live announcer without duplicate vocalizations. Screen reader users are advised to keep voice narration off.
 
 ---
 

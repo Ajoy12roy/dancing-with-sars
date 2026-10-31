@@ -680,23 +680,23 @@ export function HowItWorksClient() {
             </h2>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed mb-4">
-            On the Explore interface, our interactive assistant <strong>Chiku</strong> translates complex Synthetic Aperture Radar metrics into concise, natural-language audio and visual explanations:
+            On the Explore interface, our interactive guide <strong>Chiku</strong> translates complex Synthetic Aperture Radar metrics into concise, natural-language audio and visual explanations:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-text-secondary">
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                1. Client-Side Web Speech API
+                1. Client-Side Web Speech &amp; Gesture Activation
               </h3>
               <p className="leading-relaxed">
-                Narration runs entirely in-browser using standard Web Speech API synthesis (<span className="font-data text-teal">window.speechSynthesis</span>). No audio bytes are streamed over the internet, and no third-party cloud speech services are called.
+                Narration runs entirely in-browser via standard Web Speech API (<span className="font-data text-teal">window.speechSynthesis</span>). Voice is <strong>OFF by default</strong> and starts only after the user presses <strong>Voice on</strong> or <strong>Test voice</strong> because modern browsers block speech synthesis until an explicit user gesture occurs.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                2. Off by Default &amp; Screen Reader Friendly
+                2. Status Line &amp; Test Voice Verification
               </h3>
               <p className="leading-relaxed">
-                Voice narration is <strong>OFF by default</strong>. Users may turn voice on or off via the speaker toggle, which persists preference in local storage. Screen reader users are advised to keep voice off since all state updates are already announced by the live region announcer.
+                A plain-text status line displays real-time synthesis state (<span className="font-data text-teal">Voice off</span>, <span className="font-data text-teal">Voice ready (&lt;voice name&gt;)</span>, <span className="font-data text-teal">Speaking...</span>, <span className="font-data text-teal">Blocked by browser: press Voice on</span>, <span className="font-data text-teal">No voice found on this device</span>). The &quot;Test voice&quot; button speaks a short test sentence directly from its click gesture.
               </p>
             </div>
             <div className="space-y-2">
@@ -704,15 +704,15 @@ export function HowItWorksClient() {
                 3. Always-Visible Visual Text Bubble
               </h3>
               <p className="leading-relaxed">
-                All spoken text is concurrently displayed in a high-contrast text bubble for deaf or hard-of-hearing users. The bubble is designated <span className="font-data text-teal">aria-hidden=&quot;true&quot;</span> to avoid duplicate audio announcements for assistive technologies.
+                All spoken lines are concurrently displayed in an always-visible text bubble for deaf or hard-of-hearing users. The bubble is designated <span className="font-data text-teal">aria-hidden=&quot;true&quot;</span> to avoid duplicate audio announcements for screen readers, which rely on the dedicated live region announcer.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                4. Cautious &amp; Short Utterances
+                4. Voice Troubleshooting
               </h3>
               <p className="leading-relaxed">
-                All sentences are generated deterministically by pure functions (<span className="font-data text-teal">lib/chiku-script.ts</span>) and capped under 200 characters to prevent browser speech buffer truncation. For high-sensitivity cases, cautious phrasing is automatically enforced.
+                If no sound plays after enabling voice: verify the browser tab or app is not muted in the <strong>Windows Volume Mixer</strong>; check that an English voice is installed in <strong>Windows Settings &gt; Time &amp; language &gt; Speech</strong>; and note that browser &quot;Online (Natural)&quot; voices require an active connection (Chiku automatically falls back to local voices).
               </p>
             </div>
           </div>
