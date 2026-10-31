@@ -9,7 +9,7 @@ Filters and ranks candidate pairs according to:
 - Same data maturity (PROVISIONAL)
 - Same Track, Frame, Direction, and Mode/Polarization
 - Large intersection (overlap fraction) between AOI and granule footprint polygon
-- Seasonal contrast: pre-monsoon/early monsoon (June) vs peak monsoon (July/August) or post-monsoon (October)
+- Seasonal contrast: neutral date-based comparison
 - Total download size
 - Time-series candidacy (flagged when 4+ acquisitions exist)
 
@@ -18,51 +18,85 @@ Recommends ONE primary pair and ONE fallback pair per AOI.
 
 import datetime
 import json
+import re
 import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_FILE = REPO_ROOT / "docs" / "nisar-candidate-pairs.md"
 PRECOMPUTED_DIR = REPO_ROOT / "data" / "precomputed"
+CACHE_DIR = REPO_ROOT / ".cache" / "cmr"
 
 BANGLADESH_AOIS = [
     {
         "id": "sylhet",
         "name": "Sylhet Flash Floods",
-        "mode": "flood",
-        "s1_window": "Before: May 2022 / After: June 2022 (C-band baseline)"
+        "mode": "flood"
     },
     {
         "id": "tanguar",
         "name": "Tanguar Haor Wetland",
-        "mode": "surface-water",
-        "s1_window": "Before: Feb 2024 / After: June 2024 (C-band baseline)"
+        "mode": "surface-water"
     },
     {
         "id": "hakaluki-haor",
         "name": "Hakaluki Haor Wetland",
-        "mode": "surface-water",
-        "s1_window": "Before: Mar 2024 / After: June 2024 (C-band baseline)"
+        "mode": "surface-water"
     },
     {
         "id": "feni-2024",
         "name": "Feni River Floods 2024",
-        "mode": "flood",
-        "s1_window": "Before: Aug 01-15, 2024 / After: Aug 21-27, 2024 (C-band baseline)"
+        "mode": "flood"
     },
     {
         "id": "jamuna",
         "name": "Jamuna River Braiding & Erosion",
-        "mode": "river-erosion",
-        "s1_window": "Before: Jan 2020 / After: Jan 2024 (C-band baseline)"
+        "mode": "river-erosion"
     },
     {
         "id": "padma-naria",
         "name": "Padma River Naria Erosion",
-        "mode": "river-erosion",
-        "s1_window": "Before: Jan 2018 / After: Dec 2018 (C-band baseline)"
+        "mode": "river-erosion"
     }
 ]
+
+def load_c_band_window(aoi_id: str) -> str:
+    """Dynamically reads beforeRange and afterRange from lib/case-studies.ts and data/case-studies/seed.json."""
+    cs_file = REPO_ROOT / "lib" / "case-studies.ts"
+    seed_file = REPO_ROOT / "data" / "case-studies" / "seed.json"
+
+    if cs_file.exists():
+        content = cs_file.read_text(encoding="utf-8")
+        pattern = (
+            rf"(?:id|precomputedId):\s*['\"]{re.escape(aoi_id)}['\"]"
+            rf".*?beforeRange:\s*\{{\s*start:\s*['\"]([^'\"]+)['\"],\s*end:\s*['\"]([^'\"]+)['\"]\s*\}}"
+            rf".*?afterRange:\s*\{{\s*start:\s*['\"]([^'\"]+)['\"],\s*end:\s*['\"]([^'\"]+)['\"]\s*\}}"
+        )
+        m = re.search(pattern, content, re.DOTALL)
+        if m:
+            b_start, b_end, a_start, a_end = m.groups()
+            b_str = b_start if b_start == b_end else f"{b_start} to {b_end}"
+            a_str = a_start if a_start == a_end else f"{a_start} to {a_end}"
+            return f"Before: {b_str} / After: {a_str} (C-band baseline)"
+
+    if seed_file.exists():
+        with open(seed_file, "r", encoding="utf-8") as sf:
+            seed_data = json.load(sf)
+            cases = seed_data if isinstance(seed_data, list) else seed_data.get("caseStudies", [])
+            for c in cases:
+                if (c.get("id") == aoi_id or c.get("precomputedId") == aoi_id) and c.get("suggestedDates"):
+                    sd = c["suggestedDates"]
+                    b_range = sd.get("before")
+                    a_range = sd.get("after")
+                    if (
+                        isinstance(b_range, list) and len(b_range) >= 2 and
+                        isinstance(a_range, list) and len(a_range) >= 2
+                    ):
+                        b_str = b_range[0] if b_range[0] == b_range[1] else f"{b_range[0]} to {b_range[1]}"
+                        a_str = a_range[0] if a_range[0] == a_range[1] else f"{a_range[0]} to {a_range[1]}"
+                        return f"Before: {b_str} / After: {a_str} (C-band baseline)"
+
+    return "C-band baseline window not recorded"
 
 def load_aoi_bounds(aoi_id: str) -> dict:
     res_path = PRECOMPUTED_DIR / aoi_id / "result.json"
@@ -93,9 +127,8 @@ def compute_aoi_overlap_fraction(bounds: dict, poly_str: str) -> float:
     poly_str is 'lat1 lon1 lat2 lon2 ...'
     """
     coords = [float(c) for c in poly_str.split()]
-    poly = [(coords[i+1], coords[i]) for i in range(0, len(coords), 2)] # (lon, lat)
+    poly = [(coords[i+1], coords[i]) for i in range(0, len(coords), 2)]
     
-    # 10x10 sample points across the AOI bounding box
     west, east = bounds["west"], bounds["east"]
     south, north = bounds["south"], bounds["north"]
     
@@ -111,13 +144,27 @@ def compute_aoi_overlap_fraction(bounds: dict, poly_str: str) -> float:
                 inside_pts += 1
     return inside_pts / pts
 
-def fetch_granules_for_aoi(aoi_bounds: dict) -> list:
+def fetch_granules_for_aoi(aoi_id: str, aoi_bounds: dict) -> list:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = CACHE_DIR / f"{aoi_id}.json"
+    if cache_path.exists():
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
     bbox_str = f"{aoi_bounds['west']},{aoi_bounds['south']},{aoi_bounds['east']},{aoi_bounds['north']}"
     url = f"https://cmr.earthdata.nasa.gov/search/granules.json?short_name=NISAR_L2_GCOV_PROVISIONAL_V1&bounding_box={bbox_str}&page_size=200"
     req = urllib.request.Request(url, headers={"User-Agent": "TerraPulse/1.0"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         data = json.loads(resp.read().decode("utf-8"))
         entries = data.get("feed", {}).get("entry", [])
+        try:
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(entries, f)
+        except Exception:
+            pass
         return entries
 
 def analyze_all():
@@ -128,7 +175,7 @@ def analyze_all():
     lines.append("- **Maturity Isolation**: Strict PROVISIONAL-to-PROVISIONAL pairs. BETA data are never paired with PROVISIONAL data.")
     lines.append("- **Consistent Geometry**: Exact match on Track, Frame, Orbit Direction, and Bandwidth/Polarization mode.")
     lines.append("- **Spatial Overlap**: The footprint polygon of both granules must completely envelop or have high overlap with the AOI bounding box.")
-    lines.append("- **Seasonal Contrast**: Evaluates early monsoon (June) vs peak monsoon (July/August) or post-monsoon (September/October) surface dynamic contrast.")
+    lines.append("- **Seasonal Contrast**: Evaluates multi-temporal acquisition dates across repeated orbital cycles.")
     lines.append("- **Time-Series Candidacy**: Any geometry with $\\ge 4$ consistent repeat cycles is flagged as an active time-series candidate.")
     lines.append("- **C-Band Comparison**: Existing Sentinel-1 case studies in the repository represent the historical C-band baseline comparison windows.\n")
     lines.append("---\n")
@@ -136,10 +183,11 @@ def analyze_all():
     for aoi in BANGLADESH_AOIS:
         aoi_id = aoi["id"]
         aoi_name = aoi["name"]
+        s1_window = load_c_band_window(aoi_id)
         bounds = load_aoi_bounds(aoi_id)
         print(f"Analyzing {aoi_id}...")
         
-        raw_entries = fetch_granules_for_aoi(bounds)
+        raw_entries = fetch_granules_for_aoi(aoi_id, bounds)
         
         # Group entries by geometry combo: (track, frame, direction, mode, pol)
         combos = {}
@@ -158,33 +206,30 @@ def analyze_all():
                 t_start = e.get("time_start", "")
                 date_str = t_start[:10]
                 polys = e.get("polygons", [[]])
-                poly_str = polys[0][0] if polys and polys[0] else ""
+                poly_str = polys[0][0] if (polys and polys[0]) else ""
+                
                 overlap = compute_aoi_overlap_fraction(bounds, poly_str) if poly_str else -1.0
                 
-                # h5 link
                 h5_url = ""
-                for l in e.get("links", []):
-                    if l.get("href", "").endswith(".h5") and "data#" in l.get("rel", ""):
-                        h5_url = l.get("href")
+                for link in e.get("links", []):
+                    href = link.get("href", "")
+                    if href.endswith(".h5") and not href.endswith(".xml") and not href.endswith(".iso"):
+                        h5_url = href
                         break
-                        
-                entry_info = {
+                
+                item = {
                     "title": title,
                     "date": date_str,
-                    "time_start": t_start,
-                    "time_end": e.get("time_end", ""),
                     "size_mb": size_mb,
                     "overlap": overlap,
                     "h5_url": h5_url,
-                    "poly_str": poly_str
+                    "entry": e
                 }
-                if combo_key not in combos:
-                    combos[combo_key] = []
-                combos[combo_key].append(entry_info)
+                combos.setdefault(combo_key, []).append(item)
                 
         lines.append(f"## {aoi_name} (`{aoi_id}`)\n")
         lines.append(f"- **Analysis Mode**: `{aoi['mode']}`")
-        lines.append(f"- **C-Band Sentinel-1 Baseline Window**: {aoi['s1_window']}")
+        lines.append(f"- **C-Band Sentinel-1 Baseline Window**: {s1_window}")
         lines.append(f"- **AOI Bounds**: `[west: {bounds['west']:.4f}, south: {bounds['south']:.4f}, east: {bounds['east']:.4f}, north: {bounds['north']:.4f}]`")
         lines.append(f"- **Total PROVISIONAL Granules Found**: {len(raw_entries)}\n")
         
@@ -202,7 +247,6 @@ def analyze_all():
                 time_series_flags.append(f"- **Time-Series Flagged**: `{combo_label}` has **{count} repeat acquisitions** spaced at 12-day orbital intervals ({items[0]['date']} to {items[-1]['date']}). Suitable for continuous deformation or multi-temporal water inundation monitoring.")
                 
             if count >= 2:
-                # Build pair candidates: early vs mid/late
                 earliest = items[0]
                 latest = items[-1]
                 mid = items[len(items) // 2]
@@ -210,10 +254,10 @@ def analyze_all():
                 d1 = datetime.date.fromisoformat(earliest["date"])
                 d2 = datetime.date.fromisoformat(latest["date"])
                 days_diff = (d2 - d1).days
-                # Pair 1: Full seasonal span (earliest vs latest)
+                # Pair 1: earliest vs latest
                 pair1 = {
                     "combo_label": combo_label,
-                    "type": "Full Seasonal Span (Early Monsoon to Post-Monsoon)",
+                    "heading": f"Change between {earliest['date']} and {latest['date']}",
                     "before": earliest,
                     "after": latest,
                     "total_size_mb": earliest["size_mb"] + latest["size_mb"],
@@ -222,13 +266,13 @@ def analyze_all():
                 }
                 candidate_pairs_list.append(pair1)
                 
-                # Pair 2: Peak Monsoon transition (earliest vs mid)
+                # Pair 2: earliest vs mid
                 if len(items) >= 4:
                     d_mid = datetime.date.fromisoformat(mid["date"])
                     days_diff_mid = (d_mid - d1).days
                     pair2 = {
                         "combo_label": combo_label,
-                        "type": "Peak Monsoon Inundation (Early Monsoon to Peak August)",
+                        "heading": f"Change between {earliest['date']} and {mid['date']}",
                         "before": earliest,
                         "after": mid,
                         "total_size_mb": earliest["size_mb"] + mid["size_mb"],
@@ -249,14 +293,14 @@ def analyze_all():
             lines.append("---\n")
             continue
             
-        # Sort candidates by overlap >= 0.95, then seasonal utility, then size
+        # Sort candidates by overlap >= 0.95, then size
         candidate_pairs_list.sort(key=lambda x: (-x["min_overlap"], x["total_size_mb"]))
         
         primary = candidate_pairs_list[0]
         fallback = candidate_pairs_list[1] if len(candidate_pairs_list) > 1 else None
         
         lines.append("### Recommended Observation Pairs\n")
-        lines.append(f"#### Primary Recommendation: {primary['type']}\n")
+        lines.append(f"#### Primary Recommendation: {primary['heading']}\n")
         lines.append(f"- **Acquisition Geometry**: `{primary['combo_label']}`")
         overlap_pct = f"{primary['min_overlap']*100:.1f}%" if primary['min_overlap'] >= 0 else "overlap unknown"
         lines.append(f"- **AOI Spatial Overlap Fraction**: `{overlap_pct}` (fully contains AOI bounding box)")
@@ -271,7 +315,7 @@ def analyze_all():
         lines.append(f"  - **Data Link**: [{primary['after']['title']}.h5]({primary['after']['h5_url']})\n")
         
         if fallback:
-            lines.append(f"#### Fallback Recommendation: {fallback['type']}\n")
+            lines.append(f"#### Fallback Recommendation: {fallback['heading']}\n")
             lines.append(f"- **Acquisition Geometry**: `{fallback['combo_label']}`")
             fb_overlap_pct = f"{fallback['min_overlap']*100:.1f}%" if fallback['min_overlap'] >= 0 else "overlap unknown"
             lines.append(f"- **AOI Spatial Overlap Fraction**: `{fb_overlap_pct}`")
