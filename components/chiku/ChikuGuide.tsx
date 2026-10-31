@@ -218,10 +218,23 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const hasSpeechSupport = isMounted && typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [voiceStatus, setVoiceStatus] = useState<string>('Voice off');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voiceStatusOverride, setVoiceStatusOverride] = useState<string | null>(null);
   const [currentText, setCurrentText] = useState<string>(
     'Hi! I am Chiku, your guide to seeing Earth change through radar. Select any case study to begin exploration.'
   );
+
+  // Derived visible voice status
+  const voiceStatus = !isVoiceEnabled
+    ? 'Voice off'
+    : voiceStatusOverride
+    ? voiceStatusOverride
+    : isSpeaking
+    ? 'Speaking...'
+    : (() => {
+        const best = selectBestVoice(availableVoices);
+        return best ? `Voice ready (${best.name})` : 'Voice ready (Default)';
+      })();
 
   // Sprite animation state
   const [currentSprite, setCurrentSprite] = useState<ChikuSprite>('idle');
@@ -231,7 +244,6 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     getServerReducedMotionSnapshot
   );
 
-  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const currentPriorityRef = useRef<number>(0);
   const pendingSpeakTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -242,6 +254,18 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const talkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contextRef = useRef(contextData);
+
+  const speakLineRef = useRef<
+    | ((
+        text: string,
+        eventName: string,
+        priority: number,
+        isSynchronousGesture?: boolean,
+        retryCount?: number,
+        voiceOverride?: SpeechSynthesisVoice | null
+      ) => void)
+    | null
+  >(null);
 
   useEffect(() => {
     contextRef.current = contextData;
@@ -256,11 +280,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     const loadVoices = () => {
       try {
         const list = window.speechSynthesis.getVoices();
-        voicesRef.current = list;
-        const bestVoice = selectBestVoice(list);
-        if (isVoiceEnabled && !isSpeaking) {
-          setVoiceStatus(bestVoice ? `Voice ready (${bestVoice.name})` : 'Voice ready (Default)');
-        }
+        setAvailableVoices(list);
       } catch {
         // Speech synthesis access restricted
       }
@@ -275,18 +295,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         window.speechSynthesis.onvoiceschanged = null;
       }
     };
-  }, [isMounted, isVoiceEnabled, isSpeaking]);
-
-  // Synchronize initial voice status when mounted or toggled
-  useEffect(() => {
-    if (!isMounted) return;
-    if (!isVoiceEnabled) {
-      setVoiceStatus('Voice off');
-    } else if (!isSpeaking) {
-      const best = selectBestVoice(voicesRef.current);
-      setVoiceStatus(best ? `Voice ready (${best.name})` : 'Voice ready (Default)');
-    }
-  }, [isMounted, isVoiceEnabled, isSpeaking]);
+  }, [isMounted]);
 
   // Cancel speech on route change or unmount
   useEffect(() => {
@@ -361,7 +370,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         try {
           synth.resume();
           const selectedVoice =
-            voiceOverride !== undefined ? voiceOverride : selectBestVoice(voicesRef.current);
+            voiceOverride !== undefined ? voiceOverride : selectBestVoice(availableVoices);
 
           const utterance = new SpeechSynthesisUtterance(primaryText);
           utterance.lang = 'en-US';
@@ -383,10 +392,10 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
                 synth.cancel();
                 synth.resume();
                 if (retryCount === 0) {
-                  const fallbackVoice = selectBestVoice(voicesRef.current, selectedVoice);
-                  speakLine(primaryText, eventName, priority, false, 1, fallbackVoice);
+                  const fallbackVoice = selectBestVoice(availableVoices, selectedVoice);
+                  speakLineRef.current?.(primaryText, eventName, priority, false, 1, fallbackVoice);
                 } else {
-                  setVoiceStatus('No voice found on this device');
+                  setVoiceStatusOverride('No voice found on this device');
                   setIsSpeaking(false);
                   setCurrentSprite('idle');
                   currentPriorityRef.current = 0;
@@ -404,7 +413,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
             }
             logUtterance('onstart', { text: primaryText, voice: selectedVoice?.name });
             setIsSpeaking(true);
-            setVoiceStatus('Speaking...');
+            setVoiceStatusOverride(null);
           };
 
           utterance.onend = () => {
@@ -416,15 +425,14 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
             activeUtteranceRef.current = null;
 
             if (followUpSentence) {
-              speakLine(followUpSentence, 'analysis-ready-sensitivity', priority, false, 0, selectedVoice);
+              speakLineRef.current?.(followUpSentence, 'analysis-ready-sensitivity', priority, false, 0, selectedVoice);
               return;
             }
 
             setIsSpeaking(false);
             setCurrentSprite('idle');
             currentPriorityRef.current = 0;
-            const currentVoice = selectedVoice || selectBestVoice(voicesRef.current);
-            setVoiceStatus(currentVoice ? `Voice ready (${currentVoice.name})` : 'Voice ready (Default)');
+            setVoiceStatusOverride(null);
           };
 
           utterance.onerror = (e) => {
@@ -441,7 +449,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
             }
 
             if (e.error === 'not-allowed') {
-              setVoiceStatus('Blocked by browser: press Voice on');
+              setVoiceStatusOverride('Blocked by browser: press Voice on');
               setIsSpeaking(false);
               setCurrentSprite('idle');
               currentPriorityRef.current = 0;
@@ -454,12 +462,12 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
             ) {
               synth.cancel();
               synth.resume();
-              const fallbackVoice = selectBestVoice(voicesRef.current, selectedVoice);
-              speakLine(text, eventName, priority, false, 1, fallbackVoice);
+              const fallbackVoice = selectBestVoice(availableVoices, selectedVoice);
+              speakLineRef.current?.(text, eventName, priority, false, 1, fallbackVoice);
               return;
             }
 
-            setVoiceStatus(`Voice error: ${e.error}`);
+            setVoiceStatusOverride(`Voice error: ${e.error}`);
             setIsSpeaking(false);
             setCurrentSprite('idle');
             currentPriorityRef.current = 0;
@@ -470,7 +478,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
           const afterState = { speaking: synth.speaking, pending: synth.pending, paused: synth.paused };
           logChikuEvent(eventName, priority, true, true, selectedVoice, beforeState, afterState);
         } catch {
-          setVoiceStatus('Voice unavailable on this device');
+          setVoiceStatusOverride('No voice found on this device');
           setIsSpeaking(false);
           setCurrentSprite('idle');
           currentPriorityRef.current = 0;
@@ -495,8 +503,12 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         }
       }
     },
-    [isVoiceEnabled]
+    [isVoiceEnabled, availableVoices]
   );
+
+  useEffect(() => {
+    speakLineRef.current = speakLine;
+  }, [speakLine]);
 
   // Welcome line triggered on first gesture for returning users who already had voice on
   useEffect(() => {
@@ -542,7 +554,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       }
       setIsSpeaking(false);
       setCurrentSprite('idle');
-      setVoiceStatus('Voice off');
+      setVoiceStatusOverride(null);
       currentPriorityRef.current = 0;
     } else {
       // Synchronously call resume() and speak Welcome on gesture

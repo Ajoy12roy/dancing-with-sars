@@ -290,6 +290,7 @@ export function AIInsightPanel({
     activeDates,
     activeWarnings,
     announce,
+    emitEvent,
   ]);
 
   return (
