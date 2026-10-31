@@ -34,7 +34,7 @@ export function FileDropZone({
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { announce } = useAccessibility();
+  const { announce, emitEvent } = useAccessibility();
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -55,15 +55,33 @@ export function FileDropZone({
       const errMsg = 'Only .tif or .tiff files are supported.';
       setValidationError(errMsg);
       announce(`Upload rejected: ${errMsg}`, 'assertive');
+      emitEvent({
+        type: 'upload-rejected',
+        message: `I could not use that file. ${errMsg}`,
+        data: { error: errMsg, fileName: selectedFile.name },
+        priority: 'assertive',
+      });
       return;
     }
     if (selectedFile.size > 60 * 1024 * 1024) {
       const errMsg = `File exceeds the 60 MB maximum limit (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB).`;
       setValidationError(errMsg);
       announce(`Upload rejected: ${errMsg}`, 'assertive');
+      emitEvent({
+        type: 'upload-rejected',
+        message: `I could not use that file. ${errMsg}`,
+        data: { error: errMsg, fileName: selectedFile.name },
+        priority: 'assertive',
+      });
       return;
     }
     announce(`Custom SAR GeoTIFF file accepted for ${label}: ${selectedFile.name}`, 'polite');
+    emitEvent({
+      type: 'upload-accepted',
+      message: 'Your satellite images have been uploaded successfully.',
+      data: { fileName: selectedFile.name, label },
+      priority: 'polite',
+    });
     onFileSelect(selectedFile);
   };
 

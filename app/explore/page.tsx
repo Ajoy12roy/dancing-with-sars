@@ -16,7 +16,7 @@ import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
 import { ChikuGuide } from '@/components/chiku/ChikuGuide';
-import { useAnalysisMode, useAccessibility } from '@/context';
+import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
   getReadyCaseStudies,
@@ -115,13 +115,32 @@ function ExploreContent() {
     resetUpload();
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (beforeFile && afterFile) {
-      analyzeUpload(beforeFile, afterFile, {
+      emitEvent({
+        type: 'analysis-loading',
+        message: 'Analyzing the satellite imagery. Please wait.',
+      });
+      const ok = await analyzeUpload(beforeFile, afterFile, {
         mode,
         dateA: uploadDateA || undefined,
         dateB: uploadDateB || undefined,
       });
+      if (ok) {
+        emitEvent({
+          type: 'analysis-ready',
+          message: 'Analysis complete.',
+          data: {
+            affectedAreaKm2: uploadData?.affectedAreaKm2,
+            percentChanged: uploadData?.percentChanged,
+          },
+        });
+      } else {
+        emitEvent({
+          type: 'analysis-failed',
+          message: 'The analysis could not finish. Please try again.',
+        });
+      }
     }
   };
 
@@ -148,14 +167,38 @@ function ExploreContent() {
       setUploadDateA('2022-05-01');
       setUploadDateB('2022-06-21');
 
-      await analyzeSampleUpload({
+      emitEvent({
+        type: 'analysis-loading',
+        message: 'Analyzing the satellite imagery. Please wait.',
+      });
+
+      const ok = await analyzeSampleUpload({
         name: 'sylhet',
         mode: mode || 'flood',
         dateA: '2022-05-01',
         dateB: '2022-06-21',
       });
+      if (ok) {
+        emitEvent({
+          type: 'analysis-ready',
+          message: 'Analysis complete.',
+          data: {
+            affectedAreaKm2: 37.19,
+            percentChanged: 17.05,
+          },
+        });
+      } else {
+        emitEvent({
+          type: 'analysis-failed',
+          message: 'The analysis could not finish. Please try again.',
+        });
+      }
     } catch (err: unknown) {
       console.error('Failed to run sample analysis:', err);
+      emitEvent({
+        type: 'analysis-failed',
+        message: 'The analysis could not finish. Please try again.',
+      });
     } finally {
       setSampleLoading(false);
     }
@@ -167,7 +210,7 @@ function ExploreContent() {
       setMode(newMode);
       emitEvent({
         type: 'mode-changed',
-        message: `Switched to ${newMode} mode`,
+        message: `${MODE_INFO_MAP[newMode]?.label || newMode} mode is ready.`,
         data: { mode: newMode },
       });
       const validCases = getReadyCaseStudies(newMode);
@@ -193,8 +236,14 @@ function ExploreContent() {
     if (found) {
       emitEvent({
         type: 'case-selected',
-        message: `Loaded ${found.title || aoiId} case study, ${found.module || mode} mode`,
-        data: { caseId: aoiId, title: found.title, mode: found.module || mode },
+        message: `Loaded ${found.title}`,
+        data: {
+          caseId: aoiId,
+          title: found.title,
+          mode: found.module || mode,
+          beforeRange: found.beforeRange,
+          afterRange: found.afterRange,
+        },
       });
     }
     if (found?.module) {
@@ -715,6 +764,9 @@ function ExploreContent() {
           affectedAreaKm2: displayData?.affectedAreaKm2,
           percentChanged: displayData?.percentChanged,
           sensitivity: displayData?.sensitivity || currentCaseStudy?.sensitivity,
+          beforeRange: currentCaseStudy?.beforeRange,
+          afterRange: currentCaseStudy?.afterRange,
+          hasValidation: Boolean(currentCaseStudy?.validation),
         }}
       />
     </div>

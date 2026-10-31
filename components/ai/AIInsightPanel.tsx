@@ -110,7 +110,7 @@ export function AIInsightPanel({
   const activeWarnings = data?.warnings || propWarnings;
   const activeTotalArea = data?.totalAreaKm2 || propTotalArea;
 
-  const { announce } = useAccessibility();
+  const { announce, emitEvent } = useAccessibility();
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [usedFallback, setUsedFallback] = useState<boolean>(false);
@@ -270,6 +270,11 @@ export function AIInsightPanel({
         if (currentKeyRef.current === cacheKey) {
           setLoading(false);
           announce('AI interpretation updated', 'polite');
+          emitEvent({
+            type: 'ai-insight-loaded',
+            message: 'The AI interpretation is ready below.',
+            priority: 'polite',
+          });
         }
       });
   }, [

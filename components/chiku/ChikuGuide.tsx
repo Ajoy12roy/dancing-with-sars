@@ -344,13 +344,26 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
       currentPriorityRef.current = priority;
 
+      // For analysis-ready with sensitivity, split into headline utterance + second sensitivity utterance
+      let primaryText = text;
+      let followUpSentence: string | null = null;
+      if (eventName === 'analysis-ready') {
+        const match = text.match(
+          /^(Analysis complete\..*?percent of the area\.|Analysis complete\..*?across the area\.)\s+(.+)$/
+        );
+        if (match && match[1] && match[2]) {
+          primaryText = match[1];
+          followUpSentence = match[2];
+        }
+      }
+
       const performSpeak = () => {
         try {
           synth.resume();
           const selectedVoice =
             voiceOverride !== undefined ? voiceOverride : selectBestVoice(voicesRef.current);
 
-          const utterance = new SpeechSynthesisUtterance(text);
+          const utterance = new SpeechSynthesisUtterance(primaryText);
           utterance.lang = 'en-US';
           if (selectedVoice) {
             utterance.voice = selectedVoice;
@@ -371,7 +384,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
                 synth.resume();
                 if (retryCount === 0) {
                   const fallbackVoice = selectBestVoice(voicesRef.current, selectedVoice);
-                  speakLine(text, eventName, priority, false, 1, fallbackVoice);
+                  speakLine(primaryText, eventName, priority, false, 1, fallbackVoice);
                 } else {
                   setVoiceStatus('No voice found on this device');
                   setIsSpeaking(false);
@@ -389,7 +402,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               clearTimeout(watchdogTimerRef.current);
               watchdogTimerRef.current = null;
             }
-            logUtterance('onstart', { text, voice: selectedVoice?.name });
+            logUtterance('onstart', { text: primaryText, voice: selectedVoice?.name });
             setIsSpeaking(true);
             setVoiceStatus('Speaking...');
           };
@@ -399,8 +412,14 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               clearTimeout(watchdogTimerRef.current);
               watchdogTimerRef.current = null;
             }
-            logUtterance('onend', { textLength: text.length });
+            logUtterance('onend', { textLength: primaryText.length });
             activeUtteranceRef.current = null;
+
+            if (followUpSentence) {
+              speakLine(followUpSentence, 'analysis-ready-sensitivity', priority, false, 0, selectedVoice);
+              return;
+            }
+
             setIsSpeaking(false);
             setCurrentSprite('idle');
             currentPriorityRef.current = 0;

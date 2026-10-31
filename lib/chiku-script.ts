@@ -2,13 +2,64 @@ import type { AccessibilityEvent } from '@/context';
 import type { SensitivityData } from '@/lib/sensitivity';
 import { getSensitivityClass } from '@/lib/sensitivity';
 
+export interface DateRangeLike {
+  start?: string;
+  end?: string;
+}
+
 export interface ChikuContextData {
   caseTitle?: string;
+  caseId?: string;
   mode?: string;
   affectedAreaKm2?: number;
   percentChanged?: number;
   sensitivity?: SensitivityData;
   hasValidation?: boolean;
+  beforeRange?: DateRangeLike | string;
+  afterRange?: DateRangeLike | string;
+}
+
+export const MODE_LABELS: Record<string, string> = {
+  flood: 'Flood',
+  'river-erosion': 'River erosion',
+  deforestation: 'Deforestation',
+  'surface-water': 'Surface water',
+};
+
+function formatRangeString(range: DateRangeLike | string | undefined | null): string | null {
+  if (!range) return null;
+  if (typeof range === 'string') {
+    const trimmed = range.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof range === 'object' && range !== null) {
+    const { start, end } = range;
+    if (start && end) {
+      return start === end ? start : `${start} to ${end}`;
+    }
+    if (start) return start;
+    if (end) return end;
+  }
+  return null;
+}
+
+function cleanUploadError(errorText?: string): string {
+  if (!errorText) return 'Please check the file format and try again.';
+  // Strip file paths (C:\..., /home/...) and stack traces (at ...)
+  let cleaned = errorText
+    .replace(/[A-Za-z]:\\[^\s]+/g, '')
+    .replace(/\/[^\s]+\/[^\s]+/g, '')
+    .replace(/at\s+[\w\d_.]+\s+\(.*?\)/g, '')
+    .replace(/Error:\s*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) cleaned = 'Please check the file format and try again.';
+  const prefix = 'I could not use that file. ';
+  const maxLen = 195 - prefix.length;
+  if (cleaned.length > maxLen) {
+    cleaned = cleaned.slice(0, maxLen - 3) + '...';
+  }
+  return cleaned;
 }
 
 /**
@@ -21,62 +72,84 @@ export function buildChikuScript(
   context?: ChikuContextData
 ): string {
   switch (event.type) {
+    case 'mode-changed': {
+      const modeKey = (event.data?.mode as string) || context?.mode || 'flood';
+      const label = MODE_LABELS[modeKey] || modeKey;
+      return `${label} mode is ready.`.slice(0, 195);
+    }
+
     case 'case-selected': {
       const title = context?.caseTitle || (event.data?.title as string) || 'Case study';
-      const mode = context?.mode || (event.data?.mode as string) || 'flood';
-      return `Loaded ${title} in ${mode} mode. Comparing before and after SAR radar scenes.`.slice(0, 195);
+      const before = formatRangeString(context?.beforeRange || (event.data?.beforeRange as DateRangeLike | string));
+      const after = formatRangeString(context?.afterRange || (event.data?.afterRange as DateRangeLike | string));
+
+      if (before && after) {
+        return `Loaded ${title}. Comparing ${before} with ${after}.`.slice(0, 195);
+      }
+      return `Loaded ${title}.`.slice(0, 195);
     }
 
-    case 'mode-changed': {
-      const mode = context?.mode || (event.data?.mode as string) || 'flood';
-      return `Switched to ${mode} mode.`.slice(0, 195);
+    case 'upload-accepted': {
+      return 'Your satellite images have been uploaded successfully.';
     }
 
-    case 'analysis-loading': {
-      return `Processing radar change detection on satellite imagery...`.slice(0, 195);
+    case 'upload-rejected': {
+      const rawError =
+        (event.data?.error as string) ||
+        (event.message ? event.message.replace(/^Upload rejected:\s*/i, '') : '');
+      const reason = cleanUploadError(rawError);
+      return `I could not use that file. ${reason}`.slice(0, 195);
+    }
+
+    case 'analysis-loading':
+    case 'general': {
+      if (event.type === 'analysis-loading' || event.message?.toLowerCase().includes('analyzing')) {
+        return 'Analyzing the satellite imagery. Please wait.';
+      }
+      return event.message ? event.message.slice(0, 195) : 'Terra Pulse radar guide ready.';
     }
 
     case 'analysis-ready': {
       const area = context?.affectedAreaKm2 ?? (event.data?.affectedAreaKm2 as number | undefined);
-      const sens = context?.sensitivity;
-      const areaStr = typeof area === 'number' ? `${area.toFixed(1)} km²` : 'area';
+      const pct = context?.percentChanged ?? (event.data?.percentChanged as number | undefined);
+      const sens = context?.sensitivity || (event.data?.sensitivity as SensitivityData | undefined);
+
+      let sentence1 = 'Analysis complete.';
+      if (typeof area === 'number' && typeof pct === 'number') {
+        sentence1 = `Analysis complete. About ${area.toFixed(1)} square kilometres changed, ${pct.toFixed(1)} percent of the area.`;
+      } else if (typeof area === 'number') {
+        sentence1 = `Analysis complete. About ${area.toFixed(1)} square kilometres changed across the area.`;
+      }
 
       if (sens) {
         const cls = getSensitivityClass(sens);
         const minStr = sens.minAreaKm2.toFixed(1);
         const maxStr = sens.maxAreaKm2.toFixed(1);
 
+        let sentence2 = '';
         if (cls === 'high') {
-          return `${areaStr} affected. High sensitivity: treat this number as indicative only, spanning ${minStr} to ${maxStr} km².`.slice(0, 195);
+          sentence2 = `High sensitivity: treat this number as indicative only, spanning ${minStr} to ${maxStr} square kilometres.`;
         } else if (cls === 'moderate') {
-          return `${areaStr} affected. Moderate sensitivity, spanning ${minStr} to ${maxStr} km² across threshold offsets.`.slice(0, 195);
+          sentence2 = `Moderate sensitivity, spanning ${minStr} to ${maxStr} square kilometres across threshold offsets.`;
         } else {
-          return `${areaStr} affected. Stable classification, spanning ${minStr} to ${maxStr} km² under threshold variation.`.slice(0, 195);
+          sentence2 = `Stable classification, spanning ${minStr} to ${maxStr} square kilometres under threshold variation.`;
         }
+        return `${sentence1} ${sentence2}`.slice(0, 195);
       }
 
-      return `Analysis complete: ${areaStr} detected across the observation area.`.slice(0, 195);
+      return sentence1.slice(0, 195);
     }
 
     case 'analysis-failed': {
-      const err = (event.data?.error as string) || 'unknown error';
-      return `Analysis could not be completed: ${err}.`.slice(0, 195);
-    }
-
-    case 'upload-accepted': {
-      return `GeoTIFF files accepted and ready for SAR change analysis.`.slice(0, 195);
-    }
-
-    case 'upload-rejected': {
-      return `File rejected: please upload valid GeoTIFF files under 60 megabytes.`.slice(0, 195);
+      return 'The analysis could not finish. Please try again.';
     }
 
     case 'ai-insight-loaded': {
-      return `AI scientific interpretation updated with backscatter notes.`.slice(0, 195);
+      return 'The AI interpretation is ready below.';
     }
 
     default: {
-      return event.message ? event.message.slice(0, 195) : 'TerraPulse SAR radar assistant ready.';
+      return event.message ? event.message.slice(0, 195) : 'Terra Pulse radar guide ready.';
     }
   }
 }
