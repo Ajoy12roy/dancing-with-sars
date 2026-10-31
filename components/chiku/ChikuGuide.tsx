@@ -31,6 +31,16 @@ const SPRITE_PATHS: Record<ChikuSprite, string> = {
   happy: '/chiku/chiku-happy.png',
 };
 
+const ALL_SPRITES: ChikuSprite[] = [
+  'idle',
+  'blink',
+  'look-left',
+  'look-right',
+  'talk-1',
+  'talk-2',
+  'happy',
+];
+
 // Safe client-mount detection satisfying React 19 hydration rules without setState in effect
 const emptySubscribe = () => () => {};
 function useIsClientMounted(): boolean {
@@ -367,16 +377,27 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
       {/* Main body: Character avatar + Text bubble */}
       <div className="flex items-start gap-2.5">
-        <div className="relative w-12 h-12 shrink-0 border border-hairline rounded-[2px] bg-surface-2 overflow-hidden flex items-center justify-center">
-          <Image
-            src={SPRITE_PATHS[currentSprite] || SPRITE_PATHS.idle}
-            alt="Chiku the radar assistant"
-            width={48}
-            height={48}
-            className="object-contain"
-            priority
-            unoptimized
-          />
+        <div className="relative w-12 h-12 shrink-0 bg-transparent overflow-hidden">
+          {ALL_SPRITES.map((sprite) => {
+            const isVisible = prefersReducedMotion
+              ? sprite === 'idle'
+              : (sprite === currentSprite || (!ALL_SPRITES.includes(currentSprite) && sprite === 'idle'));
+            return (
+              <Image
+                key={sprite}
+                src={SPRITE_PATHS[sprite]}
+                alt={isVisible ? 'Chiku, the Terra Pulse guide' : ''}
+                aria-hidden={!isVisible}
+                width={48}
+                height={48}
+                className={`absolute inset-0 w-12 h-12 object-contain bg-transparent transition-none pointer-events-none ${
+                  isVisible ? 'opacity-100 visible' : 'opacity-0 invisible'
+                }`}
+                priority
+                unoptimized
+              />
+            );
+          })}
         </div>
 
         {/* Text bubble: Marked aria-hidden so screen readers rely on Step A live announcer instead of hearing double announcements */}
