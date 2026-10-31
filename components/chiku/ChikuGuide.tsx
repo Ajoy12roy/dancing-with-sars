@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Volume2, VolumeX, Minimize2, Maximize2, Sparkles } from 'lucide-react';
@@ -31,35 +31,67 @@ const SPRITE_PATHS: Record<ChikuSprite, string> = {
   happy: '/chiku/chiku-happy.png',
 };
 
+// Safe client-mount detection satisfying React 19 hydration rules without setState in effect
+const emptySubscribe = () => () => {};
+function useIsClientMounted(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
+function subscribeToReducedMotion(callback: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  mq.addEventListener('change', callback);
+  return () => mq.removeEventListener('change', callback);
+}
+
+function getReducedMotionSnapshot(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function getServerReducedMotionSnapshot(): boolean {
+  return false;
+}
+
 export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const pathname = usePathname();
   const { subscribe } = useAccessibility();
+  const isMounted = useIsClientMounted();
 
-  // Voice toggle state (OFF BY DEFAULT)
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return localStorage.getItem('terrapulse-chiku-voice') === 'on';
-    } catch {
-      return false;
-    }
-  });
+  // User-explicit overrides for voice and minimized state
+  const [userVoiceEnabled, setUserVoiceEnabled] = useState<boolean | null>(null);
+  const [userMinimized, setUserMinimized] = useState<boolean | null>(null);
 
-  // Minimized state
-  const [isMinimized, setIsMinimized] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return localStorage.getItem('terrapulse-chiku-minimized') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // Derived state: strictly false during SSR and initial hydration; reads storage post-mount
+  const isVoiceEnabled = isMounted
+    ? userVoiceEnabled !== null
+      ? userVoiceEnabled
+      : (() => {
+          try {
+            return localStorage.getItem('terrapulse-chiku-voice') === 'on';
+          } catch {
+            return false;
+          }
+        })()
+    : false;
 
-  // Speech synthesis availability initialized lazily
-  const [hasSpeechSupport] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return 'speechSynthesis' in window;
-  });
+  const isMinimized = isMounted
+    ? userMinimized !== null
+      ? userMinimized
+      : (() => {
+          try {
+            return localStorage.getItem('terrapulse-chiku-minimized') === 'true';
+          } catch {
+            return false;
+          }
+        })()
+    : false;
+
+  const hasSpeechSupport = isMounted && typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [currentText, setCurrentText] = useState<string>(
@@ -68,10 +100,11 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
   // Sprite animation state
   const [currentSprite, setCurrentSprite] = useState<ChikuSprite>('idle');
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  });
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    getServerReducedMotionSnapshot
+  );
 
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const talkIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,18 +115,9 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     contextRef.current = contextData;
   }, [contextData]);
 
-  // Subscribe to prefers-reduced-motion changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
   // Initialize SpeechSynthesis voices
   useEffect(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (!isMounted || typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return;
     }
 
@@ -109,7 +133,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         window.speechSynthesis.cancel();
       }
     };
-  }, []);
+  }, [isMounted]);
 
   // Cancel speech on route change or unmount
   useEffect(() => {
@@ -121,7 +145,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   // Persist voice toggle
   const toggleVoice = () => {
     const next = !isVoiceEnabled;
-    setIsVoiceEnabled(next);
+    setUserVoiceEnabled(next);
     try {
       localStorage.setItem('terrapulse-chiku-voice', next ? 'on' : 'off');
     } catch {
@@ -137,7 +161,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   // Persist minimized state
   const toggleMinimized = () => {
     const next = !isMinimized;
-    setIsMinimized(next);
+    setUserMinimized(next);
     try {
       localStorage.setItem('terrapulse-chiku-minimized', String(next));
     } catch {
