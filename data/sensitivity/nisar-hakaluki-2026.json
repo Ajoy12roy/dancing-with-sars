@@ -1,0 +1,40 @@
+{
+  "caseId": "nisar-hakaluki-2026",
+  "mode": "surface-water",
+  "parameterName": "water_threshold",
+  "unit": "dB",
+  "centre": -10.62,
+  "steps": [
+    {
+      "value": -12.62,
+      "areaKm2": 1.49,
+      "percentChanged": 1.43
+    },
+    {
+      "value": -11.62,
+      "areaKm2": 1.27,
+      "percentChanged": 1.21
+    },
+    {
+      "value": -10.62,
+      "areaKm2": 1.12,
+      "percentChanged": 1.07
+    },
+    {
+      "value": -9.62,
+      "areaKm2": 1.11,
+      "percentChanged": 1.06
+    },
+    {
+      "value": -8.62,
+      "areaKm2": 1.26,
+      "percentChanged": 1.2
+    }
+  ],
+  "minAreaKm2": 1.11,
+  "maxAreaKm2": 1.49,
+  "computedBy": "python-service/nisar_timeseries.py",
+  "gitCommit": "f4d2acd4ba4b49653e368a9b3a90a0ed24fbea84",
+  "dataMaturity": "PROVISIONAL",
+  "crid": "P05023"
+}

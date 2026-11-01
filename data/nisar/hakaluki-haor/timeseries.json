@@ -1,0 +1,171 @@
+{
+  "aoiId": "nisar-hakaluki-2026",
+  "aoiAreaKm2": 104.86,
+  "thresholdMethod": "Otsu pooled backscatter histogram (0.25 dB bins, [-30 dB, +5 dB])",
+  "thresholdValueDb": -10.62,
+  "sweepValuesDb": [
+    -12.62,
+    -11.62,
+    -10.62,
+    -9.62,
+    -8.62
+  ],
+  "dataMaturity": "PROVISIONAL",
+  "crid": "P05023",
+  "polarization": "HH",
+  "units": "linear power (gamma0)",
+  "computedBy": "python-service/nisar_timeseries.py",
+  "gitCommit": "f4d2acd4ba4b49653e368a9b3a90a0ed24fbea84",
+  "records": [
+    {
+      "date": "2026-06-23",
+      "granule_id": "NISAR_L2_PR_GCOV_023_141_A_014_4005_DHDH_A_20260623T231316_20260623T231350_P05023_N_F_J_001",
+      "waterAreaKm2": 84.14,
+      "minAreaKm2": 81.41,
+      "maxAreaKm2": 86.72,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        81.41,
+        82.84,
+        84.15,
+        85.4,
+        86.72
+      ]
+    },
+    {
+      "date": "2026-07-05",
+      "granule_id": "NISAR_L2_PR_GCOV_024_141_A_014_4005_DHDH_A_20260705T231315_20260705T231350_P05023_N_F_J_001",
+      "waterAreaKm2": 82.72,
+      "minAreaKm2": 78.88,
+      "maxAreaKm2": 86.51,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        78.88,
+        80.84,
+        82.73,
+        84.54,
+        86.51
+      ]
+    },
+    {
+      "date": "2026-07-17",
+      "granule_id": "NISAR_L2_PR_GCOV_025_141_A_014_4005_DHDH_A_20260717T231314_20260717T231349_P05023_N_F_J_001",
+      "waterAreaKm2": 83.27,
+      "minAreaKm2": 80.85,
+      "maxAreaKm2": 86.23,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        80.85,
+        82.06,
+        83.27,
+        84.65,
+        86.23
+      ]
+    },
+    {
+      "date": "2026-08-10",
+      "granule_id": "NISAR_L2_PR_GCOV_027_141_A_014_4005_DHDH_A_20260810T231313_20260810T231348_P05023_N_F_J_001",
+      "waterAreaKm2": 82.77,
+      "minAreaKm2": 80.73,
+      "maxAreaKm2": 85.11,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        80.73,
+        81.77,
+        82.78,
+        83.81,
+        85.11
+      ]
+    },
+    {
+      "date": "2026-08-22",
+      "granule_id": "NISAR_L2_PR_GCOV_028_141_A_014_4005_DHDH_A_20260822T231312_20260822T231347_P05023_N_F_J_001",
+      "waterAreaKm2": 0.0,
+      "minAreaKm2": 0.0,
+      "maxAreaKm2": 0.0,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "date": "2026-09-03",
+      "granule_id": "NISAR_L2_PR_GCOV_029_141_A_014_4005_DHDH_A_20260903T231312_20260903T231347_P05023_N_F_J_001",
+      "waterAreaKm2": 80.59,
+      "minAreaKm2": 77.57,
+      "maxAreaKm2": 84.45,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        77.57,
+        79.12,
+        80.59,
+        82.34,
+        84.45
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "granule_id": "NISAR_L2_PR_GCOV_030_141_A_014_4005_DHDH_A_20260915T231312_20260915T231347_P05023_N_F_J_001",
+      "waterAreaKm2": 77.86,
+      "minAreaKm2": 74.81,
+      "maxAreaKm2": 82.08,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        74.81,
+        76.26,
+        77.86,
+        79.69,
+        82.08
+      ]
+    },
+    {
+      "date": "2026-09-27",
+      "granule_id": "NISAR_L2_PR_GCOV_031_141_A_014_4005_DHDH_A_20260927T231312_20260927T231347_P05023_N_F_J_001",
+      "waterAreaKm2": 73.16,
+      "minAreaKm2": 68.04,
+      "maxAreaKm2": 78.96,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        68.04,
+        70.52,
+        73.18,
+        75.93,
+        78.96
+      ]
+    },
+    {
+      "date": "2026-10-09",
+      "granule_id": "NISAR_L2_PR_GCOV_032_141_A_014_4005_DHDH_A_20261009T231312_20261009T231347_P05023_N_F_J_001",
+      "waterAreaKm2": 71.72,
+      "minAreaKm2": 67.35,
+      "maxAreaKm2": 76.17,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        67.35,
+        69.63,
+        71.73,
+        73.86,
+        76.17
+      ]
+    },
+    {
+      "date": "2026-10-21",
+      "granule_id": "NISAR_L2_PR_GCOV_033_141_A_014_4005_DHDH_A_20261021T231312_20261021T231347_P05023_N_F_J_001",
+      "waterAreaKm2": 67.01,
+      "minAreaKm2": 61.57,
+      "maxAreaKm2": 74.16,
+      "validFraction": 1.0,
+      "sweepAreas": [
+        61.57,
+        64.34,
+        67.02,
+        70.21,
+        74.16
+      ]
+    }
+  ]
+}
