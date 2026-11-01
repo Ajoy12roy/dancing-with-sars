@@ -875,7 +875,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
           onClick={toggleMinimized}
           aria-label="Expand Chiku Radar Guide"
           title="Expand Chiku Radar Guide"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-2 border border-hairline text-ink text-xs font-medium shadow-none hover:border-teal transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-2 border border-hairline text-ink text-xs font-medium shadow-none hover:border-teal transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2"
         >
           <div className="relative w-6 h-6 shrink-0 overflow-hidden rounded-full border border-hairline bg-surface">
             <Image
@@ -923,7 +923,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
                 }}
                 aria-label="Stop Chiku narration"
                 title="Stop Chiku narration"
-                className="p-1 text-text-secondary hover:text-ink rounded-[2px] border border-transparent transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+                className="p-1 text-text-secondary hover:text-ink rounded-[2px] border border-transparent transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2"
               >
                 <Square className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
               </button>
@@ -933,7 +933,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
                 aria-pressed={isVoiceEnabled}
                 aria-label={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
                 title={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
-                className={`p-1 rounded-[2px] transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
+                className={`p-1 rounded-[2px] transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
                   isVoiceEnabled
                     ? 'text-teal bg-teal/10 border border-teal/30'
                     : 'text-text-secondary hover:text-ink border border-transparent'
@@ -953,7 +953,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
             onClick={toggleMinimized}
             aria-label="Minimize Chiku Guide"
             title="Minimize Chiku Guide"
-            className="p-1 text-text-secondary hover:text-ink rounded-[2px] border border-transparent transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+            className="p-1 text-text-secondary hover:text-ink rounded-[2px] border border-transparent transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2"
           >
             <Minimize2 className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
@@ -997,7 +997,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       {/* Footer controls: Status line + Test Voice + Screen reader note */}
       <div className="mt-2 pt-1.5 border-t border-hairline space-y-1 text-[10px] text-text-secondary font-sans">
         <div className="flex items-center justify-between gap-1">
-          <span className="truncate max-w-[190px]" title={voiceStatus}>
+          <span className="truncate max-w-47.5" title={voiceStatus}>
             {voiceStatus}
           </span>
           {hasSpeechSupport && (
@@ -1005,7 +1005,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               <button
                 type="button"
                 onClick={handleExplainView}
-                className="px-1.5 py-0.5 text-[10px] font-sans font-medium text-ink hover:text-teal border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+                className="px-1.5 py-0.5 text-[10px] font-sans font-medium text-ink hover:text-teal border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2"
                 title="Explain current view with Chiku"
               >
                 Explain this view
@@ -1013,7 +1013,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               <button
                 type="button"
                 onClick={handleTestVoice}
-                className="px-1.5 py-0.5 text-[10px] font-sans font-medium text-teal hover:text-ink border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+                className="px-1.5 py-0.5 text-[10px] font-sans font-medium text-teal hover:text-ink border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2"
                 title="Test Chiku voice narration"
               >
                 Test voice
@@ -1030,7 +1030,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               role="radio"
               aria-checked={narrationDetail === 'full'}
               onClick={() => handleToggleNarrationDetail('full')}
-              className={`px-1.5 py-0.5 rounded-[2px] font-sans font-medium transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
+              className={`px-1.5 py-0.5 rounded-[2px] font-sans font-medium transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
                 narrationDetail === 'full'
                   ? 'bg-surface text-ink border border-hairline shadow-none font-semibold'
                   : 'text-text-secondary hover:text-ink border border-transparent'
@@ -1043,7 +1043,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               role="radio"
               aria-checked={narrationDetail === 'short'}
               onClick={() => handleToggleNarrationDetail('short')}
-              className={`px-1.5 py-0.5 rounded-[2px] font-sans font-medium transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
+              className={`px-1.5 py-0.5 rounded-[2px] font-sans font-medium transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
                 narrationDetail === 'short'
                   ? 'bg-surface text-ink border border-hairline shadow-none font-semibold'
                   : 'text-text-secondary hover:text-ink border border-transparent'
