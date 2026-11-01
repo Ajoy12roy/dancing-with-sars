@@ -85,6 +85,16 @@ function isChikuDebug(): boolean {
   }
 }
 
+export interface ChikuDebugEvent {
+  id: string;
+  time: string;
+  key: string;
+  priority: number;
+  outcome: string;
+  voice: string;
+  synthState: string;
+}
+
 function logChikuEvent(
   name: string,
   priority: number,
@@ -92,7 +102,8 @@ function logChikuEvent(
   willSpeak: boolean,
   voice: SpeechSynthesisVoice | null,
   before: { speaking: boolean; pending: boolean; paused: boolean },
-  after?: { speaking: boolean; pending: boolean; paused: boolean }
+  after?: { speaking: boolean; pending: boolean; paused: boolean },
+  dropReason?: string
 ) {
   if (!isChikuDebug()) return;
   console.log(`[Chiku:Event] ${name}`, {
@@ -100,6 +111,7 @@ function logChikuEvent(
     priority,
     voiceEnabled,
     speakCalled: willSpeak,
+    dropReason,
     selectedVoice: voice
       ? { name: voice.name, localService: voice.localService, lang: voice.lang }
       : 'default',
@@ -220,8 +232,48 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voiceStatusOverride, setVoiceStatusOverride] = useState<string | null>(null);
+  const [debugEvents, setDebugEvents] = useState<ChikuDebugEvent[]>([]);
   const [currentText, setCurrentText] = useState<string>(
     'Hi! I am Chiku, your guide to seeing Earth change through radar. Select any case study to begin exploration.'
+  );
+
+  const isDebug = isMounted && isChikuDebug();
+
+  const recordDebugEvent = useCallback(
+    (
+      key: string,
+      priority: number,
+      outcome: string,
+      voiceName: string,
+      synthState?: { speaking: boolean; pending: boolean; paused: boolean }
+    ) => {
+      if (!isChikuDebug()) return;
+      const now = new Date();
+      const timeStr =
+        now.toTimeString().substring(0, 8) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+      const stateStr = synthState
+        ? `spk:${synthState.speaking ? 1 : 0} pnd:${synthState.pending ? 1 : 0} psd:${synthState.paused ? 1 : 0}`
+        : typeof window !== 'undefined' && 'speechSynthesis' in window
+        ? `spk:${window.speechSynthesis.speaking ? 1 : 0} pnd:${window.speechSynthesis.pending ? 1 : 0} psd:${window.speechSynthesis.paused ? 1 : 0}`
+        : 'no-synth';
+
+      setDebugEvents((prev) => {
+        const next = [
+          ...prev,
+          {
+            id: Math.random().toString(36).substring(2, 9),
+            time: timeStr,
+            key,
+            priority,
+            outcome,
+            voice: voiceName,
+            synthState: stateStr,
+          },
+        ];
+        return next.slice(-12);
+      });
+    },
+    []
   );
 
   // Derived visible voice status
@@ -331,13 +383,16 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
       // If voice is not enabled and this is not a gesture test voice / welcome call
       if (!isVoiceEnabled && eventName !== 'test-voice' && eventName !== 'welcome') {
-        logChikuEvent(eventName, priority, false, false, null, beforeState);
+        logChikuEvent(eventName, priority, false, false, null, beforeState, undefined, 'voice off');
+        recordDebugEvent(eventName, priority, 'dropped (voice off)', 'none', beforeState);
         return;
       }
 
       // Priority check: equal or higher priority cancels & speaks; lower is dropped
       if (synth.speaking && priority < currentPriorityRef.current) {
-        logChikuEvent(eventName, priority, true, false, null, beforeState);
+        const dropReason = `dropped (priority ${priority} < current ${currentPriorityRef.current} while speaking)`;
+        logChikuEvent(eventName, priority, true, false, null, beforeState, undefined, dropReason);
+        recordDebugEvent(eventName, priority, dropReason, 'none', beforeState);
         return;
       }
 
@@ -441,6 +496,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               watchdogTimerRef.current = null;
             }
             logUtterance('onerror', { error: e.error, retryCount });
+            recordDebugEvent(eventName, priority, `error: ${e.error}`, selectedVoice?.name || 'default');
             activeUtteranceRef.current = null;
 
             if (e.error === 'interrupted' || e.error === 'canceled') {
@@ -477,12 +533,14 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
           const afterState = { speaking: synth.speaking, pending: synth.pending, paused: synth.paused };
           logChikuEvent(eventName, priority, true, true, selectedVoice, beforeState, afterState);
+          recordDebugEvent(eventName, priority, 'spoken', selectedVoice?.name || 'default', afterState);
         } catch {
           setVoiceStatusOverride('No voice found on this device');
           setIsSpeaking(false);
           setCurrentSprite('idle');
           currentPriorityRef.current = 0;
           activeUtteranceRef.current = null;
+          recordDebugEvent(eventName, priority, 'error: exception', 'none');
         }
       };
 
@@ -503,7 +561,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         }
       }
     },
-    [isVoiceEnabled, availableVoices]
+    [isVoiceEnabled, availableVoices, recordDebugEvent]
   );
 
   useEffect(() => {
@@ -793,6 +851,49 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
           <span className="italic">If you use a screen reader, keep voice off.</span>
         </div>
       </div>
+
+      {/* Debug panel: visible when localStorage chikuDebug === '1', plain text, not an aria-live region */}
+      {isDebug && (
+        <div className="mt-2 pt-1.5 border-t border-hairline font-mono text-[9px] text-text-secondary space-y-1 max-h-40 overflow-y-auto">
+          <div className="font-semibold text-ink flex items-center justify-between">
+            <span>Chiku Debug (Last 12)</span>
+            <span>
+              {typeof window !== 'undefined' && 'speechSynthesis' in window
+                ? `spk:${window.speechSynthesis.speaking ? 1 : 0} pnd:${window.speechSynthesis.pending ? 1 : 0} psd:${window.speechSynthesis.paused ? 1 : 0}`
+                : 'no-synth'}
+            </span>
+          </div>
+          {debugEvents.length === 0 ? (
+            <div className="text-text-muted italic">No events logged yet</div>
+          ) : (
+            <div className="space-y-1 divide-y divide-hairline">
+              {debugEvents.map((ev) => (
+                <div key={ev.id} className="pt-0.5 leading-tight">
+                  <div className="flex justify-between text-ink font-sans">
+                    <span className="font-semibold">
+                      [{ev.time}] {ev.key} (p{ev.priority})
+                    </span>
+                    <span
+                      className={
+                        ev.outcome.startsWith('dropped')
+                          ? 'text-amber-500'
+                          : ev.outcome.startsWith('error')
+                          ? 'text-rose-500'
+                          : 'text-teal'
+                      }
+                    >
+                      {ev.outcome}
+                    </span>
+                  </div>
+                  <div className="text-text-muted text-[8px] truncate">
+                    voice: {ev.voice} | {ev.synthState}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   );
 }
