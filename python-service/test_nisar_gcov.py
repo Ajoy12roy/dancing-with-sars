@@ -14,7 +14,13 @@ h5py = pytest.importorskip("h5py")
 
 import numpy as np
 import rasterio
-from nisar_gcov import gcov_to_geotiff, DB_FLOOR_LINEAR
+from nisar_gcov import (
+    gcov_to_geotiff,
+    DB_FLOOR_LINEAR,
+    extract_crid,
+    extract_data_maturity,
+    open_h5_source
+)
 
 @pytest.fixture
 def synthetic_nisar_h5(tmp_path):
@@ -113,3 +119,49 @@ def test_missing_polarization_raises(synthetic_nisar_h5, tmp_path):
             polarization="VVVV",
             out_path=out_tif
         )
+
+
+def test_extract_crid_and_maturity():
+    name = "NISAR_L2_PR_GCOV_023_141_A_014_4005_DHDH_A_20260623T231316_20260623T231350_P05023_N_F_J_001.h5"
+    assert extract_crid(name) == "P05023"
+    assert extract_data_maturity(name) == "PROVISIONAL"
+
+    beta_name = "NISAR_L2_BETA_GCOV_023_141_A_014_4005_DHDH_A_20260623T231316_20260623T231350_X05023_N_F_J_001.h5"
+    assert extract_crid(beta_name) == "X05023"
+    assert extract_data_maturity(beta_name) == "BETA"
+
+
+def test_max_size_capping(synthetic_nisar_h5, tmp_path):
+    out_tif = tmp_path / "capped.tif"
+    # Full dataset is 20x20. Default keeps full size
+    gcov_to_geotiff(
+        h5_path=synthetic_nisar_h5,
+        bbox=None,
+        polarization="HH",
+        out_path=out_tif,
+        to_db=False
+    )
+    with rasterio.open(out_tif) as src:
+        assert src.shape == (20, 20)
+
+    # With bbox covering 10x10, capped at max_size=4
+    bbox = [500000.0, 2750090.0, 500100.0, 2750190.0]
+    out_tif_capped = tmp_path / "capped_sub.tif"
+    gcov_to_geotiff(
+        h5_path=synthetic_nisar_h5,
+        bbox=bbox,
+        polarization="HH",
+        out_path=out_tif_capped,
+        to_db=False,
+        max_size=4
+    )
+    with rasterio.open(out_tif_capped) as src:
+        assert src.shape == (4, 4)
+        assert src.tags()["crid"] == "P05023"
+        assert src.tags()["data_maturity"] == "PROVISIONAL"
+
+
+def test_open_h5_source_context(synthetic_nisar_h5):
+    with open_h5_source(synthetic_nisar_h5) as (h5, name):
+        assert name.endswith(".h5")
+        assert "/science/LSAR/GCOV/grids/frequencyA" in h5

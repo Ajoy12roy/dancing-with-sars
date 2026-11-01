@@ -70,3 +70,5 @@ public/tiles/
 .cache/
 data/samples/
 
+python-service/scratch/
+scratch/

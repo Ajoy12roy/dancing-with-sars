@@ -12,9 +12,16 @@ Coordinates: /science/LSAR/GCOV/grids/frequencyA/xCoordinates, yCoordinates
 Projection: /science/LSAR/GCOV/grids/frequencyA/projection
 """
 
+from contextlib import contextmanager
 import math
+import os
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
+
+try:
+    import fsspec
+except ImportError:
+    fsspec = None
 
 try:
     import h5py
@@ -29,6 +36,7 @@ from rasterio.warp import transform_bounds
 
 DB_FLOOR_LINEAR = 1e-5  # -50.0 dB floor for zero/negative values in radar backscatter
 
+
 def normalize_polarization_name(pol: str) -> str:
     """Normalizes short (e.g. HH) or full (e.g. HHHH) polarization identifiers."""
     p = pol.upper().strip()
@@ -36,39 +44,33 @@ def normalize_polarization_name(pol: str) -> str:
         return p + p
     return p
 
+
 def extract_data_maturity(granule_name: str) -> str:
     """Extracts data maturity (PROVISIONAL, BETA, or UNKNOWN) from granule title or attributes."""
-    upper = granule_name.upper()
-    if "PROVISIONAL" in upper or "_P05" in upper:
+    upper = str(granule_name).upper()
+    if "PROVISIONAL" in upper or "_P05" in upper or "_PR_" in upper:
         return "PROVISIONAL"
     if "BETA" in upper or "_X05" in upper:
         return "BETA"
     return "PROVISIONAL"
 
-def gcov_to_geotiff(
-    h5_path: Union[str, Path],
-    bbox: Optional[List[float]],
-    polarization: str,
-    out_path: Union[str, Path],
-    to_db: bool = False,
-    frequency: str = "A"
-) -> str:
+
+def extract_crid(granule_name: str) -> str:
+    """Extracts Composite Release ID (CRID), e.g. P05023, from granule title or attributes."""
+    upper = str(granule_name).upper()
+    stem = Path(upper).stem
+    parts = stem.split("_")
+    for part in parts:
+        if len(part) == 6 and part[0] in ("P", "X", "R") and part[1:].isdigit():
+            return part
+    return "UNKNOWN"
+
+
+@contextmanager
+def open_h5_source(source: Union[str, Path, Any]):
     """
-    Extracts a spatial subwindow for a given polarization from a NISAR GCOV HDF5 file
-    and writes it as a georeferenced float32 GeoTIFF.
-
-    Parameters:
-    -----------
-    h5_path: Path to the NISAR GCOV HDF5 file.
-    bbox: Optional [west, south, east, north] bounding box. If None, full extent is extracted.
-    polarization: Polarization channel, e.g. 'HHHH' or 'HH', 'HVHV' or 'HV'.
-    out_path: Target path for the output GeoTIFF.
-    to_db: If True, converts linear backscatter power to decibels (10*log10) with 1e-5 floor.
-    frequency: Radar frequency sub-band, default 'A' (L-band primary).
-
-    Returns:
-    --------
-    Absolute path of the written GeoTIFF file.
+    Context manager to safely open local paths, HTTP/HTTPS streaming URLs (via fsspec),
+    or reuse open h5py File/Group objects and file-like objects.
     """
     if h5py is None:
         raise ImportError(
@@ -76,10 +78,75 @@ def gcov_to_geotiff(
             "Please install it using 'pip install -r python-service/requirements-nisar.txt'"
         )
 
-    h5_file = Path(h5_path).resolve()
+    # Already an h5py File or Group
+    if isinstance(source, (h5py.File, h5py.Group)):
+        granule_name = getattr(source.file, "filename", "NISAR_GCOV")
+        yield source.file, Path(str(granule_name)).name
+        return
+
+    # HTTP/HTTPS Streaming URL
+    str_source = str(source)
+    if str_source.startswith("http://") or str_source.startswith("https://"):
+        if fsspec is None:
+            raise ImportError("fsspec is required for streaming HTTP NISAR reads.")
+        token = os.environ.get("EARTHDATA_TOKEN", "")
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        fs = fsspec.filesystem("http", headers=headers)
+        f = fs.open(str_source, mode="rb", block_size=2 * 1024 * 1024, cache_type="readahead")
+        granule_name = Path(str_source.split("?")[0]).name
+        h5 = h5py.File(f, "r")
+        try:
+            yield h5, granule_name
+        finally:
+            h5.close()
+            f.close()
+        return
+
+    # File-like object (with read & seek)
+    if hasattr(source, "read") and hasattr(source, "seek"):
+        granule_name = getattr(source, "name", "NISAR_GCOV")
+        h5 = h5py.File(source, "r")
+        try:
+            yield h5, Path(str(granule_name)).name
+        finally:
+            h5.close()
+        return
+
+    # Local filesystem path
+    h5_file = Path(source).resolve()
     if not h5_file.exists():
         raise FileNotFoundError(f"NISAR HDF5 file not found: {h5_file}")
+    with h5py.File(h5_file, "r") as h5:
+        yield h5, h5_file.name
 
+
+def gcov_to_geotiff(
+    h5_path: Union[str, Path, Any],
+    bbox: Optional[List[float]],
+    polarization: str,
+    out_path: Union[str, Path],
+    to_db: bool = False,
+    frequency: str = "A",
+    max_size: Optional[int] = None
+) -> str:
+    """
+    Extracts a spatial subwindow for a given polarization from a NISAR GCOV HDF5 file (local or streamed)
+    and writes it as a georeferenced float32 GeoTIFF.
+
+    Parameters:
+    -----------
+    h5_path: Path, URL, or file-like object for the NISAR GCOV HDF5 file.
+    bbox: Optional [west, south, east, north] bounding box. If None, full extent is extracted.
+    polarization: Polarization channel, e.g. 'HHHH' or 'HH', 'HVHV' or 'HV'.
+    out_path: Target path for the output GeoTIFF.
+    to_db: If True, converts linear backscatter power to decibels (10*log10) with 1e-5 floor.
+    frequency: Radar frequency sub-band, default 'A' (L-band primary).
+    max_size: Optional maximum dimension (in pixels) to cap the extracted subwindow height and width.
+
+    Returns:
+    --------
+    Absolute path of the written GeoTIFF file.
+    """
     pol_ds_name = normalize_polarization_name(polarization)
     grid_group_path = f"/science/LSAR/GCOV/grids/frequency{frequency}"
     ds_path = f"{grid_group_path}/{pol_ds_name}"
@@ -87,20 +154,20 @@ def gcov_to_geotiff(
     out_file = Path(out_path).resolve()
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(h5_file, "r") as h5:
+    with open_h5_source(h5_path) as (h5, granule_name):
         if ds_path not in h5:
             available = list(h5.get(grid_group_path, {}).keys())
             raise KeyError(
-                f"Dataset '{ds_path}' not found in {h5_file.name}. "
+                f"Dataset '{ds_path}' not found in {granule_name}. "
                 f"Available layers under {grid_group_path}: {available}"
             )
 
         ds = h5[ds_path]
-        
+
         # Read coordinate arrays
         x_coords_name = "xCoordinates" if "xCoordinates" in h5[grid_group_path] else "x_coordinates"
         y_coords_name = "yCoordinates" if "yCoordinates" in h5[grid_group_path] else "y_coordinates"
-        
+
         if x_coords_name not in h5[grid_group_path] or y_coords_name not in h5[grid_group_path]:
             raise KeyError(f"Coordinate arrays ({x_coords_name}, {y_coords_name}) missing from {grid_group_path}")
 
@@ -112,13 +179,16 @@ def gcov_to_geotiff(
         wkt_str = None
         if "projection" in h5[grid_group_path]:
             proj_obj = h5[grid_group_path]["projection"]
-            if hasattr(proj_obj, "attrs") and "epsg" in proj_obj.attrs:
-                epsg_code = int(proj_obj.attrs["epsg"])
-            elif hasattr(proj_obj, "attrs") and "spatial_ref" in proj_obj.attrs:
-                wkt_str = proj_obj.attrs["spatial_ref"]
-                if isinstance(wkt_str, bytes):
-                    wkt_str = wkt_str.decode("utf-8")
-            elif proj_obj.shape == () and np.issubdtype(proj_obj.dtype, np.integer):
+            if hasattr(proj_obj, "attrs"):
+                if "epsg_code" in proj_obj.attrs:
+                    epsg_code = int(proj_obj.attrs["epsg_code"])
+                elif "epsg" in proj_obj.attrs:
+                    epsg_code = int(proj_obj.attrs["epsg"])
+                elif "spatial_ref" in proj_obj.attrs:
+                    wkt_str = proj_obj.attrs["spatial_ref"]
+                    if isinstance(wkt_str, bytes):
+                        wkt_str = wkt_str.decode("utf-8")
+            if epsg_code is None and proj_obj.shape == () and np.issubdtype(proj_obj.dtype, np.integer):
                 epsg_code = int(proj_obj[()])
 
         if epsg_code is not None:
@@ -149,7 +219,7 @@ def gcov_to_geotiff(
             col_max = min(len(x_coords), int(np.searchsorted(x_coords, max(w_proj, e_proj), side="right")))
 
             # Match Y coordinates (handle ascending or descending)
-            if y_res < 0: # north-up descending
+            if y_res < 0:  # north-up descending
                 y_desc = -y_coords
                 row_min = max(0, int(np.searchsorted(y_desc, -max(s_proj, n_proj), side="left")))
                 row_max = min(len(y_coords), int(np.searchsorted(y_desc, -min(s_proj, n_proj), side="right")))
@@ -164,6 +234,12 @@ def gcov_to_geotiff(
             if row_max <= row_min:
                 row_min = max(0, row_min - 1)
                 row_max = min(len(y_coords), row_min + 2)
+
+            if max_size is not None:
+                if (col_max - col_min) > max_size:
+                    col_max = col_min + max_size
+                if (row_max - row_min) > max_size:
+                    row_max = row_min + max_size
 
             # Perform slice reading directly without full load
             data = ds[row_min:row_max, col_min:col_max].astype(np.float32)
@@ -187,12 +263,13 @@ def gcov_to_geotiff(
             data[~valid_mask] = np.nan
             units_tag = "dB"
 
-        # Calculate Affine Transform from coordinates
+        # Calculate Affine Transform from coordinates (center pixel convention)
         origin_x = float(sliced_x[0] - x_res / 2.0)
         origin_y = float(sliced_y[0] - y_res / 2.0)
         transform = from_origin(origin_x, origin_y, abs(x_res), abs(y_res))
 
-        data_maturity = extract_data_maturity(h5_file.name)
+        data_maturity = extract_data_maturity(granule_name)
+        crid = extract_crid(granule_name)
 
         # Write output GeoTIFF
         profile = {
@@ -210,10 +287,11 @@ def gcov_to_geotiff(
         with rasterio.open(out_file, "w", **profile) as dst:
             dst.write(data, 1)
             dst.update_tags(
-                source_granule=h5_file.name,
+                source_granule=granule_name,
                 polarization=pol_ds_name,
                 units=units_tag,
                 data_maturity=data_maturity,
+                crid=crid,
                 frequency=f"frequency{frequency}"
             )
 
