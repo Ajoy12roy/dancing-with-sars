@@ -172,7 +172,7 @@ def compute_case_sensitivity(
         "gitCommit": commit_hash
     }
 
-    if out_dir:
+    if out_dir and out_dir.lower() not in ("none", "null", "false", ""):
         os.makedirs(out_dir, exist_ok=True)
         out_file = os.path.join(out_dir, f"{case_id}.json")
         with open(out_file, "w", encoding="utf-8") as f:
@@ -182,12 +182,27 @@ def compute_case_sensitivity(
 
 
 def main():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    default_samples = os.path.join(base_dir, "data", "samples")
+    default_precomputed = os.path.join(base_dir, "data", "precomputed")
+    default_out = os.path.join(base_dir, "data", "sensitivity")
+
     parser = argparse.ArgumentParser(description="Compute threshold sensitivity for SAR change detection.")
     parser.add_argument("--case", type=str, default="all", help="Case study ID or 'all'")
-    parser.add_argument("--samples-dir", type=str, default="../data/samples", help="Path to input samples directory")
-    parser.add_argument("--precomputed-dir", type=str, default="../data/precomputed", help="Path to precomputed data")
-    parser.add_argument("--out-dir", type=str, default="../data/sensitivity", help="Path to output sensitivity directory")
+    parser.add_argument("--samples-dir", type=str, default=default_samples, help="Path to input samples directory")
+    parser.add_argument("--precomputed-dir", type=str, default=default_precomputed, help="Path to precomputed data")
+    parser.add_argument("--out-dir", type=str, default=default_out, help="Path to output sensitivity directory")
     args = parser.parse_args()
+
+    samples_dir = args.samples_dir
+    if not os.path.exists(samples_dir) and os.path.exists(os.path.join(base_dir, samples_dir)):
+        samples_dir = os.path.join(base_dir, samples_dir)
+
+    precomputed_dir = args.precomputed_dir
+    if not os.path.exists(precomputed_dir) and os.path.exists(os.path.join(base_dir, precomputed_dir)):
+        precomputed_dir = os.path.join(base_dir, precomputed_dir)
+
+    out_dir = args.out_dir
 
     ready_cases = [
         "sylhet",
@@ -207,7 +222,7 @@ def main():
     print("================================================================================")
     print("TerraPulse SAR Sensitivity Analysis")
     print(f"Target cases: {', '.join(target_cases)}")
-    print(f"Output directory: {os.path.abspath(args.out_dir)}")
+    print(f"Output directory: {os.path.abspath(out_dir)}")
     print("================================================================================")
 
     results = []
@@ -215,9 +230,9 @@ def main():
         print(f"\nProcessing sensitivity for [{cid}]...")
         success, payload, msg = compute_case_sensitivity(
             case_id=cid,
-            samples_dir=args.samples_dir,
-            precomputed_dir=args.precomputed_dir,
-            out_dir=args.out_dir
+            samples_dir=samples_dir,
+            precomputed_dir=precomputed_dir,
+            out_dir=out_dir
         )
         if success and payload:
             print(f"  Integrity Check: PASSED (centre={payload['centre']} {payload['unit']})")
