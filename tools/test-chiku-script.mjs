@@ -182,7 +182,7 @@ function buildThresholdLine(mode, sensitivity) {
 
   let meaning = 'values beyond this trigger the change detection';
   if (sensitivity.parameterName === 'water_threshold') {
-    meaning = mode === 'flood' ? 'values below this are detected as flooded' : 'values below this are detected as open water';
+    meaning = 'pixels darker than this are counted as water';
   } else if (sensitivity.parameterName === 'loss_threshold_db') {
     meaning = 'drops greater than this indicate canopy loss';
   }
@@ -194,8 +194,9 @@ function buildTestedRangeLine(sensitivity) {
   const steps = sensitivity.steps || [];
   const minStep = steps.length > 0 ? steps[0].value : sensitivity.centre;
   const maxStep = steps.length > 0 ? steps[steps.length - 1].value : sensitivity.centre;
-  const minArea = sensitivity.minAreaKm2.toFixed(1);
-  const maxArea = sensitivity.maxAreaKm2.toFixed(1);
+  const useTwoDecimals = sensitivity.minAreaKm2 < 1 || sensitivity.maxAreaKm2 < 1;
+  const minArea = useTwoDecimals ? sensitivity.minAreaKm2.toFixed(2) : sensitivity.minAreaKm2.toFixed(1);
+  const maxArea = useTwoDecimals ? sensitivity.maxAreaKm2.toFixed(2) : sensitivity.maxAreaKm2.toFixed(1);
 
   return `We also tested ${formatNumberInWords(minStep)} to ${formatNumberInWords(maxStep)} decibels. The area ranged from ${minArea} to ${maxArea} square kilometres.`;
 }
@@ -235,9 +236,11 @@ function buildAnalysisNarrationParts(params) {
 
   let headline = 'Analysis complete.';
   if (typeof affectedAreaKm2 === 'number' && typeof percentChanged === 'number') {
-    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
+    const areaStr = affectedAreaKm2 < 1 ? affectedAreaKm2.toFixed(2) : affectedAreaKm2.toFixed(1);
+    headline = `Analysis complete. About ${areaStr} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
   } else if (typeof affectedAreaKm2 === 'number') {
-    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed across the area.`;
+    const areaStr = affectedAreaKm2 < 1 ? affectedAreaKm2.toFixed(2) : affectedAreaKm2.toFixed(1);
+    headline = `Analysis complete. About ${areaStr} square kilometres changed across the area.`;
   }
 
   if (detail === 'short') {
@@ -328,15 +331,18 @@ function buildChikuScript(event, context) {
 
       let sentence1 = 'Analysis complete.';
       if (typeof area === 'number' && typeof pct === 'number') {
-        sentence1 = `Analysis complete. About ${area.toFixed(1)} square kilometres changed, ${pct.toFixed(1)} percent of the area.`;
+        const areaStr = area < 1 ? area.toFixed(2) : area.toFixed(1);
+        sentence1 = `Analysis complete. About ${areaStr} square kilometres changed, ${pct.toFixed(1)} percent of the area.`;
       } else if (typeof area === 'number') {
-        sentence1 = `Analysis complete. About ${area.toFixed(1)} square kilometres changed across the area.`;
+        const areaStr = area < 1 ? area.toFixed(2) : area.toFixed(1);
+        sentence1 = `Analysis complete. About ${areaStr} square kilometres changed across the area.`;
       }
 
       if (sens) {
         const cls = getSensitivityClass(sens);
-        const minStr = sens.minAreaKm2.toFixed(1);
-        const maxStr = sens.maxAreaKm2.toFixed(1);
+        const useTwoDecimals = sens.minAreaKm2 < 1 || sens.maxAreaKm2 < 1;
+        const minStr = useTwoDecimals ? sens.minAreaKm2.toFixed(2) : sens.minAreaKm2.toFixed(1);
+        const maxStr = useTwoDecimals ? sens.maxAreaKm2.toFixed(2) : sens.maxAreaKm2.toFixed(1);
 
         let sentence2 = '';
         if (cls === 'high') {
@@ -454,6 +460,8 @@ const amazonHighSens = buildChikuScript(
     message: '',
   }
 );
+assert.ok(amazonHighSens.includes('About 0.62 square kilometres changed'), 'Expected 2-decimal headline 0.62 for amazon');
+assert.ok(amazonHighSens.includes('0.05 to 4.64'), 'Expected 2-decimal sensitivity range for amazon');
 assert.ok(amazonHighSens.includes('High sensitivity: treat this number as indicative only'), 'Expected high sensitivity caveat');
 assert.ok(amazonHighSens.length < 200, 'Amazon analysis line under 200 chars');
 
@@ -553,7 +561,7 @@ assert.deepEqual(splitForSpeech(shortText), [shortText]);
 
 // Decimal preservation test: should NOT cut inside numbers like 30.9 or -16.0
 const textWithDecimals =
-  'The headline result uses a water threshold of minus 16 decibels: values below this are detected as flooded. This is a fixed default setting, not a value proven to be the best.';
+  'The headline result uses a water threshold of minus 16 decibels: pixels darker than this are counted as water. This is a fixed default setting, not a value proven to be the best.';
 const splitDecimals = splitForSpeech(textWithDecimals, 190);
 assert.ok(splitDecimals.length === 1, 'Should keep text <= 190 chars intact');
 assert.ok(!splitDecimals[0].includes('16. '), 'Should not break on whole or decimal numbers');
@@ -577,7 +585,7 @@ const casesToTest = [
     pct: 17.05,
     expectedParam: 'water threshold',
     expectedCentre: 'minus 16 decibels',
-    expectedMeaning: 'values below this are detected as flooded',
+    expectedMeaning: 'pixels darker than this are counted as water',
     expectedClass: 'moderate',
     expectedClassSentence: 'Different threshold choices change the detected area moderately.',
     expectedMethod:
@@ -603,7 +611,7 @@ const casesToTest = [
     pct: 62.83,
     expectedParam: 'water threshold',
     expectedCentre: 'minus 16 decibels',
-    expectedMeaning: 'values below this are detected as open water',
+    expectedMeaning: 'pixels darker than this are counted as water',
     expectedClass: 'stable',
     expectedClassSentence: 'This detection is relatively stable across threshold choices.',
     expectedMethod:
@@ -630,14 +638,27 @@ for (const c of casesToTest) {
   );
   assert.ok(!threshLine.includes('best threshold'), `${c.id} threshold line must not say 'best threshold'`);
   assert.ok(!threshLine.includes('validated'), `${c.id} threshold line must not claim 'validated'`);
+  assert.ok(!threshLine.includes('detected as flooded'), `${c.id} threshold line must not contain 'detected as flooded'`);
 
   // B. Tested range line
   const rangeLine = buildTestedRangeLine(sens);
   assert.ok(rangeLine.length <= 190, `${c.id} range line exceeds 190 chars (${rangeLine.length})`);
   assert.ok(rangeLine.includes('We also tested'), `${c.id} missing 'We also tested'`);
   assert.ok(rangeLine.includes('square kilometres'), `${c.id} missing 'square kilometres'`);
-  assert.ok(rangeLine.includes(sens.minAreaKm2.toFixed(1)), `${c.id} missing min area`);
-  assert.ok(rangeLine.includes(sens.maxAreaKm2.toFixed(1)), `${c.id} missing max area`);
+  const expectedMin = sens.minAreaKm2 < 1 ? sens.minAreaKm2.toFixed(2) : sens.minAreaKm2.toFixed(1);
+  const expectedMax = (sens.minAreaKm2 < 1 || sens.maxAreaKm2 < 1) ? sens.maxAreaKm2.toFixed(2) : sens.maxAreaKm2.toFixed(1);
+  assert.ok(rangeLine.includes(expectedMin), `${c.id} missing min area`);
+  assert.ok(rangeLine.includes(expectedMax), `${c.id} missing max area`);
+  assert.ok(!rangeLine.includes('detected as flooded'), `${c.id} range line must not contain 'detected as flooded'`);
+
+  // Step 1c explicit checks
+  if (c.id === 'amazon') {
+    assert.ok(rangeLine.includes('0.05'), 'Amazon range line must contain "0.05"');
+    assert.ok(rangeLine.includes('4.64'), 'Amazon range line must contain "4.64"');
+  }
+  if (c.mode === 'flood' || c.mode === 'surface-water') {
+    assert.ok(threshLine.includes('counted as water'), `${c.id} water threshold line must contain "counted as water"`);
+  }
 
   // C. Sensitivity class sentence
   const classSentence = buildSensitivityClassSentence(sens);
@@ -662,6 +683,7 @@ for (const c of casesToTest) {
     assert.ok(part.length <= 190, `${c.id} full narration part exceeds 190 chars: "${part}" (${part.length})`);
     assert.ok(!part.includes('best threshold'), `Must not say 'best threshold' in: "${part}"`);
     assert.ok(!part.includes('validated'), `Must not claim 'validated' in: "${part}"`);
+    assert.ok(!part.includes('detected as flooded'), `Must not contain 'detected as flooded' in: "${part}"`);
   }
 
   // F. Short narration parts

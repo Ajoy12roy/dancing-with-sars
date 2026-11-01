@@ -171,13 +171,13 @@ export function splitForSpeech(text: string, maxLen = 190): string[] {
  * Strictly includes "not a value proven to be the best".
  * Guaranteed to stay <= 190 characters.
  */
-export function buildThresholdLine(mode: string, sensitivity: SensitivityData): string {
+export function buildThresholdLine(_mode: string, sensitivity: SensitivityData): string {
   const paramLabel = getSensitivityParameterLabel(sensitivity.parameterName);
   const centreSpoken = `${formatNumberInWords(sensitivity.centre)} decibels`;
 
   let meaning = 'values beyond this trigger the change detection';
   if (sensitivity.parameterName === 'water_threshold') {
-    meaning = mode === 'flood' ? 'values below this are detected as flooded' : 'values below this are detected as open water';
+    meaning = 'pixels darker than this are counted as water';
   } else if (sensitivity.parameterName === 'loss_threshold_db') {
     meaning = 'drops greater than this indicate canopy loss';
   }
@@ -193,8 +193,9 @@ export function buildTestedRangeLine(sensitivity: SensitivityData): string {
   const steps = sensitivity.steps || [];
   const minStep = steps.length > 0 ? (steps[0]?.value ?? sensitivity.centre) : sensitivity.centre;
   const maxStep = steps.length > 0 ? (steps[steps.length - 1]?.value ?? sensitivity.centre) : sensitivity.centre;
-  const minArea = sensitivity.minAreaKm2.toFixed(1);
-  const maxArea = sensitivity.maxAreaKm2.toFixed(1);
+  const useTwoDecimals = sensitivity.minAreaKm2 < 1 || sensitivity.maxAreaKm2 < 1;
+  const minArea = useTwoDecimals ? sensitivity.minAreaKm2.toFixed(2) : sensitivity.minAreaKm2.toFixed(1);
+  const maxArea = useTwoDecimals ? sensitivity.maxAreaKm2.toFixed(2) : sensitivity.maxAreaKm2.toFixed(1);
 
   return `We also tested ${formatNumberInWords(minStep)} to ${formatNumberInWords(maxStep)} decibels. The area ranged from ${minArea} to ${maxArea} square kilometres.`;
 }
@@ -255,9 +256,11 @@ export function buildAnalysisNarrationParts(params: {
 
   let headline = 'Analysis complete.';
   if (typeof affectedAreaKm2 === 'number' && typeof percentChanged === 'number') {
-    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
+    const areaStr = affectedAreaKm2 < 1 ? affectedAreaKm2.toFixed(2) : affectedAreaKm2.toFixed(1);
+    headline = `Analysis complete. About ${areaStr} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
   } else if (typeof affectedAreaKm2 === 'number') {
-    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed across the area.`;
+    const areaStr = affectedAreaKm2 < 1 ? affectedAreaKm2.toFixed(2) : affectedAreaKm2.toFixed(1);
+    headline = `Analysis complete. About ${areaStr} square kilometres changed across the area.`;
   }
 
   if (detail === 'short') {
@@ -356,15 +359,18 @@ export function buildChikuScript(
 
       let sentence1 = 'Analysis complete.';
       if (typeof area === 'number' && typeof pct === 'number') {
-        sentence1 = `Analysis complete. About ${area.toFixed(1)} square kilometres changed, ${pct.toFixed(1)} percent of the area.`;
+        const areaStr = area < 1 ? area.toFixed(2) : area.toFixed(1);
+        sentence1 = `Analysis complete. About ${areaStr} square kilometres changed, ${pct.toFixed(1)} percent of the area.`;
       } else if (typeof area === 'number') {
-        sentence1 = `Analysis complete. About ${area.toFixed(1)} square kilometres changed across the area.`;
+        const areaStr = area < 1 ? area.toFixed(2) : area.toFixed(1);
+        sentence1 = `Analysis complete. About ${areaStr} square kilometres changed across the area.`;
       }
 
       if (sens) {
         const cls = getSensitivityClass(sens);
-        const minStr = sens.minAreaKm2.toFixed(1);
-        const maxStr = sens.maxAreaKm2.toFixed(1);
+        const useTwoDecimals = sens.minAreaKm2 < 1 || sens.maxAreaKm2 < 1;
+        const minStr = useTwoDecimals ? sens.minAreaKm2.toFixed(2) : sens.minAreaKm2.toFixed(1);
+        const maxStr = useTwoDecimals ? sens.maxAreaKm2.toFixed(2) : sens.maxAreaKm2.toFixed(1);
 
         let sentence2 = '';
         if (cls === 'high') {
