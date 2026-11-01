@@ -13,6 +13,8 @@ export type AccessibilityEventType =
   | 'upload-accepted'
   | 'upload-rejected'
   | 'ai-insight-loaded'
+  | 'page-intro'
+  | 'hint'
   | 'general';
 
 export interface AccessibilityEvent {

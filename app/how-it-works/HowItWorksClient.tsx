@@ -680,7 +680,7 @@ export function HowItWorksClient() {
             </h2>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed mb-4">
-            On the Explore interface, our interactive guide <strong>Chiku</strong> translates complex Synthetic Aperture Radar metrics into concise, natural-language audio and visual explanations:
+            Across TerraPulse pages (<span className="font-data text-teal">/</span>, <span className="font-data text-teal">/explore</span>, <span className="font-data text-teal">/how-it-works</span>, <span className="font-data text-teal">/data-sources</span>), our interactive guide <strong>Chiku</strong> translates complex Synthetic Aperture Radar metrics into concise, natural-language audio and visual explanations:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-text-secondary">
             <div className="space-y-2">
@@ -688,31 +688,31 @@ export function HowItWorksClient() {
                 1. Client-Side Web Speech &amp; Gesture Activation
               </h3>
               <p className="leading-relaxed">
-                Narration runs entirely in-browser via standard Web Speech API (<span className="font-data text-teal">window.speechSynthesis</span>). Voice is <strong>OFF by default</strong> and starts only after the user presses <strong>Voice on</strong> or <strong>Test voice</strong> because modern browsers block speech synthesis until an explicit user gesture occurs.
+                Narration runs entirely in-browser via standard Web Speech API (<span className="font-data text-teal">window.speechSynthesis</span>). Voice is <strong>OFF by default</strong> and starts only after the user presses <strong>Voice on</strong>, <strong>Test voice</strong>, or <strong>Explain this view</strong> because modern browsers block speech synthesis until an explicit user gesture occurs.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                2. Status Line &amp; Test Voice Verification
+                2. Explain This View &amp; Full Narration
               </h3>
               <p className="leading-relaxed">
-                A plain-text status line displays real-time synthesis state (<span className="font-data text-teal">Voice off</span>, <span className="font-data text-teal">Voice ready (&lt;voice name&gt;)</span>, <span className="font-data text-teal">Speaking...</span>, <span className="font-data text-teal">Blocked by browser: press Voice on</span>, <span className="font-data text-teal">No voice found on this device</span>). The &quot;Test voice&quot; button speaks a short test sentence directly from its click gesture.
+                The <strong>Explain this view</strong> button triggers an immediate contextual breakdown of the active case study (dates, headline area, sensitivity span, and data reliability notes) or current page orientation. Chiku also provides interactive hints on first slider movement, sensitivity disclosure tables, and text summaries.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                3. Always-Visible Visual Text Bubble
+                3. Status Line, Debug Panel &amp; Queue Scheduler
               </h3>
               <p className="leading-relaxed">
-                All spoken lines are concurrently displayed in an always-visible text bubble for deaf or hard-of-hearing users. The bubble is designated <span className="font-data text-teal">aria-hidden=&quot;true&quot;</span> to avoid duplicate audio announcements for screen readers, which rely on the dedicated live region announcer.
+                A plain-text status line displays real-time synthesis state (<span className="font-data text-teal">Voice off</span>, <span className="font-data text-teal">Voice ready (&lt;voice name&gt;)</span>, <span className="font-data text-teal">Speaking...</span>). Setting <span className="font-data text-teal">localStorage.setItem(&apos;chikuDebug&apos;, &apos;1&apos;)</span> attaches a diagnostic panel displaying the last 12 scheduled events, priorities, and outcomes.
               </p>
             </div>
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                4. Voice Troubleshooting
+                4. Voice Troubleshooting &amp; Visual Mirroring
               </h3>
               <p className="leading-relaxed">
-                If no sound plays after enabling voice: verify the browser tab or app is not muted in the <strong>Windows Volume Mixer</strong>; check that an English voice is installed in <strong>Windows Settings &gt; Time &amp; language &gt; Speech</strong>; and note that browser &quot;Online (Natural)&quot; voices require an active connection (Chiku automatically falls back to local voices).
+                All spoken lines are concurrently displayed in an always-visible text bubble (<span className="font-data text-teal">aria-hidden=&quot;true&quot;</span>) for deaf users. If no sound plays: verify the browser is not muted in the <strong>Windows Volume Mixer</strong>, ensure an English voice is installed in Windows Settings, and note that Chiku automatically falls back to local voices if cloud voices stall.
               </p>
             </div>
           </div>

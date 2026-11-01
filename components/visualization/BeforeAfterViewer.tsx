@@ -17,6 +17,7 @@ import {
   animate,
 } from 'framer-motion';
 import { DataPanel } from '@/components/ui/DataPanel';
+import { useAccessibility } from '@/context';
 import type { DateRange } from '@/types';
 
 interface BeforeAfterViewerProps {
@@ -45,6 +46,8 @@ export default function BeforeAfterViewer({
   const [isDragging, setIsDragging] = useState(false);
   const [showChangeMap, setShowChangeMap] = useState(true);
   const [displayPosition, setDisplayPosition] = useState(50);
+  const { emitEvent } = useAccessibility();
+  const hasEmittedSliderHintRef = useRef(false);
 
   const [prevBeforeImage, setPrevBeforeImage] = useState(beforeImage);
   const [beforeError, setBeforeError] = useState(false);
@@ -233,8 +236,16 @@ export default function BeforeAfterViewer({
       setIsPlaying(false);
       setIsDragging(true);
       handleMove(clientX);
+      if (!hasEmittedSliderHintRef.current) {
+        hasEmittedSliderHintRef.current = true;
+        emitEvent({
+          type: 'hint',
+          message: 'Drag the slider to compare the two dates.',
+          data: { hintId: 'slider' },
+        });
+      }
     },
-    [handleMove]
+    [handleMove, emitEvent]
   );
 
   useEffect(() => {
@@ -497,6 +508,14 @@ export default function BeforeAfterViewer({
                 e.preventDefault();
               }
               setIsPlaying(false);
+              if (!hasEmittedSliderHintRef.current) {
+                hasEmittedSliderHintRef.current = true;
+                emitEvent({
+                  type: 'hint',
+                  message: 'Drag the slider to compare the two dates.',
+                  data: { hintId: 'slider' },
+                });
+              }
               const curr = progress.get();
               if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
                 const next = Math.max(0, curr - 5);

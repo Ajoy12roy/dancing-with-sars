@@ -3,6 +3,7 @@
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { AreaOfInterest } from '@/types';
 import type { CaseStudy } from '@/lib/case-studies';
+import { useAccessibility } from '@/context';
 import { getSensitivityClass, getSensitivityDelta, getSensitivityParameterLabel } from '@/lib/sensitivity';
 
 interface MapTextSummaryProps {
@@ -12,6 +13,7 @@ interface MapTextSummaryProps {
 }
 
 export function MapTextSummary({ data, aoi, caseStudy }: MapTextSummaryProps) {
+  const { emitEvent } = useAccessibility();
   const caseTitle = caseStudy?.title || aoi?.name || data.aoiId || 'Active Case';
   const modeLabel = caseStudy?.modeLabel || aoi?.mode || data.mode || 'SAR change';
 
@@ -52,7 +54,18 @@ export function MapTextSummary({ data, aoi, caseStudy }: MapTextSummaryProps) {
   const reliabilityNote = caseStudy?.honestyNote || data.honestyNote;
 
   return (
-    <details className="mt-3 border border-hairline bg-surface p-3 text-xs text-ink rounded-[2px] group">
+    <details
+      className="mt-3 border border-hairline bg-surface p-3 text-xs text-ink rounded-[2px] group"
+      onToggle={(e) => {
+        if ((e.currentTarget as HTMLDetailsElement).open) {
+          emitEvent({
+            type: 'hint',
+            message: 'This is a text description of the map.',
+            data: { hintId: 'text-summary' },
+          });
+        }
+      }}
+    >
       <summary className="font-semibold text-ink cursor-pointer hover:text-teal focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 flex items-center justify-between list-none">
         <span className="flex items-center gap-2">
           <span className="w-2 h-2 bg-teal inline-block" />

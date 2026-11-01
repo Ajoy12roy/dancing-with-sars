@@ -8,6 +8,19 @@ export const MODE_LABELS = {
   'surface-water': 'Surface water',
 };
 
+export const PAGE_INTROS = {
+  '/': "This is Terra Pulse. It compares radar images from two dates to show where Earth's surface has changed.",
+  '/explore': 'Pick a case study, or upload your own pair of radar images.',
+  '/how-it-works': 'Here is how the method works, from the radar image to the changed area.',
+  '/data-sources': "Our demo cases use Sentinel-1 radar through Google Earth Engine. NASA's ASF archive also distributes the same data.",
+};
+
+export const INTERACTION_HINTS = {
+  slider: 'Drag the slider to compare the two dates.',
+  sensitivity: 'This table shows how the result changes if the threshold moves. A wide range means less certainty.',
+  'text-summary': 'This is a text description of the map.',
+};
+
 function getSensitivityClass(sens) {
   const span = sens.maxAreaKm2 - sens.minAreaKm2;
   const ratio = sens.centre > 0 ? span / sens.centre : 0;
@@ -55,8 +68,30 @@ function buildChikuScript(event, context) {
   switch (event.type) {
     case 'mode-changed': {
       const modeKey = event.data?.mode || context?.mode || 'flood';
-      const label = MODE_LABELS[modeKey] || modeKey;
-      return `${label} mode is ready.`.slice(0, 195);
+      switch (modeKey) {
+        case 'flood':
+          return 'Flood monitoring mode is ready. It maps new water between the two dates.';
+        case 'deforestation':
+          return 'Deforestation mode is ready. It looks for a drop in radar backscatter that can indicate canopy loss.';
+        case 'river-erosion':
+          return 'River change mode is ready. It maps net land-to-water change along the river between the two dates.';
+        case 'surface-water':
+          return 'Surface water mode is ready. It maps open water and how it changes between two dates.';
+        default: {
+          const label = MODE_LABELS[modeKey] || modeKey;
+          return `${label} mode is ready.`.slice(0, 195);
+        }
+      }
+    }
+
+    case 'page-intro': {
+      const route = event.data?.route || '/';
+      return PAGE_INTROS[route] || PAGE_INTROS['/'] || '';
+    }
+
+    case 'hint': {
+      const hintId = event.data?.hintId || '';
+      return INTERACTION_HINTS[hintId] || event.message || '';
     }
 
     case 'case-selected': {
@@ -139,10 +174,22 @@ console.log('Running Chiku Voice Guide Script Tests...\n');
 
 // 1. Mode opened tests
 const modeTests = [
-  { mode: 'flood', expected: 'Flood mode is ready.' },
-  { mode: 'river-erosion', expected: 'River erosion mode is ready.' },
-  { mode: 'deforestation', expected: 'Deforestation mode is ready.' },
-  { mode: 'surface-water', expected: 'Surface water mode is ready.' },
+  {
+    mode: 'flood',
+    expected: 'Flood monitoring mode is ready. It maps new water between the two dates.',
+  },
+  {
+    mode: 'river-erosion',
+    expected: 'River change mode is ready. It maps net land-to-water change along the river between the two dates.',
+  },
+  {
+    mode: 'deforestation',
+    expected: 'Deforestation mode is ready. It looks for a drop in radar backscatter that can indicate canopy loss.',
+  },
+  {
+    mode: 'surface-water',
+    expected: 'Surface water mode is ready. It maps open water and how it changes between two dates.',
+  },
 ];
 for (const mt of modeTests) {
   const line = buildChikuScript({ type: 'mode-changed', data: { mode: mt.mode }, message: '' });
@@ -309,5 +356,56 @@ const aiInterpretation = buildChikuScript({ type: 'ai-insight-loaded', message: 
 assert.equal(aiInterpretation, 'The AI interpretation is ready below.');
 assert.ok(aiInterpretation.length < 200, 'AI interpretation loaded under 200 chars');
 console.log('✓ AI interpretation loaded test passed');
+
+// 9. Page intro tests
+const pageRoutes = [
+  {
+    route: '/',
+    expected:
+      "This is Terra Pulse. It compares radar images from two dates to show where Earth's surface has changed.",
+  },
+  {
+    route: '/explore',
+    expected: 'Pick a case study, or upload your own pair of radar images.',
+  },
+  {
+    route: '/how-it-works',
+    expected: 'Here is how the method works, from the radar image to the changed area.',
+  },
+  {
+    route: '/data-sources',
+    expected:
+      "Our demo cases use Sentinel-1 radar through Google Earth Engine. NASA's ASF archive also distributes the same data.",
+  },
+];
+for (const pr of pageRoutes) {
+  const line = buildChikuScript({ type: 'page-intro', data: { route: pr.route }, message: '' });
+  assert.equal(line, pr.expected, `Page intro failed for ${pr.route}`);
+  assert.ok(line.length < 200, `Page intro length under 200 for ${pr.route}`);
+}
+console.log('✓ Page intro tests passed (/, /explore, /how-it-works, /data-sources)');
+
+// 10. Interaction hint tests
+const hints = [
+  {
+    hintId: 'slider',
+    expected: 'Drag the slider to compare the two dates.',
+  },
+  {
+    hintId: 'sensitivity',
+    expected:
+      'This table shows how the result changes if the threshold moves. A wide range means less certainty.',
+  },
+  {
+    hintId: 'text-summary',
+    expected: 'This is a text description of the map.',
+  },
+];
+for (const h of hints) {
+  const line = buildChikuScript({ type: 'hint', data: { hintId: h.hintId }, message: '' });
+  assert.equal(line, h.expected, `Hint failed for ${h.hintId}`);
+  assert.ok(line.length < 200, `Hint length under 200 for ${h.hintId}`);
+}
+console.log('✓ Interaction hint tests passed (slider, sensitivity, text-summary)');
 
 console.log('\nAll Chiku Voice Guide test cases passed successfully!');

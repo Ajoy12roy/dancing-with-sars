@@ -5,7 +5,13 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Volume2, VolumeX, Minimize2, Maximize2, Sparkles } from 'lucide-react';
 import { useAccessibility, type AccessibilityEvent } from '@/context';
-import { buildChikuScript, type ChikuContextData } from '@/lib/chiku-script';
+import {
+  buildChikuScript,
+  formatRangeString,
+  PAGE_INTROS,
+  type ChikuContextData,
+} from '@/lib/chiku-script';
+import { getSensitivityClass } from '@/lib/sensitivity';
 import {
   ChikuSpeechQueue,
   type ChikuEventGroup,
@@ -311,6 +317,11 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const availableVoicesRef = useRef<SpeechSynthesisVoice[]>(availableVoices);
   const hasSpokenWelcomeRef = useRef<boolean>(false);
 
+  const cachedContextRef = useRef<ChikuContextData>(contextData || {});
+  const spokenPagesRef = useRef<Set<string>>(new Set());
+  const spokenHintsRef = useRef<Set<string>>(new Set());
+  const userHasInteractedRef = useRef<boolean>(false);
+
   const talkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contextRef = useRef(contextData);
@@ -325,7 +336,54 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
   useEffect(() => {
     contextRef.current = contextData;
+    if (contextData) {
+      cachedContextRef.current = { ...cachedContextRef.current, ...contextData };
+    }
   }, [contextData]);
+
+  // Track user interaction for speech policies
+  useEffect(() => {
+    const markInteraction = () => {
+      userHasInteractedRef.current = true;
+    };
+    window.addEventListener('click', markInteraction, { capture: true });
+    window.addEventListener('pointerdown', markInteraction, { capture: true });
+    window.addEventListener('keydown', markInteraction, { capture: true });
+    return () => {
+      window.removeEventListener('click', markInteraction, { capture: true });
+      window.removeEventListener('pointerdown', markInteraction, { capture: true });
+      window.removeEventListener('keydown', markInteraction, { capture: true });
+    };
+  }, []);
+
+  // Page entry intro (once per page per session when voice is on and user interacted)
+  useEffect(() => {
+    if (!isMounted || !isVoiceEnabled || !userHasInteractedRef.current) return;
+    const introText = PAGE_INTROS[pathname];
+    if (!introText) return;
+
+    const sessionKey = `chiku_page_${pathname}`;
+    let alreadySpoken = spokenPagesRef.current.has(pathname);
+    if (!alreadySpoken && typeof window !== 'undefined') {
+      try {
+        alreadySpoken = sessionStorage.getItem(sessionKey) === '1';
+      } catch {}
+    }
+
+    if (alreadySpoken) return;
+
+    spokenPagesRef.current.add(pathname);
+    try {
+      sessionStorage.setItem(sessionKey, '1');
+    } catch {}
+
+    queueRef.current?.enqueue({
+      key: `page:${pathname}`,
+      group: 'page',
+      priority: 2,
+      parts: [introText],
+    });
+  }, [pathname, isMounted, isVoiceEnabled]);
 
   // Load available speech synthesis voices
   useEffect(() => {
@@ -527,6 +585,94 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     });
   };
 
+  // Explain this view: speaks context breakdown on /explore or page intro on other pages
+  const handleExplainView = () => {
+    if (!isVoiceEnabled) {
+      setUserVoiceEnabled(true);
+      try {
+        localStorage.setItem('terrapulse-chiku-voice', 'on');
+      } catch {}
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+    }
+
+    if (pathname !== '/explore') {
+      const intro = PAGE_INTROS[pathname] || PAGE_INTROS['/'] || '';
+      setCurrentText(intro);
+      queueRef.current?.enqueue({
+        key: `explain-view:${pathname}:${Date.now()}`,
+        group: 'view',
+        priority: 3,
+        parts: [intro],
+      });
+      return;
+    }
+
+    const ctx = cachedContextRef.current;
+    if (!ctx || !ctx.caseTitle || ctx.caseId === 'upload') {
+      const exploreIntro = PAGE_INTROS['/explore'] || '';
+      setCurrentText(exploreIntro);
+      queueRef.current?.enqueue({
+        key: `explain-view:explore:${Date.now()}`,
+        group: 'view',
+        priority: 3,
+        parts: [exploreIntro],
+      });
+      return;
+    }
+
+    const parts: string[] = [];
+    const beforeStr = formatRangeString(ctx.beforeRange);
+    const afterStr = formatRangeString(ctx.afterRange);
+    if (beforeStr && afterStr) {
+      parts.push(`Loaded ${ctx.caseTitle}. Comparing ${beforeStr} with ${afterStr}.`);
+    } else {
+      parts.push(`Loaded ${ctx.caseTitle}.`);
+    }
+
+    if (typeof ctx.affectedAreaKm2 === 'number' && typeof ctx.percentChanged === 'number') {
+      parts.push(
+        `About ${ctx.affectedAreaKm2.toFixed(1)} square kilometres changed, ${ctx.percentChanged.toFixed(1)} percent of the area.`
+      );
+    } else if (typeof ctx.affectedAreaKm2 === 'number') {
+      parts.push(`About ${ctx.affectedAreaKm2.toFixed(1)} square kilometres changed across the area.`);
+    }
+
+    if (ctx.sensitivity) {
+      const cls = getSensitivityClass(ctx.sensitivity);
+      const minStr = ctx.sensitivity.minAreaKm2.toFixed(1);
+      const maxStr = ctx.sensitivity.maxAreaKm2.toFixed(1);
+      if (cls === 'high') {
+        parts.push(
+          `High sensitivity: treat this number as indicative only, spanning ${minStr} to ${maxStr} square kilometres.`
+        );
+      } else if (cls === 'moderate') {
+        parts.push(
+          `Moderate sensitivity, spanning ${minStr} to ${maxStr} square kilometres across threshold offsets.`
+        );
+      } else {
+        parts.push(
+          `Stable classification, spanning ${minStr} to ${maxStr} square kilometres under threshold variation.`
+        );
+      }
+    }
+
+    if (ctx.honestyNote) {
+      parts.push(ctx.honestyNote.slice(0, 195));
+    }
+
+    if (parts.length > 0 && parts[0]) {
+      setCurrentText(parts[0]);
+      queueRef.current?.enqueue({
+        key: `explain-view:case:${ctx.caseId || 'selected'}:${Date.now()}`,
+        group: 'view',
+        priority: 3,
+        parts,
+      });
+    }
+  };
+
   // Persist minimized state
   const toggleMinimized = () => {
     const next = !isMinimized;
@@ -541,7 +687,42 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   // Subscribe to accessibility announcer events ONCE (stable subscription)
   useEffect(() => {
     const unsubscribe = subscribe((event: AccessibilityEvent) => {
-      const sentence = buildChikuScript(event, contextRef.current);
+      // Update cached context from event data
+      if (event.data) {
+        cachedContextRef.current = {
+          ...cachedContextRef.current,
+          ...(event.data as Record<string, unknown>),
+        };
+      }
+
+      // Handle interaction hints
+      if (event.type === 'hint') {
+        const eventData = event.data as Record<string, unknown> | undefined;
+        const hintId = (eventData?.hintId as string) || event.message || '';
+        const sessionKey = `chiku_hint_${hintId}`;
+        let alreadySpoken = spokenHintsRef.current.has(hintId);
+        if (!alreadySpoken && typeof window !== 'undefined') {
+          try {
+            alreadySpoken = sessionStorage.getItem(sessionKey) === '1';
+          } catch {}
+        }
+        if (alreadySpoken) return;
+
+        spokenHintsRef.current.add(hintId);
+        try {
+          sessionStorage.setItem(sessionKey, '1');
+        } catch {}
+
+        queueRef.current?.enqueue({
+          key: `hint:${hintId}`,
+          group: 'hint',
+          priority: 1,
+          parts: [event.message],
+        });
+        return;
+      }
+
+      const sentence = buildChikuScript(event, cachedContextRef.current);
       if (!sentence) return;
 
       if (event.type === 'analysis-ready') {
@@ -755,14 +936,24 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
             {voiceStatus}
           </span>
           {hasSpeechSupport && (
-            <button
-              type="button"
-              onClick={handleTestVoice}
-              className="px-1.5 py-0.5 shrink-0 text-[10px] font-sans font-medium text-teal hover:text-ink border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
-              title="Test Chiku voice narration"
-            >
-              Test voice
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleExplainView}
+                className="px-1.5 py-0.5 text-[10px] font-sans font-medium text-ink hover:text-teal border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+                title="Explain current view with Chiku"
+              >
+                Explain this view
+              </button>
+              <button
+                type="button"
+                onClick={handleTestVoice}
+                className="px-1.5 py-0.5 text-[10px] font-sans font-medium text-teal hover:text-ink border border-hairline rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+                title="Test Chiku voice narration"
+              >
+                Test voice
+              </button>
+            </div>
           )}
         </div>
         <div className="flex items-center justify-between text-[9px] text-text-muted">

@@ -15,6 +15,7 @@ export interface ChikuContextData {
   percentChanged?: number;
   sensitivity?: SensitivityData;
   hasValidation?: boolean;
+  honestyNote?: string;
   beforeRange?: DateRangeLike | string;
   afterRange?: DateRangeLike | string;
 }
@@ -26,7 +27,20 @@ export const MODE_LABELS: Record<string, string> = {
   'surface-water': 'Surface water',
 };
 
-function formatRangeString(range: DateRangeLike | string | undefined | null): string | null {
+export const PAGE_INTROS: Record<string, string> = {
+  '/': "This is Terra Pulse. It compares radar images from two dates to show where Earth's surface has changed.",
+  '/explore': 'Pick a case study, or upload your own pair of radar images.',
+  '/how-it-works': 'Here is how the method works, from the radar image to the changed area.',
+  '/data-sources': "Our demo cases use Sentinel-1 radar through Google Earth Engine. NASA's ASF archive also distributes the same data.",
+};
+
+export const INTERACTION_HINTS: Record<string, string> = {
+  slider: 'Drag the slider to compare the two dates.',
+  sensitivity: 'This table shows how the result changes if the threshold moves. A wide range means less certainty.',
+  'text-summary': 'This is a text description of the map.',
+};
+
+export function formatRangeString(range: DateRangeLike | string | undefined | null): string | null {
   if (!range) return null;
   if (typeof range === 'string') {
     const trimmed = range.trim();
@@ -74,8 +88,30 @@ export function buildChikuScript(
   switch (event.type) {
     case 'mode-changed': {
       const modeKey = (event.data?.mode as string) || context?.mode || 'flood';
-      const label = MODE_LABELS[modeKey] || modeKey;
-      return `${label} mode is ready.`.slice(0, 195);
+      switch (modeKey) {
+        case 'flood':
+          return 'Flood monitoring mode is ready. It maps new water between the two dates.';
+        case 'deforestation':
+          return 'Deforestation mode is ready. It looks for a drop in radar backscatter that can indicate canopy loss.';
+        case 'river-erosion':
+          return 'River change mode is ready. It maps net land-to-water change along the river between the two dates.';
+        case 'surface-water':
+          return 'Surface water mode is ready. It maps open water and how it changes between two dates.';
+        default: {
+          const label = MODE_LABELS[modeKey] || modeKey;
+          return `${label} mode is ready.`.slice(0, 195);
+        }
+      }
+    }
+
+    case 'page-intro': {
+      const route = (event.data?.route as string) || '/';
+      return PAGE_INTROS[route] || PAGE_INTROS['/'] || '';
+    }
+
+    case 'hint': {
+      const hintId = (event.data?.hintId as string) || '';
+      return INTERACTION_HINTS[hintId] || event.message || '';
     }
 
     case 'case-selected': {

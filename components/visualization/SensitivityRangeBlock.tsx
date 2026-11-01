@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import type { SensitivityData } from '@/types';
+import { useAccessibility } from '@/context';
 import {
   getSensitivityParameterLabel,
   getSensitivityDelta,
@@ -19,6 +20,7 @@ export default function SensitivityRangeBlock({
   headlineResult,
   className = '',
 }: SensitivityRangeBlockProps) {
+  const { emitEvent } = useAccessibility();
   const delta = useMemo(() => {
     if (!sensitivity) return 0;
     return getSensitivityDelta(sensitivity);
@@ -137,7 +139,19 @@ export default function SensitivityRangeBlock({
       </div>
 
       {/* Expandable Disclosure Table */}
-      <details className="group border border-hairline rounded-[2px] bg-surface text-xs font-sans">
+      <details
+        className="group border border-hairline rounded-[2px] bg-surface text-xs font-sans"
+        onToggle={(e) => {
+          if ((e.currentTarget as HTMLDetailsElement).open) {
+            emitEvent({
+              type: 'hint',
+              message:
+                'This table shows how the result changes if the threshold moves. A wide range means less certainty.',
+              data: { hintId: 'sensitivity' },
+            });
+          }
+        }}
+      >
         <summary className="px-3 py-2 cursor-pointer text-text-secondary hover:text-text-primary flex items-center justify-between transition-colors select-none">
           <span className="font-medium">
             View 5-point sensitivity calibration table ({steps.length} values)

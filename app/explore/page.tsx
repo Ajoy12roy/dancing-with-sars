@@ -15,13 +15,13 @@ import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
-import { ChikuGuide } from '@/components/chiku/ChikuGuide';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
   getReadyCaseStudies,
   getCaseStudyById,
 } from '@/lib/case-studies';
+import { getSensitivityForCase } from '@/lib/sensitivity';
 import type { AreaOfInterest, AnalysisMode } from '@/types';
 
 function parseModeParam(param: string | null): AnalysisMode | null {
@@ -243,6 +243,8 @@ function ExploreContent() {
           mode: found.module || mode,
           beforeRange: found.beforeRange,
           afterRange: found.afterRange,
+          sensitivity: found.sensitivity || getSensitivityForCase(found.precomputedId || found.id),
+          honestyNote: found.honestyNote,
         },
       });
     }
@@ -250,6 +252,11 @@ function ExploreContent() {
       const targetMode = found.module as AnalysisMode;
       if (targetMode !== mode) {
         setMode(targetMode);
+        emitEvent({
+          type: 'mode-changed',
+          message: `${MODE_INFO_MAP[targetMode]?.label || targetMode} mode is ready.`,
+          data: { mode: targetMode },
+        });
       }
       const targetParam = modeToParam(targetMode);
       if (rawModeParam !== targetParam) {
@@ -755,20 +762,6 @@ function ExploreContent() {
           )}
         </div>
       </div>
-
-      {/* Chiku Voice & Character Guide */}
-      <ChikuGuide
-        contextData={{
-          caseTitle: currentCaseStudy?.title || activeDemoAoi?.name,
-          mode,
-          affectedAreaKm2: displayData?.affectedAreaKm2,
-          percentChanged: displayData?.percentChanged,
-          sensitivity: displayData?.sensitivity || currentCaseStudy?.sensitivity,
-          beforeRange: currentCaseStudy?.beforeRange,
-          afterRange: currentCaseStudy?.afterRange,
-          hasValidation: Boolean(currentCaseStudy?.validation),
-        }}
-      />
     </div>
   );
 }

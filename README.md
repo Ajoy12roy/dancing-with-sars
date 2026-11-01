@@ -304,10 +304,13 @@ TerraPulse was built following WCAG 2.2 AA guidelines to ensure radar observatio
 
 ### Chiku Voice Guide
 
-TerraPulse features an interactive character guide, **Chiku**, on the `/explore` dashboard:
+TerraPulse features an interactive character guide, **Chiku**, mounted across key pages (`/`, `/explore`, `/how-it-works`, `/data-sources`):
+- **What Chiku Speaks**: Deterministic, natural explanations for all core activities—four monitoring mode descriptions (Flood, Deforestation, River change, Surface water), case studies with date ranges, upload validation and sanitization, page orientations, interaction hints (before/after slider movement, sensitivity disclosure tables, text map summaries), and change detection findings.
+- **Explain This View**: A dedicated **Explain this view** button in the guide panel provides an on-demand, user-gestured vocal breakdown of the currently selected case (dates, area, sensitivity span, and honesty note) or active page orientation.
 - **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), generating audio locally on your device with zero cloud API latency, zero external network calls, and no model generation (scripts are pure deterministic functions).
-- **Off by Default & Gesture Activation**: Voice narration is strictly **OFF by default** to preserve accessibility etiquette and respect quiet environments. Modern browsers block speech synthesis until an explicit user gesture occurs; speech starts only after pressing **Voice on** or **Test voice**. For returning users with voice saved as enabled in `localStorage`, speech unlocks on the first click or keypress.
+- **Off by Default & Gesture Activation**: Voice narration is strictly **OFF by default** to preserve accessibility etiquette and respect quiet environments. Modern browsers block speech synthesis until an explicit user gesture occurs; speech starts only after pressing **Voice on**, **Test voice**, or **Explain this view**. For returning users with voice saved as enabled in `localStorage`, speech unlocks on the first click or keypress.
 - **Status Line & Test Voice Button**: The Chiku panel features an in-panel plain-text status line (`Voice off`, `Voice ready (<voice name>)`, `Speaking...`, `Blocked by browser: press Voice on`, `No voice found on this device`, `Voice error: <error>`), alongside a **Test voice** button to verify playback immediately.
+- **Diagnostic Debug Panel**: Enabling `localStorage.setItem('chikuDebug', '1')` activates a real-time debug panel attached to Chiku, recording the last 12 events, priority rankings, scheduling decisions (spoken, queued, replaced, discarded-stale), selected voices, and speech synthesis states.
 - **Voice Troubleshooting**:
   - **Muted tab or application**: Verify that the browser tab or browser application is not muted in the operating system volume mixer (e.g. Windows Volume Mixer).
   - **Missing speech voices**: Verify that an English voice is installed in system settings (e.g. Windows Settings > Time & language > Speech > Manage voices).

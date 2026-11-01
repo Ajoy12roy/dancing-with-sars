@@ -8,6 +8,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { ChikuLayoutWrapper } from '@/components/chiku/ChikuLayoutWrapper';
 import { AnalysisModeProvider, AccessibilityProvider } from '@/context';
 import './globals.css';
 
@@ -142,6 +143,7 @@ export default function RootLayout({
             <Navbar />
             <main id="main-content" className="flex-1">{children}</main>
             <Footer />
+            <ChikuLayoutWrapper />
           </AnalysisModeProvider>
         </AccessibilityProvider>
       </body>
