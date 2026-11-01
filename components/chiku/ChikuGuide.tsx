@@ -6,6 +6,14 @@ import { usePathname } from 'next/navigation';
 import { Volume2, VolumeX, Minimize2, Maximize2, Sparkles } from 'lucide-react';
 import { useAccessibility, type AccessibilityEvent } from '@/context';
 import { buildChikuScript, type ChikuContextData } from '@/lib/chiku-script';
+import {
+  ChikuSpeechQueue,
+  type ChikuEventGroup,
+  type ChikuPriority,
+  type SpeechAdapter,
+  type SpeechAdapterHandlers,
+  type SpeechDecisionLog,
+} from '@/lib/chiku-speech-queue';
 
 export const CHIKU_WELCOME_TEXT =
   "Welcome to Terra Pulse! I'm Chiku, your guide to seeing Earth change through radar.";
@@ -13,8 +21,6 @@ export const CHIKU_TEST_VOICE_TEXT = 'Chiku voice test.';
 
 export const CHIKU_SPEECH_RATE = 0.95;
 export const CHIKU_SPEECH_PITCH = 1.05;
-const CANCEL_SPEAK_DELAY_MS = 80;
-const WATCHDOG_TIMEOUT_MS = 1500;
 
 interface ChikuGuideProps {
   contextData?: ChikuContextData;
@@ -95,36 +101,6 @@ export interface ChikuDebugEvent {
   synthState: string;
 }
 
-function logChikuEvent(
-  name: string,
-  priority: number,
-  voiceEnabled: boolean,
-  willSpeak: boolean,
-  voice: SpeechSynthesisVoice | null,
-  before: { speaking: boolean; pending: boolean; paused: boolean },
-  after?: { speaking: boolean; pending: boolean; paused: boolean },
-  dropReason?: string
-) {
-  if (!isChikuDebug()) return;
-  console.log(`[Chiku:Event] ${name}`, {
-    name,
-    priority,
-    voiceEnabled,
-    speakCalled: willSpeak,
-    dropReason,
-    selectedVoice: voice
-      ? { name: voice.name, localService: voice.localService, lang: voice.lang }
-      : 'default',
-    speechStateBefore: before,
-    speechStateAfter: after,
-  });
-}
-
-function logUtterance(event: 'onstart' | 'onend' | 'onerror', details: Record<string, unknown>) {
-  if (!isChikuDebug()) return;
-  console.log(`[Chiku:Utterance:${event}]`, details);
-}
-
 function selectBestVoice(
   voices: SpeechSynthesisVoice[],
   excludeVoice?: SpeechSynthesisVoice | null
@@ -171,25 +147,58 @@ function selectBestVoice(
   return pool[0] || null;
 }
 
-function getEventPriority(eventType: string): number {
+function getEventGroup(eventType: string): ChikuEventGroup {
   switch (eventType) {
-    case 'ai-insight-loaded':
-    case 'ai-interpretation':
-      return 1;
     case 'mode-changed':
     case 'case-selected':
-    case 'upload-accepted':
-      return 2;
+    case 'welcome':
+    case 'test-voice':
+    case 'explain-view':
+      return 'view';
     case 'processing':
     case 'analysis-loading':
     case 'analysis-ready':
     case 'analysis-failed':
+      return 'analysis';
+    case 'upload-accepted':
     case 'upload-rejected':
+      return 'upload';
+    case 'ai-insight-loaded':
+    case 'ai-interpretation':
+      return 'ai';
+    case 'page-intro':
+      return 'page';
+    case 'hint':
+      return 'hint';
+    case 'notes':
+      return 'notes';
+    default:
+      return 'view';
+  }
+}
+
+function getEventPriority(eventType: string): ChikuPriority {
+  switch (eventType) {
     case 'welcome':
     case 'test-voice':
+    case 'explain-view':
+    case 'analysis-ready':
+    case 'analysis-failed':
+    case 'upload-rejected':
       return 3;
-    default:
+    case 'mode-changed':
+    case 'case-selected':
+    case 'upload-accepted':
+    case 'page-intro':
       return 2;
+    case 'hint':
+    case 'ai-insight-loaded':
+    case 'ai-interpretation':
+    case 'processing':
+    case 'analysis-loading':
+    case 'notes':
+    default:
+      return 1;
   }
 }
 
@@ -297,33 +306,28 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   );
 
   const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const currentPriorityRef = useRef<number>(0);
-  const pendingSpeakTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const queueRef = useRef<ChikuSpeechQueue | null>(null);
+  const isVoiceEnabledRef = useRef<boolean>(isVoiceEnabled);
+  const availableVoicesRef = useRef<SpeechSynthesisVoice[]>(availableVoices);
   const hasSpokenWelcomeRef = useRef<boolean>(false);
-  const hasStartedRef = useRef<boolean>(false);
 
   const talkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const contextRef = useRef(contextData);
 
-  const speakLineRef = useRef<
-    | ((
-        text: string,
-        eventName: string,
-        priority: number,
-        isSynchronousGesture?: boolean,
-        retryCount?: number,
-        voiceOverride?: SpeechSynthesisVoice | null
-      ) => void)
-    | null
-  >(null);
+  useEffect(() => {
+    isVoiceEnabledRef.current = isVoiceEnabled;
+  }, [isVoiceEnabled]);
+
+  useEffect(() => {
+    availableVoicesRef.current = availableVoices;
+  }, [availableVoices]);
 
   useEffect(() => {
     contextRef.current = contextData;
   }, [contextData]);
 
-  // Initialize SpeechSynthesis voices safely
+  // Load available speech synthesis voices
   useEffect(() => {
     if (!isMounted || typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return;
@@ -342,231 +346,108 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     window.speechSynthesis.onvoiceschanged = loadVoices;
 
     return () => {
-      // Clean up voiceschanged listener
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.onvoiceschanged = null;
       }
     };
   }, [isMounted]);
 
-  // Cancel speech on route change or unmount
+  // Initialize speech queue with injected SpeechAdapter
+  useEffect(() => {
+    if (!isMounted || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return;
+    }
+
+    const adapter: SpeechAdapter = {
+      speak: (text: string, handlers: SpeechAdapterHandlers, isRetry?: boolean) => {
+        const synth = window.speechSynthesis;
+        synth.resume();
+
+        const voices = availableVoicesRef.current;
+        const primaryVoice = selectBestVoice(voices);
+        const selectedVoice = isRetry ? selectBestVoice(voices, primaryVoice) : primaryVoice;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+        utterance.rate = CHIKU_SPEECH_RATE;
+        utterance.pitch = CHIKU_SPEECH_PITCH;
+        utterance.volume = 1;
+
+        activeUtteranceRef.current = utterance;
+
+        utterance.onstart = () => {
+          handlers.onStart?.();
+        };
+
+        utterance.onend = () => {
+          activeUtteranceRef.current = null;
+          handlers.onEnd?.();
+        };
+
+        utterance.onerror = (e) => {
+          activeUtteranceRef.current = null;
+          handlers.onError?.(e.error);
+        };
+
+        synth.speak(utterance);
+      },
+      cancel: () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        activeUtteranceRef.current = null;
+      },
+      resume: () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+        }
+      },
+    };
+
+    const queue = new ChikuSpeechQueue({
+      adapter,
+      isVoiceEnabled: () => isVoiceEnabledRef.current,
+      onSpeakingStateChange: (speaking, text) => {
+        setIsSpeaking(speaking);
+        if (text) {
+          setCurrentText(text);
+        }
+        if (!speaking) {
+          setCurrentSprite('idle');
+        }
+      },
+      onStatusMessage: (msg) => {
+        setVoiceStatusOverride(msg);
+      },
+      onDecision: (d: SpeechDecisionLog) => {
+        const best = selectBestVoice(availableVoicesRef.current);
+        const voiceName = best ? best.name : 'default';
+        recordDebugEvent(
+          d.eventKey,
+          d.priority,
+          `${d.decision} (${d.reason})`,
+          voiceName
+        );
+      },
+    });
+
+    queueRef.current = queue;
+
+    return () => {
+      queue.stop();
+      queueRef.current = null;
+    };
+  }, [isMounted, recordDebugEvent]);
+
+  // Cancel speech on route change
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      if (pendingSpeakTimerRef.current) {
-        clearTimeout(pendingSpeakTimerRef.current);
-        pendingSpeakTimerRef.current = null;
-      }
-      if (watchdogTimerRef.current) {
-        clearTimeout(watchdogTimerRef.current);
-        watchdogTimerRef.current = null;
-      }
+      queueRef.current?.stop();
     };
   }, [pathname]);
-
-  // Core Speech Utterance Runner
-  const speakLine = useCallback(
-    (
-      text: string,
-      eventName: string,
-      priority: number,
-      isSynchronousGesture: boolean = false,
-      retryCount: number = 0,
-      voiceOverride?: SpeechSynthesisVoice | null
-    ) => {
-      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-      const synth = window.speechSynthesis;
-      const beforeState = { speaking: synth.speaking, pending: synth.pending, paused: synth.paused };
-
-      // If voice is not enabled and this is not a gesture test voice / welcome call
-      if (!isVoiceEnabled && eventName !== 'test-voice' && eventName !== 'welcome') {
-        logChikuEvent(eventName, priority, false, false, null, beforeState, undefined, 'voice off');
-        recordDebugEvent(eventName, priority, 'dropped (voice off)', 'none', beforeState);
-        return;
-      }
-
-      // Priority check: equal or higher priority cancels & speaks; lower is dropped
-      if (synth.speaking && priority < currentPriorityRef.current) {
-        const dropReason = `dropped (priority ${priority} < current ${currentPriorityRef.current} while speaking)`;
-        logChikuEvent(eventName, priority, true, false, null, beforeState, undefined, dropReason);
-        recordDebugEvent(eventName, priority, dropReason, 'none', beforeState);
-        return;
-      }
-
-      // Clear any pending delayed speak timer from an earlier event
-      if (pendingSpeakTimerRef.current) {
-        clearTimeout(pendingSpeakTimerRef.current);
-        pendingSpeakTimerRef.current = null;
-      }
-      if (watchdogTimerRef.current) {
-        clearTimeout(watchdogTimerRef.current);
-        watchdogTimerRef.current = null;
-      }
-
-      currentPriorityRef.current = priority;
-
-      // For analysis-ready with sensitivity, split into headline utterance + second sensitivity utterance
-      let primaryText = text;
-      let followUpSentence: string | null = null;
-      if (eventName === 'analysis-ready') {
-        const match = text.match(
-          /^(Analysis complete\..*?percent of the area\.|Analysis complete\..*?across the area\.)\s+(.+)$/
-        );
-        if (match && match[1] && match[2]) {
-          primaryText = match[1];
-          followUpSentence = match[2];
-        }
-      }
-
-      const performSpeak = () => {
-        try {
-          synth.resume();
-          const selectedVoice =
-            voiceOverride !== undefined ? voiceOverride : selectBestVoice(availableVoices);
-
-          const utterance = new SpeechSynthesisUtterance(primaryText);
-          utterance.lang = 'en-US';
-          if (selectedVoice) {
-            utterance.voice = selectedVoice;
-          }
-          utterance.rate = CHIKU_SPEECH_RATE;
-          utterance.pitch = CHIKU_SPEECH_PITCH;
-          utterance.volume = 1;
-
-          activeUtteranceRef.current = utterance;
-          hasStartedRef.current = false;
-
-          // Watchdog: verify onstart fires within WATCHDOG_TIMEOUT_MS
-          watchdogTimerRef.current = setTimeout(() => {
-            if (!hasStartedRef.current && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-              if (!window.speechSynthesis.speaking) {
-                logUtterance('onerror', { error: 'watchdog-timeout-no-start', retryCount });
-                synth.cancel();
-                synth.resume();
-                if (retryCount === 0) {
-                  const fallbackVoice = selectBestVoice(availableVoices, selectedVoice);
-                  speakLineRef.current?.(primaryText, eventName, priority, false, 1, fallbackVoice);
-                } else {
-                  setVoiceStatusOverride('No voice found on this device');
-                  setIsSpeaking(false);
-                  setCurrentSprite('idle');
-                  currentPriorityRef.current = 0;
-                  activeUtteranceRef.current = null;
-                }
-              }
-            }
-          }, WATCHDOG_TIMEOUT_MS);
-
-          utterance.onstart = () => {
-            hasStartedRef.current = true;
-            if (watchdogTimerRef.current) {
-              clearTimeout(watchdogTimerRef.current);
-              watchdogTimerRef.current = null;
-            }
-            logUtterance('onstart', { text: primaryText, voice: selectedVoice?.name });
-            setIsSpeaking(true);
-            setVoiceStatusOverride(null);
-          };
-
-          utterance.onend = () => {
-            if (watchdogTimerRef.current) {
-              clearTimeout(watchdogTimerRef.current);
-              watchdogTimerRef.current = null;
-            }
-            logUtterance('onend', { textLength: primaryText.length });
-            activeUtteranceRef.current = null;
-
-            if (followUpSentence) {
-              speakLineRef.current?.(followUpSentence, 'analysis-ready-sensitivity', priority, false, 0, selectedVoice);
-              return;
-            }
-
-            setIsSpeaking(false);
-            setCurrentSprite('idle');
-            currentPriorityRef.current = 0;
-            setVoiceStatusOverride(null);
-          };
-
-          utterance.onerror = (e) => {
-            if (watchdogTimerRef.current) {
-              clearTimeout(watchdogTimerRef.current);
-              watchdogTimerRef.current = null;
-            }
-            logUtterance('onerror', { error: e.error, retryCount });
-            recordDebugEvent(eventName, priority, `error: ${e.error}`, selectedVoice?.name || 'default');
-            activeUtteranceRef.current = null;
-
-            if (e.error === 'interrupted' || e.error === 'canceled') {
-              // Expected cancelation from a newer event
-              return;
-            }
-
-            if (e.error === 'not-allowed') {
-              setVoiceStatusOverride('Blocked by browser: press Voice on');
-              setIsSpeaking(false);
-              setCurrentSprite('idle');
-              currentPriorityRef.current = 0;
-              return;
-            }
-
-            if (
-              retryCount === 0 &&
-              ['synthesis-failed', 'synthesis-unavailable', 'network', 'audio-busy'].includes(e.error)
-            ) {
-              synth.cancel();
-              synth.resume();
-              const fallbackVoice = selectBestVoice(availableVoices, selectedVoice);
-              speakLineRef.current?.(text, eventName, priority, false, 1, fallbackVoice);
-              return;
-            }
-
-            setVoiceStatusOverride(`Voice error: ${e.error}`);
-            setIsSpeaking(false);
-            setCurrentSprite('idle');
-            currentPriorityRef.current = 0;
-          };
-
-          synth.speak(utterance);
-
-          const afterState = { speaking: synth.speaking, pending: synth.pending, paused: synth.paused };
-          logChikuEvent(eventName, priority, true, true, selectedVoice, beforeState, afterState);
-          recordDebugEvent(eventName, priority, 'spoken', selectedVoice?.name || 'default', afterState);
-        } catch {
-          setVoiceStatusOverride('No voice found on this device');
-          setIsSpeaking(false);
-          setCurrentSprite('idle');
-          currentPriorityRef.current = 0;
-          activeUtteranceRef.current = null;
-          recordDebugEvent(eventName, priority, 'error: exception', 'none');
-        }
-      };
-
-      if (isSynchronousGesture) {
-        if (synth.speaking || synth.pending) {
-          synth.cancel();
-        }
-        performSpeak();
-      } else {
-        if (synth.speaking || synth.pending) {
-          synth.cancel();
-          pendingSpeakTimerRef.current = setTimeout(() => {
-            pendingSpeakTimerRef.current = null;
-            performSpeak();
-          }, CANCEL_SPEAK_DELAY_MS);
-        } else {
-          performSpeak();
-        }
-      }
-    },
-    [isVoiceEnabled, availableVoices, recordDebugEvent]
-  );
-
-  useEffect(() => {
-    speakLineRef.current = speakLine;
-  }, [speakLine]);
 
   // Welcome line triggered on first gesture for returning users who already had voice on
   useEffect(() => {
@@ -576,7 +457,15 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       if (hasSpokenWelcomeRef.current) return;
       hasSpokenWelcomeRef.current = true;
       setCurrentText(CHIKU_WELCOME_TEXT);
-      speakLine(CHIKU_WELCOME_TEXT, 'welcome', 3, true);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.resume();
+      }
+      queueRef.current?.enqueue({
+        key: 'welcome',
+        group: 'view',
+        priority: 3,
+        parts: [CHIKU_WELCOME_TEXT],
+      });
     };
 
     window.addEventListener('click', handleFirstUserGesture, { once: true });
@@ -586,7 +475,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       window.removeEventListener('click', handleFirstUserGesture);
       window.removeEventListener('keydown', handleFirstUserGesture);
     };
-  }, [isMounted, isVoiceEnabled, speakLine]);
+  }, [isMounted, isVoiceEnabled]);
 
   // Persist voice toggle and trigger synchronous gesture unlock
   const toggleVoice = () => {
@@ -599,26 +488,22 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     }
 
     if (!next) {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      if (pendingSpeakTimerRef.current) {
-        clearTimeout(pendingSpeakTimerRef.current);
-        pendingSpeakTimerRef.current = null;
-      }
-      if (watchdogTimerRef.current) {
-        clearTimeout(watchdogTimerRef.current);
-        watchdogTimerRef.current = null;
-      }
+      queueRef.current?.stop();
       setIsSpeaking(false);
       setCurrentSprite('idle');
       setVoiceStatusOverride(null);
-      currentPriorityRef.current = 0;
     } else {
-      // Synchronously call resume() and speak Welcome on gesture
       hasSpokenWelcomeRef.current = true;
       setCurrentText(CHIKU_WELCOME_TEXT);
-      speakLine(CHIKU_WELCOME_TEXT, 'welcome', 3, true);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.resume();
+      }
+      queueRef.current?.enqueue({
+        key: 'welcome',
+        group: 'view',
+        priority: 3,
+        parts: [CHIKU_WELCOME_TEXT],
+      });
     }
   };
 
@@ -631,7 +516,15 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       } catch {}
     }
     setCurrentText(CHIKU_TEST_VOICE_TEXT);
-    speakLine(CHIKU_TEST_VOICE_TEXT, 'test-voice', 3, true);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+    }
+    queueRef.current?.enqueue({
+      key: `test-voice:${Date.now()}`,
+      group: 'view',
+      priority: 3,
+      parts: [CHIKU_TEST_VOICE_TEXT],
+    });
   };
 
   // Persist minimized state
@@ -645,11 +538,11 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
     }
   };
 
-  // Subscribe to accessibility announcer events
+  // Subscribe to accessibility announcer events ONCE (stable subscription)
   useEffect(() => {
     const unsubscribe = subscribe((event: AccessibilityEvent) => {
       const sentence = buildChikuScript(event, contextRef.current);
-      setCurrentText(sentence);
+      if (!sentence) return;
 
       if (event.type === 'analysis-ready') {
         setCurrentSprite('happy');
@@ -659,13 +552,38 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       }
 
       const priority = getEventPriority(event.type);
-      speakLine(sentence, event.type, priority, false);
+      const group = getEventGroup(event.type);
+
+      let parts = [sentence];
+      if (event.type === 'analysis-ready') {
+        const match = sentence.match(
+          /^(Analysis complete\..*?percent of the area\.|Analysis complete\..*?across the area\.)\s+(.+)$/
+        );
+        if (match && match[1] && match[2]) {
+          parts = [match[1], match[2]];
+        }
+      }
+
+      const eventData = event.data as Record<string, unknown> | undefined;
+      const keySuffix =
+        typeof eventData?.caseId === 'string'
+          ? eventData.caseId
+          : typeof eventData?.mode === 'string'
+          ? eventData.mode
+          : '';
+
+      queueRef.current?.enqueue({
+        key: `${event.type}${keySuffix ? `:${keySuffix}` : ''}`,
+        group,
+        priority,
+        parts,
+      });
     });
 
     return () => {
       unsubscribe();
     };
-  }, [subscribe, speakLine]);
+  }, [subscribe]);
 
   // Speaking mouth animation (talk-1 <-> talk-2)
   useEffect(() => {
