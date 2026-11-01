@@ -1,6 +1,7 @@
 import type { AccessibilityEvent } from '@/context';
 import type { SensitivityData } from '@/lib/sensitivity';
-import { getSensitivityClass } from '@/lib/sensitivity';
+import { getSensitivityClass, getSensitivityParameterLabel } from '@/lib/sensitivity';
+import { getRadarMethodExplanation } from '@/lib/radar-method';
 
 export interface DateRangeLike {
   start?: string;
@@ -18,6 +19,7 @@ export interface ChikuContextData {
   honestyNote?: string;
   beforeRange?: DateRangeLike | string;
   afterRange?: DateRangeLike | string;
+  narrationDetail?: 'full' | 'short';
 }
 
 export const MODE_LABELS: Record<string, string> = {
@@ -59,11 +61,11 @@ export function formatRangeString(range: DateRangeLike | string | undefined | nu
 
 function cleanUploadError(errorText?: string): string {
   if (!errorText) return 'Please check the file format and try again.';
-  // Strip file paths (C:\..., /home/...) and stack traces (at ...)
   let cleaned = errorText
     .replace(/[A-Za-z]:\\[^\s]+/g, '')
     .replace(/\/[^\s]+\/[^\s]+/g, '')
-    .replace(/at\s+[\w\d_.]+\s+\(.*?\)/g, '')
+    .replace(/\bat\s+[\w\d_.]+(?:\.py)?(?:\s+line\s+\d+)?(?:\s+\(.*?\))?/gi, '')
+    .replace(/\b[\w\d_.-]+\.py\b/gi, '')
     .replace(/Error:\s*/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -74,6 +76,208 @@ function cleanUploadError(errorText?: string): string {
     cleaned = cleaned.slice(0, maxLen - 3) + '...';
   }
   return cleaned;
+}
+
+/**
+ * Formats a number into clean speech wording.
+ * Replaces leading negative sign with "minus ".
+ * Omits trailing .0 for whole numbers, keeps 1 decimal for fractions.
+ */
+export function formatNumberInWords(val: number): string {
+  if (val === 0) return '0';
+  const isNegative = val < 0;
+  const absVal = Math.abs(val);
+  const formattedAbs = absVal % 1 === 0 ? absVal.toFixed(0) : absVal.toFixed(1);
+  return isNegative ? `minus ${formattedAbs}` : formattedAbs;
+}
+
+/**
+ * Splits text into speech-friendly segments each guaranteed to be <= maxLen characters (default 190).
+ * Never breaks across numbers or decimals (e.g. "30.9", "-16.0", "1,000", "2022-06-20").
+ * Handles empty strings, single sentences, long paragraphs, and lists.
+ */
+export function splitForSpeech(text: string, maxLen = 190): string[] {
+  if (!text) return [];
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= maxLen) return [trimmed];
+
+  const rawSentences: string[] = [];
+  let startIdx = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (ch === '.' || ch === '!' || ch === '?') {
+      if (ch === '.') {
+        const prev = i > 0 ? (trimmed[i - 1] ?? '') : '';
+        const next = i + 1 < trimmed.length ? (trimmed[i + 1] ?? '') : '';
+        if (/\d/.test(prev) && /\d/.test(next)) {
+          continue; // decimal point inside number
+        }
+      }
+      if (i + 1 === trimmed.length || /\s/.test(trimmed[i + 1] ?? '')) {
+        const sentence = trimmed.slice(startIdx, i + 1).trim();
+        if (sentence) rawSentences.push(sentence);
+        startIdx = i + 1;
+      }
+    }
+  }
+  const leftover = trimmed.slice(startIdx).trim();
+  if (leftover) rawSentences.push(leftover);
+
+  const parts: string[] = [];
+  let current = '';
+
+  for (const s of rawSentences) {
+    if (s.length <= maxLen) {
+      if (!current) {
+        current = s;
+      } else if ((current + ' ' + s).length <= maxLen) {
+        current = current + ' ' + s;
+      } else {
+        parts.push(current);
+        current = s;
+      }
+    } else {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+      const words = s.split(/\s+/);
+      let wordAcc = '';
+      for (const w of words) {
+        if (!wordAcc) {
+          wordAcc = w;
+        } else if ((wordAcc + ' ' + w).length <= maxLen) {
+          wordAcc = wordAcc + ' ' + w;
+        } else {
+          parts.push(wordAcc);
+          wordAcc = w;
+        }
+      }
+      if (wordAcc) {
+        parts.push(wordAcc);
+      }
+    }
+  }
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
+}
+
+/**
+ * Builds the honest threshold disclosure sentence.
+ * Strictly includes "not a value proven to be the best".
+ * Guaranteed to stay <= 190 characters.
+ */
+export function buildThresholdLine(mode: string, sensitivity: SensitivityData): string {
+  const paramLabel = getSensitivityParameterLabel(sensitivity.parameterName);
+  const centreSpoken = `${formatNumberInWords(sensitivity.centre)} decibels`;
+
+  let meaning = 'values beyond this trigger the change detection';
+  if (sensitivity.parameterName === 'water_threshold') {
+    meaning = mode === 'flood' ? 'values below this are detected as flooded' : 'values below this are detected as open water';
+  } else if (sensitivity.parameterName === 'loss_threshold_db') {
+    meaning = 'drops greater than this indicate canopy loss';
+  }
+
+  return `The headline result uses a ${paramLabel} of ${centreSpoken}: ${meaning}. This is a fixed default setting, not a value proven to be the best.`;
+}
+
+/**
+ * Builds the tested range disclosure sentence with clean spoken numbers.
+ * Guaranteed to stay <= 190 characters.
+ */
+export function buildTestedRangeLine(sensitivity: SensitivityData): string {
+  const steps = sensitivity.steps || [];
+  const minStep = steps.length > 0 ? (steps[0]?.value ?? sensitivity.centre) : sensitivity.centre;
+  const maxStep = steps.length > 0 ? (steps[steps.length - 1]?.value ?? sensitivity.centre) : sensitivity.centre;
+  const minArea = sensitivity.minAreaKm2.toFixed(1);
+  const maxArea = sensitivity.maxAreaKm2.toFixed(1);
+
+  return `We also tested ${formatNumberInWords(minStep)} to ${formatNumberInWords(maxStep)} decibels. The area ranged from ${minArea} to ${maxArea} square kilometres.`;
+}
+
+/**
+ * Returns the sensitivity classification sentence based on mathematical threshold span.
+ */
+export function buildSensitivityClassSentence(sensitivity: SensitivityData): string {
+  const cls = getSensitivityClass(sensitivity);
+  switch (cls) {
+    case 'stable':
+      return 'This detection is relatively stable across threshold choices.';
+    case 'moderate':
+      return 'Different threshold choices change the detected area moderately.';
+    case 'high':
+      return 'Treat this number with extra caution: small threshold changes move the result significantly.';
+  }
+}
+
+/**
+ * Returns mode-specific radar methodology sentence referencing process_change.py.
+ */
+export function buildRadarMethodLine(mode: string): string {
+  return getRadarMethodExplanation(mode);
+}
+
+/**
+ * Builds reliability notes speech lines (intro + up to 3 notes, split under 190 chars).
+ */
+export function buildReliabilityNotesLines(notes?: string[]): string[] {
+  if (!notes || notes.length === 0) return [];
+  const validNotes = notes.slice(0, 3);
+  const intro = 'Reliability notes, computed from data, not written by AI.';
+  const noteLines: string[] = [];
+
+  for (const note of validNotes) {
+    const split = splitForSpeech(note, 190);
+    noteLines.push(...split);
+  }
+
+  return [intro, ...noteLines];
+}
+
+/**
+ * Builds the multi-part narration sequence for analysis results.
+ * Supports Short mode (headline + sensitivity sentence) and Full mode (extended breakdown).
+ * Every individual element is <= 190 characters.
+ */
+export function buildAnalysisNarrationParts(params: {
+  mode?: string;
+  affectedAreaKm2?: number;
+  percentChanged?: number;
+  sensitivity?: SensitivityData | null;
+  detail?: 'full' | 'short';
+  honestyNote?: string;
+}): string[] {
+  const { mode = 'flood', affectedAreaKm2, percentChanged, sensitivity, detail = 'full' } = params;
+
+  let headline = 'Analysis complete.';
+  if (typeof affectedAreaKm2 === 'number' && typeof percentChanged === 'number') {
+    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
+  } else if (typeof affectedAreaKm2 === 'number') {
+    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed across the area.`;
+  }
+
+  if (detail === 'short') {
+    if (sensitivity) {
+      return [headline, buildSensitivityClassSentence(sensitivity)];
+    }
+    return [headline];
+  }
+
+  const parts: string[] = [headline];
+
+  if (sensitivity) {
+    parts.push(buildThresholdLine(mode, sensitivity));
+    parts.push(buildTestedRangeLine(sensitivity));
+    parts.push(buildSensitivityClassSentence(sensitivity));
+  }
+
+  parts.push(buildRadarMethodLine(mode));
+
+  return parts;
 }
 
 /**

@@ -249,12 +249,14 @@ export function AIInsightPanel({
     }
 
     // 3. Await in-flight request, ignore response only if current key differs, setLoading(false) in finally
+    let activeNotes: string[] | undefined;
     requestPromise
       .then((entry) => {
         if (currentKeyRef.current === cacheKey) {
           setExplanation(entry.explanation);
           setUsedFallback(entry.usedFallback);
           setNotes(entry.notes);
+          activeNotes = entry.notes;
         }
       })
       .catch(() => {
@@ -264,6 +266,7 @@ export function AIInsightPanel({
           setExplanation(fallbackText);
           setUsedFallback(true);
           setNotes(fallbackNotes.length > 0 ? fallbackNotes : undefined);
+          activeNotes = fallbackNotes.length > 0 ? fallbackNotes : undefined;
         }
       })
       .finally(() => {
@@ -274,6 +277,11 @@ export function AIInsightPanel({
             type: 'ai-insight-loaded',
             message: 'The AI interpretation is ready below.',
             priority: 'polite',
+            data: {
+              notes: activeNotes,
+              caseId: aoiId,
+              mode: activeMode,
+            },
           });
         }
       });

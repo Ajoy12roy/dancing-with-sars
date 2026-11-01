@@ -3,15 +3,17 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Volume2, VolumeX, Minimize2, Maximize2, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Minimize2, Maximize2, Sparkles, Square } from 'lucide-react';
 import { useAccessibility, type AccessibilityEvent } from '@/context';
 import {
   buildChikuScript,
   formatRangeString,
+  buildAnalysisNarrationParts,
+  buildReliabilityNotesLines,
   PAGE_INTROS,
   type ChikuContextData,
 } from '@/lib/chiku-script';
-import { getSensitivityClass } from '@/lib/sensitivity';
+import { type SensitivityData } from '@/lib/sensitivity';
 import {
   ChikuSpeechQueue,
   type ChikuEventGroup,
@@ -216,6 +218,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   // User-explicit overrides for voice and minimized state
   const [userVoiceEnabled, setUserVoiceEnabled] = useState<boolean | null>(null);
   const [userMinimized, setUserMinimized] = useState<boolean | null>(null);
+  const [userNarrationDetail, setUserNarrationDetail] = useState<'full' | 'short' | null>(null);
 
   // Derived state: strictly false during SSR and initial hydration; reads storage post-mount
   const isVoiceEnabled = isMounted
@@ -241,6 +244,19 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
           }
         })()
     : false;
+
+  const narrationDetail: 'full' | 'short' = isMounted
+    ? userNarrationDetail !== null
+      ? userNarrationDetail
+      : (() => {
+          try {
+            const saved = localStorage.getItem('terrapulse-chiku-narration');
+            return saved === 'short' ? 'short' : 'full';
+          } catch {
+            return 'full';
+          }
+        })()
+    : 'full';
 
   const hasSpeechSupport = isMounted && typeof window !== 'undefined' && 'speechSynthesis' in window;
 
@@ -316,6 +332,20 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const isVoiceEnabledRef = useRef<boolean>(isVoiceEnabled);
   const availableVoicesRef = useRef<SpeechSynthesisVoice[]>(availableVoices);
   const hasSpokenWelcomeRef = useRef<boolean>(false);
+
+  const narrationDetailRef = useRef<'full' | 'short'>('full');
+
+  useEffect(() => {
+    narrationDetailRef.current = narrationDetail;
+  }, [narrationDetail]);
+
+  const handleToggleNarrationDetail = (val: 'full' | 'short') => {
+    setUserNarrationDetail(val);
+    narrationDetailRef.current = val;
+    try {
+      localStorage.setItem('terrapulse-chiku-narration', val);
+    } catch {}
+  };
 
   const cachedContextRef = useRef<ChikuContextData>(contextData || {});
   const spokenPagesRef = useRef<Set<string>>(new Set());
@@ -622,6 +652,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       return;
     }
 
+    const detail = narrationDetailRef.current;
     const parts: string[] = [];
     const beforeStr = formatRangeString(ctx.beforeRange);
     const afterStr = formatRangeString(ctx.afterRange);
@@ -631,36 +662,15 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       parts.push(`Loaded ${ctx.caseTitle}.`);
     }
 
-    if (typeof ctx.affectedAreaKm2 === 'number' && typeof ctx.percentChanged === 'number') {
-      parts.push(
-        `About ${ctx.affectedAreaKm2.toFixed(1)} square kilometres changed, ${ctx.percentChanged.toFixed(1)} percent of the area.`
-      );
-    } else if (typeof ctx.affectedAreaKm2 === 'number') {
-      parts.push(`About ${ctx.affectedAreaKm2.toFixed(1)} square kilometres changed across the area.`);
-    }
-
-    if (ctx.sensitivity) {
-      const cls = getSensitivityClass(ctx.sensitivity);
-      const minStr = ctx.sensitivity.minAreaKm2.toFixed(1);
-      const maxStr = ctx.sensitivity.maxAreaKm2.toFixed(1);
-      if (cls === 'high') {
-        parts.push(
-          `High sensitivity: treat this number as indicative only, spanning ${minStr} to ${maxStr} square kilometres.`
-        );
-      } else if (cls === 'moderate') {
-        parts.push(
-          `Moderate sensitivity, spanning ${minStr} to ${maxStr} square kilometres across threshold offsets.`
-        );
-      } else {
-        parts.push(
-          `Stable classification, spanning ${minStr} to ${maxStr} square kilometres under threshold variation.`
-        );
-      }
-    }
-
-    if (ctx.honestyNote) {
-      parts.push(ctx.honestyNote.slice(0, 195));
-    }
+    const analysisParts = buildAnalysisNarrationParts({
+      mode: ctx.mode,
+      affectedAreaKm2: ctx.affectedAreaKm2,
+      percentChanged: ctx.percentChanged,
+      sensitivity: ctx.sensitivity,
+      detail,
+      honestyNote: ctx.honestyNote,
+    });
+    parts.push(...analysisParts);
 
     if (parts.length > 0 && parts[0]) {
       setCurrentText(parts[0]);
@@ -670,6 +680,16 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         priority: 3,
         parts,
       });
+
+      if (detail === 'full' && ctx.honestyNote) {
+        const noteLines = buildReliabilityNotesLines([ctx.honestyNote]);
+        queueRef.current?.enqueue({
+          key: `notes:${ctx.caseId || 'selected'}`,
+          group: 'notes',
+          priority: 1,
+          parts: noteLines,
+        });
+      }
     }
   };
 
@@ -722,29 +742,6 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         return;
       }
 
-      const sentence = buildChikuScript(event, cachedContextRef.current);
-      if (!sentence) return;
-
-      if (event.type === 'analysis-ready') {
-        setCurrentSprite('happy');
-        setTimeout(() => {
-          setCurrentSprite('idle');
-        }, 1800);
-      }
-
-      const priority = getEventPriority(event.type);
-      const group = getEventGroup(event.type);
-
-      let parts = [sentence];
-      if (event.type === 'analysis-ready') {
-        const match = sentence.match(
-          /^(Analysis complete\..*?percent of the area\.|Analysis complete\..*?across the area\.)\s+(.+)$/
-        );
-        if (match && match[1] && match[2]) {
-          parts = [match[1], match[2]];
-        }
-      }
-
       const eventData = event.data as Record<string, unknown> | undefined;
       const keySuffix =
         typeof eventData?.caseId === 'string'
@@ -752,6 +749,59 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
           : typeof eventData?.mode === 'string'
           ? eventData.mode
           : '';
+
+      if (event.type === 'analysis-ready') {
+        setCurrentSprite('happy');
+        setTimeout(() => {
+          setCurrentSprite('idle');
+        }, 1800);
+
+        const detail = narrationDetailRef.current;
+        const parts = buildAnalysisNarrationParts({
+          mode: (eventData?.mode as string) || cachedContextRef.current.mode,
+          affectedAreaKm2: (eventData?.affectedAreaKm2 as number) ?? cachedContextRef.current.affectedAreaKm2,
+          percentChanged: (eventData?.percentChanged as number) ?? cachedContextRef.current.percentChanged,
+          sensitivity: (eventData?.sensitivity as SensitivityData) || cachedContextRef.current.sensitivity,
+          detail,
+          honestyNote: (eventData?.honestyNote as string) || cachedContextRef.current.honestyNote,
+        });
+
+        if (parts.length > 0 && parts[0]) {
+          setCurrentText(parts[0]);
+        }
+
+        queueRef.current?.enqueue({
+          key: `analysis-ready:${keySuffix || 'current'}:${detail}`,
+          group: 'analysis',
+          priority: 3,
+          parts,
+        });
+        return;
+      }
+
+      if (event.type === 'ai-insight-loaded') {
+        const rawNotes =
+          (eventData?.notes as string[] | undefined) ||
+          ((cachedContextRef.current as Record<string, unknown>)?.notes as string[] | undefined);
+        if (Array.isArray(rawNotes) && rawNotes.length > 0) {
+          const noteLines = buildReliabilityNotesLines(rawNotes);
+          const caseId = (eventData?.caseId as string) || cachedContextRef.current.caseId || 'current';
+          queueRef.current?.enqueue({
+            key: `notes:${caseId}`,
+            group: 'notes',
+            priority: 1,
+            parts: noteLines,
+          });
+        }
+        return;
+      }
+
+      const sentence = buildChikuScript(event, cachedContextRef.current);
+      if (!sentence) return;
+
+      const priority = getEventPriority(event.type);
+      const group = getEventGroup(event.type);
+      const parts = [sentence];
 
       queueRef.current?.enqueue({
         key: `${event.type}${keySuffix ? `:${keySuffix}` : ''}`,
@@ -863,24 +913,39 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
 
         <div className="flex items-center gap-1">
           {hasSpeechSupport && (
-            <button
-              type="button"
-              onClick={toggleVoice}
-              aria-pressed={isVoiceEnabled}
-              aria-label={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
-              title={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
-              className={`p-1 rounded-[2px] transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
-                isVoiceEnabled
-                  ? 'text-teal bg-teal/10 border border-teal/30'
-                  : 'text-text-secondary hover:text-ink border border-transparent'
-              }`}
-            >
-              {isVoiceEnabled ? (
-                <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
-              ) : (
-                <VolumeX className="w-3.5 h-3.5" aria-hidden="true" />
-              )}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  queueRef.current?.stop();
+                  setIsSpeaking(false);
+                  setCurrentSprite('idle');
+                }}
+                aria-label="Stop Chiku narration"
+                title="Stop Chiku narration"
+                className="p-1 text-text-secondary hover:text-ink rounded-[2px] border border-transparent transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-pressed={isVoiceEnabled}
+                aria-label={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
+                title={isVoiceEnabled ? 'Turn voice narration off' : 'Turn voice narration on'}
+                className={`p-1 rounded-[2px] transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
+                  isVoiceEnabled
+                    ? 'text-teal bg-teal/10 border border-teal/30'
+                    : 'text-text-secondary hover:text-ink border border-transparent'
+                }`}
+              >
+                {isVoiceEnabled ? (
+                  <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
+                ) : (
+                  <VolumeX className="w-3.5 h-3.5" aria-hidden="true" />
+                )}
+              </button>
+            </>
           )}
 
           <button
@@ -955,6 +1020,38 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
               </button>
             </div>
           )}
+        </div>
+        {/* Narration detail toggle */}
+        <div className="flex items-center justify-between text-[10px] text-text-secondary pt-1 border-t border-hairline/60">
+          <span>Narration detail</span>
+          <div className="flex items-center gap-1 border border-hairline rounded-[2px] p-0.5 bg-surface-2" role="radiogroup" aria-label="Narration detail level">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={narrationDetail === 'full'}
+              onClick={() => handleToggleNarrationDetail('full')}
+              className={`px-1.5 py-0.5 rounded-[2px] font-sans font-medium transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
+                narrationDetail === 'full'
+                  ? 'bg-surface text-ink border border-hairline shadow-none font-semibold'
+                  : 'text-text-secondary hover:text-ink border border-transparent'
+              }`}
+            >
+              Full
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={narrationDetail === 'short'}
+              onClick={() => handleToggleNarrationDetail('short')}
+              className={`px-1.5 py-0.5 rounded-[2px] font-sans font-medium transition-colors focus:outline focus:outline-2 focus:outline-teal focus:outline-offset-2 ${
+                narrationDetail === 'short'
+                  ? 'bg-surface text-ink border border-hairline shadow-none font-semibold'
+                  : 'text-text-secondary hover:text-ink border border-transparent'
+              }`}
+            >
+              Short
+            </button>
+          </div>
         </div>
         <div className="flex items-center justify-between text-[9px] text-text-muted">
           <span className="italic">If you use a screen reader, keep voice off.</span>

@@ -693,10 +693,10 @@ export function HowItWorksClient() {
             </div>
             <div className="space-y-2">
               <h3 className="font-headline font-semibold text-sm text-text-primary">
-                2. Explain This View &amp; Full Narration
+                2. Explain This View, Full/Short Detail &amp; Stop Control
               </h3>
               <p className="leading-relaxed">
-                The <strong>Explain this view</strong> button triggers an immediate contextual breakdown of the active case study (dates, headline area, sensitivity span, and data reliability notes) or current page orientation. Chiku also provides interactive hints on first slider movement, sensitivity disclosure tables, and text summaries.
+                The <strong>Explain this view</strong> button triggers an immediate breakdown of the active case study or page orientation. Users can switch between <strong>Full Narration</strong> (headline, honest threshold setting disclaimer, tested perturbation range, mathematical sensitivity class, radar filtering methodology, and data-derived reliability notes) and <strong>Short Narration</strong> (headline plus sensitivity class). An immediate <strong>Stop</strong> button halts audio playback on demand.
               </p>
             </div>
             <div className="space-y-2">

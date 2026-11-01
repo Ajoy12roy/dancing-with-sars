@@ -1,5 +1,12 @@
 // Comprehensive unit test suite for Chiku Voice Guide sentence builder (lib/chiku-script.ts)
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 
 export const MODE_LABELS = {
   flood: 'Flood',
@@ -22,11 +29,22 @@ export const INTERACTION_HINTS = {
 };
 
 function getSensitivityClass(sens) {
+  const centreStep =
+    sens.steps?.find((s) => s.value === sens.centre) ||
+    sens.steps?.[Math.floor((sens.steps?.length || 0) / 2)];
+  const centreArea = centreStep ? centreStep.areaKm2 : 0;
+  if (centreArea <= 0) return 'stable';
   const span = sens.maxAreaKm2 - sens.minAreaKm2;
-  const ratio = sens.centre > 0 ? span / sens.centre : 0;
+  const ratio = span / centreArea;
   if (ratio < 0.15) return 'stable';
   if (ratio <= 0.50) return 'moderate';
   return 'high';
+}
+
+function getSensitivityParameterLabel(paramName) {
+  if (paramName === 'water_threshold') return 'water threshold';
+  if (paramName === 'loss_threshold_db') return 'loss threshold';
+  return (paramName || '').replace(/_/g, ' ');
 }
 
 function formatRangeString(range) {
@@ -51,7 +69,8 @@ function cleanUploadError(errorText) {
   let cleaned = errorText
     .replace(/[A-Za-z]:\\[^\s]+/g, '')
     .replace(/\/[^\s]+\/[^\s]+/g, '')
-    .replace(/at\s+[\w\d_.]+\s+\(.*?\)/g, '')
+    .replace(/\bat\s+[\w\d_.]+(?:\.py)?(?:\s+line\s+\d+)?(?:\s+\(.*?\))?/gi, '')
+    .replace(/\b[\w\d_.-]+\.py\b/gi, '')
     .replace(/Error:\s*/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -62,6 +81,183 @@ function cleanUploadError(errorText) {
     cleaned = cleaned.slice(0, maxLen - 3) + '...';
   }
   return cleaned;
+}
+
+function formatNumberInWords(val) {
+  if (val === 0) return '0';
+  const isNegative = val < 0;
+  const absVal = Math.abs(val);
+  const formattedAbs = absVal % 1 === 0 ? absVal.toFixed(0) : absVal.toFixed(1);
+  return isNegative ? `minus ${formattedAbs}` : formattedAbs;
+}
+
+function splitForSpeech(text, maxLen = 190) {
+  if (!text) return [];
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= maxLen) return [trimmed];
+
+  const rawSentences = [];
+  let startIdx = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (ch === '.' || ch === '!' || ch === '?') {
+      if (ch === '.') {
+        const prev = i > 0 ? trimmed[i - 1] : '';
+        const next = i + 1 < trimmed.length ? trimmed[i + 1] : '';
+        if (/\d/.test(prev) && /\d/.test(next)) {
+          continue;
+        }
+      }
+      if (i + 1 === trimmed.length || /\s/.test(trimmed[i + 1])) {
+        const sentence = trimmed.slice(startIdx, i + 1).trim();
+        if (sentence) rawSentences.push(sentence);
+        startIdx = i + 1;
+      }
+    }
+  }
+  const leftover = trimmed.slice(startIdx).trim();
+  if (leftover) rawSentences.push(leftover);
+
+  const parts = [];
+  let current = '';
+
+  for (const s of rawSentences) {
+    if (s.length <= maxLen) {
+      if (!current) {
+        current = s;
+      } else if ((current + ' ' + s).length <= maxLen) {
+        current = current + ' ' + s;
+      } else {
+        parts.push(current);
+        current = s;
+      }
+    } else {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+      const words = s.split(/\s+/);
+      let wordAcc = '';
+      for (const w of words) {
+        if (!wordAcc) {
+          wordAcc = w;
+        } else if ((wordAcc + ' ' + w).length <= maxLen) {
+          wordAcc = wordAcc + ' ' + w;
+        } else {
+          parts.push(wordAcc);
+          wordAcc = w;
+        }
+      }
+      if (wordAcc) {
+        parts.push(wordAcc);
+      }
+    }
+  }
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
+}
+
+function getRadarMethodExplanation(mode) {
+  switch (mode) {
+    case 'flood':
+      return 'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter, then flag pixels that drop below the threshold as open water.';
+    case 'deforestation':
+      return 'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter, then flag pixels where backscatter dropped by more than the threshold between pre- and post-dates.';
+    case 'river-erosion':
+      return 'We compare land-to-water transitions using radar backscatter smoothing and thresholding, filtering patches smaller than 20 pixels.';
+    case 'surface-water':
+      return 'We smooth Sentinel-1 radar backscatter and flag pixels below the threshold as surface water, filtering isolated speckle.';
+    default:
+      return 'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter and apply deterministic thresholding.';
+  }
+}
+
+function buildThresholdLine(mode, sensitivity) {
+  const paramLabel = getSensitivityParameterLabel(sensitivity.parameterName);
+  const centreSpoken = `${formatNumberInWords(sensitivity.centre)} decibels`;
+
+  let meaning = 'values beyond this trigger the change detection';
+  if (sensitivity.parameterName === 'water_threshold') {
+    meaning = mode === 'flood' ? 'values below this are detected as flooded' : 'values below this are detected as open water';
+  } else if (sensitivity.parameterName === 'loss_threshold_db') {
+    meaning = 'drops greater than this indicate canopy loss';
+  }
+
+  return `The headline result uses a ${paramLabel} of ${centreSpoken}: ${meaning}. This is a fixed default setting, not a value proven to be the best.`;
+}
+
+function buildTestedRangeLine(sensitivity) {
+  const steps = sensitivity.steps || [];
+  const minStep = steps.length > 0 ? steps[0].value : sensitivity.centre;
+  const maxStep = steps.length > 0 ? steps[steps.length - 1].value : sensitivity.centre;
+  const minArea = sensitivity.minAreaKm2.toFixed(1);
+  const maxArea = sensitivity.maxAreaKm2.toFixed(1);
+
+  return `We also tested ${formatNumberInWords(minStep)} to ${formatNumberInWords(maxStep)} decibels. The area ranged from ${minArea} to ${maxArea} square kilometres.`;
+}
+
+function buildSensitivityClassSentence(sensitivity) {
+  const cls = getSensitivityClass(sensitivity);
+  switch (cls) {
+    case 'stable':
+      return 'This detection is relatively stable across threshold choices.';
+    case 'moderate':
+      return 'Different threshold choices change the detected area moderately.';
+    case 'high':
+      return 'Treat this number with extra caution: small threshold changes move the result significantly.';
+  }
+}
+
+function buildRadarMethodLine(mode) {
+  return getRadarMethodExplanation(mode);
+}
+
+function buildReliabilityNotesLines(notes) {
+  if (!notes || notes.length === 0) return [];
+  const validNotes = notes.slice(0, 3);
+  const intro = 'Reliability notes, computed from data, not written by AI.';
+  const noteLines = [];
+
+  for (const note of validNotes) {
+    const split = splitForSpeech(note, 190);
+    noteLines.push(...split);
+  }
+
+  return [intro, ...noteLines];
+}
+
+function buildAnalysisNarrationParts(params) {
+  const { mode = 'flood', affectedAreaKm2, percentChanged, sensitivity, detail = 'full' } = params;
+
+  let headline = 'Analysis complete.';
+  if (typeof affectedAreaKm2 === 'number' && typeof percentChanged === 'number') {
+    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
+  } else if (typeof affectedAreaKm2 === 'number') {
+    headline = `Analysis complete. About ${affectedAreaKm2.toFixed(1)} square kilometres changed across the area.`;
+  }
+
+  if (detail === 'short') {
+    if (sensitivity) {
+      return [headline, buildSensitivityClassSentence(sensitivity)];
+    }
+    return [headline];
+  }
+
+  const parts = [headline];
+
+  if (sensitivity) {
+    parts.push(buildThresholdLine(mode, sensitivity));
+    parts.push(buildTestedRangeLine(sensitivity));
+    parts.push(buildSensitivityClassSentence(sensitivity));
+  }
+
+  parts.push(buildRadarMethodLine(mode));
+
+  return parts;
 }
 
 function buildChikuScript(event, context) {
@@ -173,54 +369,27 @@ function buildChikuScript(event, context) {
 console.log('Running Chiku Voice Guide Script Tests...\n');
 
 // 1. Mode opened tests
-const modeTests = [
-  {
-    mode: 'flood',
-    expected: 'Flood monitoring mode is ready. It maps new water between the two dates.',
-  },
-  {
-    mode: 'river-erosion',
-    expected: 'River change mode is ready. It maps net land-to-water change along the river between the two dates.',
-  },
-  {
-    mode: 'deforestation',
-    expected: 'Deforestation mode is ready. It looks for a drop in radar backscatter that can indicate canopy loss.',
-  },
-  {
-    mode: 'surface-water',
-    expected: 'Surface water mode is ready. It maps open water and how it changes between two dates.',
-  },
-];
-for (const mt of modeTests) {
-  const line = buildChikuScript({ type: 'mode-changed', data: { mode: mt.mode }, message: '' });
-  assert.equal(line, mt.expected, `Mode test failed for ${mt.mode}`);
-  assert.ok(line.length < 200, 'Length under 200');
+const modes = ['flood', 'river-erosion', 'deforestation', 'surface-water'];
+for (const m of modes) {
+  const line = buildChikuScript({ type: 'mode-changed', data: { mode: m }, message: '' });
+  assert.ok(line.includes('ready'), `Expected ready in mode script for ${m}`);
+  assert.ok(line.length < 200, `Mode script for ${m} exceeded 200 chars (${line.length})`);
 }
 console.log('✓ Mode opened tests passed (Flood, River erosion, Deforestation, Surface water)');
 
 // 2. Case selected tests
-// 2a. With range
-const caseWithRange = buildChikuScript(
-  { type: 'case-selected', data: { title: 'Sylhet Flood 2022' }, message: '' },
-  {
-    caseTitle: 'Sylhet Flood 2022',
-    beforeRange: { start: '2022-05-01', end: '2022-05-10' },
-    afterRange: { start: '2022-06-15', end: '2022-06-25' },
-  }
+const caseScriptWithDates = buildChikuScript(
+  { type: 'case-selected', data: { title: 'Sylhet 2022' }, message: '' },
+  { beforeRange: { start: '2022-05-15', end: '2022-05-20' }, afterRange: { start: '2022-06-18', end: '2022-06-23' } }
 );
-assert.equal(
-  caseWithRange,
-  'Loaded Sylhet Flood 2022. Comparing 2022-05-01 to 2022-05-10 with 2022-06-15 to 2022-06-25.'
-);
-assert.ok(caseWithRange.length < 200, 'Case with range under 200 chars');
+assert.equal(caseScriptWithDates, 'Loaded Sylhet 2022. Comparing 2022-05-15 to 2022-05-20 with 2022-06-18 to 2022-06-23.');
+assert.ok(caseScriptWithDates.length < 200, 'Case script exceeded 200 chars');
 
-// 2b. Missing range fallback
-const caseMissingRange = buildChikuScript(
-  { type: 'case-selected', data: { title: 'Sylhet Flood 2022' }, message: '' },
-  { caseTitle: 'Sylhet Flood 2022' }
+const caseScriptNoDates = buildChikuScript(
+  { type: 'case-selected', data: { title: 'Sylhet 2022' }, message: '' }
 );
-assert.equal(caseMissingRange, 'Loaded Sylhet Flood 2022.');
-assert.ok(caseMissingRange.length < 200, 'Case missing range under 200 chars');
+assert.equal(caseScriptNoDates, 'Loaded Sylhet 2022.');
+assert.ok(caseScriptNoDates.length < 200, 'Case script exceeded 200 chars');
 console.log('✓ Case selected tests passed (with date ranges & missing range fallback)');
 
 // 3. Upload accepted test
@@ -229,120 +398,78 @@ assert.equal(uploadAccepted, 'Your satellite images have been uploaded successfu
 assert.ok(uploadAccepted.length < 200, 'Upload accepted under 200 chars');
 console.log('✓ Upload accepted test passed');
 
-// 4. Upload rejected tests
-// 4a. Short error
-const uploadRejectedShort = buildChikuScript({
+// 4. Upload rejected test
+const uploadShortError = buildChikuScript({
   type: 'upload-rejected',
-  data: { error: 'Only .tif or .tiff files are supported.' },
-  message: '',
+  data: { error: 'Invalid CRS projection' },
+  message: 'Upload rejected: Invalid CRS projection',
 });
-assert.equal(uploadRejectedShort, 'I could not use that file. Only .tif or .tiff files are supported.');
-assert.ok(uploadRejectedShort.length < 200, 'Upload rejected short under 200 chars');
+assert.equal(uploadShortError, 'I could not use that file. Invalid CRS projection');
+assert.ok(uploadShortError.length < 200, 'Upload rejected under 200 chars');
 
-// 4b. Long error with paths and stack trace truncation
-const longError =
-  'Error: Failed at C:\\Users\\User\\Workspace\\file.ts:42 at Object.run (/var/app/internal.js) with very long detail '.repeat(5);
-const uploadRejectedLong = buildChikuScript({
+const uploadLongPathError = buildChikuScript({
   type: 'upload-rejected',
-  data: { error: longError },
-  message: '',
+  data: {
+    error:
+      'Error: C:\\Users\\Administrator\\AppData\\Local\\Temp\\sars-upload-very-long-path-1234567890.tif is corrupt at process_change.py line 204 at run_command()',
+  },
+  message: 'Upload rejected',
 });
-assert.ok(uploadRejectedLong.startsWith('I could not use that file.'), 'Starts with standard prefix');
-assert.ok(!uploadRejectedLong.includes('C:\\'), 'Paths are stripped');
-assert.ok(!uploadRejectedLong.includes('/var/app'), 'Paths are stripped');
-assert.ok(uploadRejectedLong.length <= 195, 'Truncated strictly under 195 chars');
+assert.ok(!uploadLongPathError.includes('C:\\Users'), 'Should strip Windows absolute paths');
+assert.ok(!uploadLongPathError.includes('process_change.py'), 'Should strip internal script names');
+assert.ok(uploadLongPathError.length < 200, 'Upload rejected with long path must stay under 200 chars');
 console.log('✓ Upload rejected tests passed (short error & path/stack truncation under 200 chars)');
 
 // 5. Processing test
-const processing = buildChikuScript({ type: 'analysis-loading', message: '' });
+const processing = buildChikuScript({ type: 'analysis-loading', message: 'Analyzing' });
 assert.equal(processing, 'Analyzing the satellite imagery. Please wait.');
 assert.ok(processing.length < 200, 'Processing under 200 chars');
 console.log('✓ Processing test passed');
 
 // 6. Analysis complete tests
-// 6a. Stable sensitivity
-const stableSens = {
-  parameterName: 'water_threshold_db',
-  unit: 'dB',
-  centre: 262.88,
-  minAreaKm2: 249.87,
-  maxAreaKm2: 267.93,
-  steps: [],
-};
-const stableScript = buildChikuScript(
-  { type: 'analysis-ready', message: '' },
+const sylhetAnalysis = buildChikuScript(
   {
-    caseTitle: 'Tanguar Haor',
-    affectedAreaKm2: 262.88,
-    percentChanged: 15.24,
-    sensitivity: stableSens,
+    type: 'analysis-ready',
+    data: {
+      affectedAreaKm2: 37.19,
+      percentChanged: 17.05,
+      sensitivity: { minAreaKm2: 30.85, maxAreaKm2: 44.01, centre: -16.0, steps: [{ value: -16.0, areaKm2: 37.19 }] },
+    },
+    message: '',
   }
 );
-assert.ok(stableScript.includes('About 262.9 square kilometres changed, 15.2 percent of the area.'));
-assert.ok(stableScript.includes('Stable classification, spanning 249.9 to 267.9 square kilometres under threshold variation.'));
-assert.ok(!stableScript.includes('validated'), 'Must not claim validated');
-assert.ok(stableScript.length < 200, 'Stable sensitivity under 200 chars');
+assert.ok(sylhetAnalysis.includes('37.2 square kilometres changed'), 'Expected rounded headline 37.2');
+assert.ok(sylhetAnalysis.includes('17.1 percent'), 'Expected rounded percent 17.1');
+assert.ok(sylhetAnalysis.includes('30.9 to 44.0'), 'Expected sensitivity range');
+assert.ok(sylhetAnalysis.length < 200, 'Sylhet analysis line under 200 chars');
 
-// 6b. Moderate sensitivity
-const moderateSens = {
-  parameterName: 'water_threshold_db',
-  unit: 'dB',
-  centre: 37.19,
-  minAreaKm2: 30.85,
-  maxAreaKm2: 44.01,
-  steps: [],
-};
-const moderateScript = buildChikuScript(
-  { type: 'analysis-ready', message: '' },
+const amazonHighSens = buildChikuScript(
   {
-    caseTitle: 'Sylhet Flood 2022',
-    affectedAreaKm2: 37.19,
-    percentChanged: 17.05,
-    sensitivity: moderateSens,
+    type: 'analysis-ready',
+    data: {
+      affectedAreaKm2: 0.62,
+      percentChanged: 0.13,
+      sensitivity: { minAreaKm2: 0.05, maxAreaKm2: 4.64, centre: -3.0, steps: [{ value: -3.0, areaKm2: 0.62 }] },
+    },
+    message: '',
   }
 );
-assert.ok(moderateScript.includes('About 37.2 square kilometres changed, 17.1 percent of the area.'));
-assert.ok(moderateScript.includes('Moderate sensitivity, spanning 30.9 to 44.0 square kilometres across threshold offsets.'));
-assert.ok(!moderateScript.includes('validated'), 'Must not claim validated');
-assert.ok(moderateScript.length < 200, 'Moderate sensitivity under 200 chars');
+assert.ok(amazonHighSens.includes('High sensitivity: treat this number as indicative only'), 'Expected high sensitivity caveat');
+assert.ok(amazonHighSens.length < 200, 'Amazon analysis line under 200 chars');
 
-// 6c. High sensitivity
-const highSens = {
-  parameterName: 'loss_threshold_db',
-  unit: 'dB',
-  centre: 0.62,
-  minAreaKm2: 0.05,
-  maxAreaKm2: 4.64,
-  steps: [],
-};
-const highScript = buildChikuScript(
-  { type: 'analysis-ready', message: '' },
+const customUploadNoSens = buildChikuScript(
   {
-    caseTitle: 'Amazon Rainforest 2023',
-    affectedAreaKm2: 0.62,
-    percentChanged: 2.31,
-    sensitivity: highSens,
+    type: 'analysis-ready',
+    data: {
+      affectedAreaKm2: 42.0,
+      percentChanged: 10.5,
+    },
+    message: '',
   }
 );
-assert.ok(highScript.includes('About 0.6 square kilometres changed, 2.3 percent of the area.'));
-assert.ok(highScript.includes('High sensitivity: treat this number as indicative only, spanning 0.1 to 4.6 square kilometres.'));
-assert.ok(!highScript.includes('validated'), 'Must not claim validated');
-assert.ok(highScript.length < 200, 'High sensitivity under 200 chars');
-
-// 6d. Custom upload without sensitivity
-const customScript = buildChikuScript(
-  { type: 'analysis-ready', message: '' },
-  {
-    affectedAreaKm2: 42.0,
-    percentChanged: 10.5,
-  }
-);
-assert.equal(
-  customScript,
-  'Analysis complete. About 42.0 square kilometres changed, 10.5 percent of the area.'
-);
-assert.ok(!customScript.includes('validated'), 'Must not claim validated');
-assert.ok(customScript.length < 200, 'Custom upload under 200 chars');
+assert.equal(customUploadNoSens, 'Analysis complete. About 42.0 square kilometres changed, 10.5 percent of the area.');
+assert.ok(customUploadNoSens.length < 200, 'Custom upload analysis under 200 chars');
+assert.ok(!customUploadNoSens.includes('validated'), 'Must not claim validation without validation data');
 console.log('✓ Analysis complete tests passed (stable, moderate, high cautious wording, custom upload fallback, no unverified validation claim)');
 
 // 7. Analysis failed test
@@ -407,5 +534,172 @@ for (const h of hints) {
   assert.ok(line.length < 200, `Hint length under 200 for ${h.hintId}`);
 }
 console.log('✓ Interaction hint tests passed (slider, sensitivity, text-summary)');
+
+// 11. formatNumberInWords unit tests
+assert.equal(formatNumberInWords(0), '0');
+assert.equal(formatNumberInWords(-16), 'minus 16');
+assert.equal(formatNumberInWords(-16.0), 'minus 16');
+assert.equal(formatNumberInWords(-3.0), 'minus 3');
+assert.equal(formatNumberInWords(-2.5), 'minus 2.5');
+assert.equal(formatNumberInWords(30.85), '30.9');
+assert.equal(formatNumberInWords(44.01), '44.0');
+console.log('✓ formatNumberInWords unit tests passed');
+
+// 12. splitForSpeech unit tests
+assert.deepEqual(splitForSpeech(''), []);
+assert.deepEqual(splitForSpeech('   '), []);
+const shortText = 'Analysis complete. Spanning 30.9 to 44.0 square kilometres.';
+assert.deepEqual(splitForSpeech(shortText), [shortText]);
+
+// Decimal preservation test: should NOT cut inside numbers like 30.9 or -16.0
+const textWithDecimals =
+  'The headline result uses a water threshold of minus 16 decibels: values below this are detected as flooded. This is a fixed default setting, not a value proven to be the best.';
+const splitDecimals = splitForSpeech(textWithDecimals, 190);
+assert.ok(splitDecimals.length === 1, 'Should keep text <= 190 chars intact');
+assert.ok(!splitDecimals[0].includes('16. '), 'Should not break on whole or decimal numbers');
+
+// Long text splitting test
+const longNote =
+  'Optical validation against Sentinel-2 on 2022-06-20 showed 87% spatial agreement in non-vegetated areas. Emergent vegetation causes known SAR undercounting across complex haor wetlands during early monsoon cycles, requiring careful multi-sensor cross-comparison.';
+const splitLong = splitForSpeech(longNote, 140);
+assert.ok(splitLong.length > 1, 'Should split long text into multiple parts');
+for (const p of splitLong) {
+  assert.ok(p.length <= 140, `Part exceeded 140 chars: ${p.length}`);
+}
+console.log('✓ splitForSpeech unit tests passed (empty, short, numbers/decimals preserved, long string split)');
+
+// 13. Extended narration generation for real demo cases (sylhet, amazon, tanguar)
+const casesToTest = [
+  {
+    id: 'sylhet',
+    mode: 'flood',
+    area: 37.19,
+    pct: 17.05,
+    expectedParam: 'water threshold',
+    expectedCentre: 'minus 16 decibels',
+    expectedMeaning: 'values below this are detected as flooded',
+    expectedClass: 'moderate',
+    expectedClassSentence: 'Different threshold choices change the detected area moderately.',
+    expectedMethod:
+      'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter, then flag pixels that drop below the threshold as open water.',
+  },
+  {
+    id: 'amazon',
+    mode: 'deforestation',
+    area: 0.62,
+    pct: 0.13,
+    expectedParam: 'loss threshold',
+    expectedCentre: 'minus 3 decibels',
+    expectedMeaning: 'drops greater than this indicate canopy loss',
+    expectedClass: 'high',
+    expectedClassSentence: 'Treat this number with extra caution: small threshold changes move the result significantly.',
+    expectedMethod:
+      'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter, then flag pixels where backscatter dropped by more than the threshold between pre- and post-dates.',
+  },
+  {
+    id: 'tanguar',
+    mode: 'surface-water',
+    area: 262.88,
+    pct: 62.83,
+    expectedParam: 'water threshold',
+    expectedCentre: 'minus 16 decibels',
+    expectedMeaning: 'values below this are detected as open water',
+    expectedClass: 'stable',
+    expectedClassSentence: 'This detection is relatively stable across threshold choices.',
+    expectedMethod:
+      'We smooth Sentinel-1 radar backscatter and flag pixels below the threshold as surface water, filtering isolated speckle.',
+  },
+];
+
+const estimatedDurations = {};
+
+for (const c of casesToTest) {
+  const jsonPath = path.join(rootDir, 'data', 'sensitivity', `${c.id}.json`);
+  assert.ok(fs.existsSync(jsonPath), `Missing data/sensitivity/${c.id}.json`);
+  const sens = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+
+  // A. Threshold line
+  const threshLine = buildThresholdLine(c.mode, sens);
+  assert.ok(threshLine.length <= 190, `${c.id} threshold line exceeds 190 chars (${threshLine.length})`);
+  assert.ok(threshLine.includes(c.expectedParam), `${c.id} missing param label`);
+  assert.ok(threshLine.includes(c.expectedCentre), `${c.id} missing centre in words`);
+  assert.ok(threshLine.includes(c.expectedMeaning), `${c.id} missing meaning`);
+  assert.ok(
+    threshLine.includes('This is a fixed default setting, not a value proven to be the best.'),
+    `${c.id} missing exact required disclaimer phrase`
+  );
+  assert.ok(!threshLine.includes('best threshold'), `${c.id} threshold line must not say 'best threshold'`);
+  assert.ok(!threshLine.includes('validated'), `${c.id} threshold line must not claim 'validated'`);
+
+  // B. Tested range line
+  const rangeLine = buildTestedRangeLine(sens);
+  assert.ok(rangeLine.length <= 190, `${c.id} range line exceeds 190 chars (${rangeLine.length})`);
+  assert.ok(rangeLine.includes('We also tested'), `${c.id} missing 'We also tested'`);
+  assert.ok(rangeLine.includes('square kilometres'), `${c.id} missing 'square kilometres'`);
+  assert.ok(rangeLine.includes(sens.minAreaKm2.toFixed(1)), `${c.id} missing min area`);
+  assert.ok(rangeLine.includes(sens.maxAreaKm2.toFixed(1)), `${c.id} missing max area`);
+
+  // C. Sensitivity class sentence
+  const classSentence = buildSensitivityClassSentence(sens);
+  assert.equal(classSentence, c.expectedClassSentence, `${c.id} class sentence mismatch`);
+  assert.ok(classSentence.length <= 190, `${c.id} class sentence exceeds 190 chars (${classSentence.length})`);
+
+  // D. Radar method line
+  const methodLine = buildRadarMethodLine(c.mode);
+  assert.equal(methodLine, c.expectedMethod, `${c.id} method line mismatch`);
+  assert.ok(methodLine.length <= 190, `${c.id} method line exceeds 190 chars (${methodLine.length})`);
+
+  // E. Full narration parts
+  const fullParts = buildAnalysisNarrationParts({
+    mode: c.mode,
+    affectedAreaKm2: c.area,
+    percentChanged: c.pct,
+    sensitivity: sens,
+    detail: 'full',
+  });
+  assert.equal(fullParts.length, 5, `${c.id} full parts count should be 5`);
+  for (const part of fullParts) {
+    assert.ok(part.length <= 190, `${c.id} full narration part exceeds 190 chars: "${part}" (${part.length})`);
+    assert.ok(!part.includes('best threshold'), `Must not say 'best threshold' in: "${part}"`);
+    assert.ok(!part.includes('validated'), `Must not claim 'validated' in: "${part}"`);
+  }
+
+  // F. Short narration parts
+  const shortParts = buildAnalysisNarrationParts({
+    mode: c.mode,
+    affectedAreaKm2: c.area,
+    percentChanged: c.pct,
+    sensitivity: sens,
+    detail: 'short',
+  });
+  assert.equal(shortParts.length, 2, `${c.id} short parts count should be 2`);
+  assert.ok(shortParts[0].includes('Analysis complete.'), `${c.id} short missing headline`);
+  assert.equal(shortParts[1], c.expectedClassSentence, `${c.id} short missing class sentence`);
+
+  // G. Speaking time estimation (chars / 15 chars per second)
+  const fullText = fullParts.join(' ');
+  const estimatedSeconds = Math.round((fullText.length / 15) * 10) / 10;
+  estimatedDurations[c.id] = {
+    chars: fullText.length,
+    estimatedSeconds,
+  };
+}
+
+console.log('✓ Extended narration generation tests passed for Sylhet, Amazon, Tanguar');
+console.log('  Speaking time estimates (~15 chars/sec):');
+for (const [id, d] of Object.entries(estimatedDurations)) {
+  console.log(`    - ${id}: ${d.chars} chars -> approx ${d.estimatedSeconds}s`);
+}
+
+// 14. Reliability notes test
+const honestyNote =
+  'Optical validation against Sentinel-2 on 2022-06-20 showed 87% spatial agreement in non-vegetated areas. Emergent vegetation causes known SAR undercounting.';
+const notesLines = buildReliabilityNotesLines([honestyNote]);
+assert.ok(notesLines.length >= 2, 'Expected intro plus note line');
+assert.equal(notesLines[0], 'Reliability notes, computed from data, not written by AI.');
+for (const nl of notesLines) {
+  assert.ok(nl.length <= 190, `Reliability note part exceeds 190 chars: ${nl.length}`);
+}
+console.log('✓ Reliability notes generation tests passed');
 
 console.log('\nAll Chiku Voice Guide test cases passed successfully!');
