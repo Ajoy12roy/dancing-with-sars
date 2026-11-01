@@ -78,6 +78,11 @@ def open_h5_source(source: Union[str, Path, Any]):
             "Please install it using 'pip install -r python-service/requirements-nisar.txt'"
         )
 
+    # Explicit tuple of (h5_obj, granule_name)
+    if isinstance(source, tuple) and len(source) == 2:
+        yield source[0], str(source[1])
+        return
+
     # Already an h5py File or Group
     if isinstance(source, (h5py.File, h5py.Group)):
         granule_name = getattr(source.file, "filename", "NISAR_GCOV")
