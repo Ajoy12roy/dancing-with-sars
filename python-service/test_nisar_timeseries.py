@@ -7,6 +7,10 @@ Tests use synthetic georeferenced GeoTIFF rasters.
 
 from pathlib import Path
 import pytest
+
+# Skip this test module if optional NISAR dependencies (h5py) are absent
+h5py = pytest.importorskip("h5py")
+
 import numpy as np
 import rasterio
 from rasterio.transform import from_origin
