@@ -15,6 +15,7 @@ import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
+import { NisarCard } from '@/components/explore/NisarCard';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
@@ -757,6 +758,11 @@ function ExploreContent() {
                   data={displayData}
                   mode={displayData.mode || activeAoi.mode || mode}
                 />
+              </div>
+
+              {/* ── Row 4: NASA NISAR L-band Analysis Card ── */}
+              <div className="col-span-12">
+                <NisarCard />
               </div>
             </>
           )}
