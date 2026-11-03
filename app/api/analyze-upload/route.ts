@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { spawn } from 'child_process';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 15;
+export const maxDuration = 30;
 
 // Allow at most 2 concurrent analyses; extra requests get 429
 let activeAnalyses = 0;

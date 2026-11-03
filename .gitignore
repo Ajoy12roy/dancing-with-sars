@@ -72,3 +72,16 @@ data/samples/
 
 python-service/scratch/
 scratch/
+
+# Step 2c explicit coverage
+.env
+.env.local
+.env*.local
+data/samples/
+.cache/
+scratch/
+python-service/scratch/
+.next/
+node_modules/
+__pycache__/
+.venv/
