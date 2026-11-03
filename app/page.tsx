@@ -144,14 +144,23 @@ export default function HomePage() {
             Dancing with the SARs
           </motion.p>
 
-          {/* 3. Paragraph: current text kept exactly as is, centered, max-width 760px, 20px / 1.6 */}
+          {/* NASA NISAR Hero Badge */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-[2px] border border-amber-600/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-mono text-xs font-medium"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+            <span>Now with real NASA NISAR L-band data (PROVISIONAL)</span>
+          </motion.div>
+
+          {/* 3. Paragraph: centered, max-width 760px, 20px / 1.6 */}
           <motion.p
             variants={itemVariants}
             className="hero-paragraph mt-6 text-base sm:text-lg md:text-[20px] leading-[1.6] max-w-190 mx-auto"
           >
             A platform that compares before/after SAR satellite images to detect
             and explain surface change — floods, land-cover shifts — with
-            scientific precision and AI-narrated insight, fully usable offline.
+            scientific precision and AI-narrated insight; offline use applies to the local build.
           </motion.p>
 
           {/* 4. Two buttons: height 56px, padding 0 28px, radius 2px, weight 600, no glow, no shadow */}

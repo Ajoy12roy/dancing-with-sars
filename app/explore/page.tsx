@@ -36,8 +36,6 @@ function parseModeParam(param: string | null): AnalysisMode | null {
 }
 
 function modeToParam(m: AnalysisMode): string {
-  if (m === 'river-erosion') return 'erosion';
-  if (m === 'surface-water') return 'water';
   return m;
 }
 

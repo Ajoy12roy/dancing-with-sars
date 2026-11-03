@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getReadyCaseStudies, type CaseStudyModule } from '@/lib/case-studies';
 import { getValidationForCase } from '@/lib/validation';
 
@@ -161,6 +162,59 @@ export default function DataSourcesPage() {
             </div>
           </div>
         </div>
+
+        {/* NASA-ISRO NISAR Card */}
+        <div className="bg-surface border border-hairline p-6 rounded-[2px] mt-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-hairline pb-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-data text-[10px] px-2 py-0.5 rounded-[2px] border border-amber-600/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 font-semibold uppercase">
+                  PROVISIONAL
+                </span>
+                <span className="font-data text-[10px] px-2 py-0.5 rounded-[2px] border border-hairline bg-surface-2 text-text-secondary">
+                  CRID P05023
+                </span>
+              </div>
+              <h3 className="font-headline font-semibold text-lg text-text-primary">
+                NASA-ISRO NISAR L-Band SAR GCOV
+              </h3>
+              <p className="text-xs text-text-secondary mt-0.5">
+                Level-2 Geocoded Calibrated Backscatter (GCOV), Mode 4005, HH Polarization
+              </p>
+            </div>
+            <div className="text-xs font-data text-teal">
+              Track 141 Frame 014 / 10m Pixel Spacing
+            </div>
+          </div>
+
+          <p className="text-sm text-text-secondary leading-relaxed">
+            NASA-ISRO NISAR L-band GCOV (<code>NISAR_L2_GCOV_PROVISIONAL_V1</code>), PROVISIONAL, from ASF DAAC. Used in this project for multi-temporal low-backscatter area analysis over a 1024×1024 pixel window (104.86 km², ~32.4% of the Hakaluki case bounding box). A 10-date time series (2026-06-23 through 2026-10-21) is analyzed with declared decision rules (2026-08-22 excluded as a radiometric outlier). Explore the interactive results in the{' '}
+            <Link href="/explore#nisar" className="text-teal hover:underline font-medium">
+              NISAR L-band Card &rarr;
+            </Link>
+          </p>
+
+          <div className="mt-4 p-3 bg-surface-2 border border-hairline rounded-[2px]">
+            <p className="text-xs font-data text-teal leading-relaxed">
+              <strong>Required Attribution:</strong> NISAR data: NASA/ISRO, distributed by ASF DAAC.
+            </p>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-data border-t border-hairline pt-4">
+            <div>
+              <span className="text-text-secondary block">Sensor Frequency:</span>
+              <span className="text-text-primary">L-Band (~1.25 GHz, ~24 cm)</span>
+            </div>
+            <div>
+              <span className="text-text-secondary block">Polarization &amp; Mode:</span>
+              <span className="text-text-primary">HH (Co-pol), Mode 4005 (DHDH)</span>
+            </div>
+            <div>
+              <span className="text-text-secondary block">Access Gateway:</span>
+              <span className="text-text-primary">ASF DAAC (NASA Earthdata Cloud)</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* How anyone can get this NASA-accessible SAR data */}
@@ -256,15 +310,13 @@ export default function DataSourcesPage() {
                 <span>GEE: COPERNICUS/S1_GRD</span>
                 <span className="text-text-secondary" aria-hidden="true">↗</span>
               </a>
-              <a
-                href="https://nisar.jpl.nasa.gov/"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/explore#nisar"
                 className="border border-hairline p-2.5 bg-surface-2 rounded-sm text-teal hover:underline flex items-center justify-between"
               >
-                <span>NISAR Mission (Future Work)</span>
-                <span className="text-text-secondary" aria-hidden="true">↗</span>
-              </a>
+                <span>NASA NISAR L-band Card (Used in Project)</span>
+                <span className="text-text-secondary" aria-hidden="true">&rarr;</span>
+              </Link>
               <a
                 href="https://www.spaceappschallenge.org/"
                 target="_blank"

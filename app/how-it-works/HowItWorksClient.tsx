@@ -194,6 +194,9 @@ export function HowItWorksClient() {
                     <span className="text-teal">5×5 window</span>
                   </div>
                 </div>
+                <p className="text-[11px] font-sans text-text-secondary mt-2">
+                  Note: This C-band threshold is not assumed for NISAR L-band; for NISAR no single threshold was justified.
+                </p>
 
                 <h3 className="font-headline font-semibold text-base text-text-primary mt-4 mb-2">
                   How Numbers Are Computed

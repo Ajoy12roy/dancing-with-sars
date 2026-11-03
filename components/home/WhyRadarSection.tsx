@@ -65,7 +65,7 @@ export function WhyRadarSection() {
               Direct measurement of roughness &amp; moisture
             </h3>
             <p className="text-sm text-text-secondary leading-relaxed">
-              Open water acts as a smooth specular mirror, bouncing radar pulses away from the receiver and producing distinct low backscatter values (&le;&nbsp;&minus;16.0&nbsp;dB). In contrast, rough soil, crop canopies, and urban structures produce diffuse or double-bounce returns, creating sharp physical contrast between flooded and dry ground.
+              Open water acts as a smooth specular mirror, bouncing radar pulses away from the receiver and producing distinct low backscatter values (&le;&nbsp;&minus;16.0&nbsp;dB). This C-band threshold is not assumed for NISAR L-band; for NISAR no single threshold was justified. In contrast, rough soil, crop canopies, and urban structures produce diffuse or double-bounce returns, creating sharp physical contrast between flooded and dry ground.
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
@@ -88,7 +88,7 @@ export function WhyRadarSection() {
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
-            Rigorous pixel-by-pixel log-ratio differencing
+            Pixel-by-pixel log-ratio differencing with sensitivity range
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ export default function TermsPage() {
             2. Satellite Data & Attribution
           </h2>
           <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-            Earth observation data accessed through this platform is provided under public open-access licenses. The demo cases use Copernicus Sentinel-1 C-band GRD data (ESA), obtained through Google Earth Engine. NISAR L-band support is planned future work; not used in any current case. Users agree to maintain appropriate attribution as detailed in our Data Sources page when reproducing imagery or findings.
+            Earth observation data accessed through this platform is provided under public open-access licenses. The demo cases use Copernicus Sentinel-1 C-band GRD data (ESA), obtained through Google Earth Engine, and NASA-ISRO NISAR L-band GCOV data (PROVISIONAL), distributed by ASF DAAC. Users agree to maintain appropriate attribution as detailed in our Data Sources page when reproducing imagery or findings.
           </p>
         </section>
 

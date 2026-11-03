@@ -22,7 +22,7 @@ const OFFLINE_FEATURES = [
     title: 'Local Python Service Processing',
     technicalTag: 'Local Workstation Execution',
     description:
-      'Custom GeoTIFF uploads are processed on your local machine using rasterio, numpy, and scipy. Rasters, spatial bounds, and coordinates never leave your workstation, ensuring complete data privacy and offline readiness.',
+      'Offline use applies to the local build. On the hosted site, precomputed cases are served directly from the server, and custom uploads use the external processing service only when NEXT_PUBLIC_PROCESSING_API_URL is configured (otherwise disabled). In local builds, rasters are processed locally using Python, rasterio, numpy, and scipy.',
   },
   {
     num: '04',
@@ -91,7 +91,7 @@ export function OfflineArchitectureSection() {
             </div>
 
             <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
-              Offline status: <span className="text-teal font-medium">Fully verified &bull; Autonomous</span>
+              Offline status: <span className="text-teal font-medium">Applies to local build (hosted site uses configured endpoints)</span>
             </div>
           </div>
         ))}

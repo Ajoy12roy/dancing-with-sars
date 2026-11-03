@@ -49,7 +49,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/explore?mode=erosion"
+                  href="/explore?mode=river-erosion"
                   className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   River Erosion
@@ -65,7 +65,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/explore?mode=water"
+                  href="/explore?mode=surface-water"
                   className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
                 >
                   Surface Water
@@ -184,15 +184,12 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="https://nisar.jpl.nasa.gov/"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href="/explore#nisar"
                     className="inline-flex items-center min-h-6 text-[13px] text-footer-text hover:text-footer-link-hover transition-colors"
                   >
-                    <span>NISAR mission (NASA-ISRO) (future work)</span>
-                    <ExternalLink className="w-3 h-3 shrink-0 ml-1.5" aria-hidden="true" />
-                  </a>
+                    <span>NASA-ISRO NISAR L-band (PROVISIONAL)</span>
+                  </Link>
                 </li>
                 <li>
                   <a
@@ -236,7 +233,7 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[13px] text-footer-text">
           <div className="flex flex-col">
             <p>© 2026 TerraPulse. Built for the NASA International Space Apps Challenge 2026.</p>
-            <p className="mt-1 text-[12px]">Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.</p>
+            <p className="mt-1 text-[12px]">Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine. NISAR data: NASA/ISRO, distributed by ASF DAAC.</p>
             <p className="mt-0.5 text-[12px]">Independent hackathon project, not endorsed by NASA.</p>
           </div>
           <div className="flex flex-wrap items-center gap-6">
