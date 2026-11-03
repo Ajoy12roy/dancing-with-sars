@@ -1,170 +1,587 @@
 {
+  "schemaVersion": 2,
   "aoiId": "nisar-hakaluki-2026",
-  "aoiAreaKm2": 104.86,
-  "thresholdMethod": "Otsu pooled backscatter histogram (0.25 dB bins, [-30 dB, +5 dB])",
-  "thresholdValueDb": -10.62,
-  "sweepValuesDb": [
-    -12.62,
-    -11.62,
-    -10.62,
-    -9.62,
-    -8.62
-  ],
+  "quantity": "low-backscatter area (HH)",
+  "terminology": "The quantity reported is low-backscatter area (HH), defined strictly as the surface area of pixels whose HH radar backscatter is below a given decibel threshold. It is NOT termed \"water area\" because at L-band, backscatter below moderate thresholds (-16 dB to -10 dB) encompasses wet agricultural fields, inundated vegetation, and saturated wetlands in addition to open water bodies. Only values below -20 dB are primarily specular water surfaces.",
   "dataMaturity": "PROVISIONAL",
   "crid": "P05023",
   "polarization": "HH",
-  "units": "linear power (gamma0)",
-  "computedBy": "python-service/nisar_timeseries.py",
-  "gitCommit": "f4d2acd4ba4b49653e368a9b3a90a0ed24fbea84",
+  "units": "linear power (gamma0) converted to dB (10 * log10)",
+  "referenceGridDb": [
+    -24,
+    -22,
+    -20,
+    -18,
+    -16,
+    -14,
+    -12,
+    -10
+  ],
+  "gridNote": "The reference grid spans 8 fixed threshold levels (-24 dB to -10 dB in 2 dB steps) to present an objective, multi-threshold distribution across time. It is NOT a recommendation for an operational water classification threshold.",
+  "bimodalityRule": {
+    "rulePassed": false,
+    "verdict": "threshold NOT reliably determinable",
+    "rationale": "The pooled HH backscatter histogram fails the pre-declared bimodality rule. Although eta = 0.7923 >= 0.50 and per-date Otsu threshold spread = 1.25 dB <= 3.0 dB, the valley ratio between the two highest local maxima is 0.7027 (valley density 0.00494 / lower peak density 0.00703 at -5.88 dB), which exceeds the required maximum threshold of 0.60. The modes overlap without a sufficiently deep separating minimum.",
+    "eta": 0.7923,
+    "valleyRatio": 0.7027,
+    "perDateOtsuSpreadDb": 1.25,
+    "otsuThresholdDb": null
+  },
+  "window": {
+    "description": "1024 x 1024 pixel raster subset in the northwestern quadrant of Hakaluki Haor, Sylhet Division, Bangladesh",
+    "crs": "EPSG:32646 (WGS 84 / UTM zone 46N)",
+    "pixelSizeMeters": 10.0,
+    "pixelAreaKm2": 0.0001,
+    "windowAreaKm2": 104.86,
+    "cornersLonLat": {
+      "top_left": {
+        "lon": 91.978685,
+        "lat": 24.739963
+      },
+      "top_right": {
+        "lon": 92.079936,
+        "lat": 24.740619
+      },
+      "bottom_right": {
+        "lon": 92.080615,
+        "lat": 24.648149
+      },
+      "bottom_left": {
+        "lon": 91.979439,
+        "lat": 24.647496
+      }
+    },
+    "caseBoundingBox": [
+      91.98,
+      24.58,
+      92.16,
+      24.74
+    ],
+    "caseBoundingBoxAreaKm2": 323.62,
+    "caseBoundingBoxMethod": "WGS 84 authalic spherical integration (R = 6371.0088 km) over [west: 91.98, south: 24.58, east: 92.16, north: 24.74]",
+    "windowCoverageFractionOfCaseBbox": 0.324,
+    "windowCoveragePercentageOfCaseBbox": 32.4,
+    "comparabilityNote": "The NISAR window covers approximately 32.4% (the NW quadrant) of the Hakaluki case bounding box (104.86 km2 out of 323.62 km2). It is therefore NOT directly comparable with the full C-band Sentinel-1 Hakaluki case extent (321.14 km2)."
+  },
   "records": [
     {
       "date": "2026-06-23",
-      "granule_id": "NISAR_L2_PR_GCOV_023_141_A_014_4005_DHDH_A_20260623T231316_20260623T231350_P05023_N_F_J_001",
-      "waterAreaKm2": 84.14,
-      "minAreaKm2": 81.41,
-      "maxAreaKm2": 86.72,
+      "granuleId": "NISAR_L2_PR_GCOV_023_141_A_014_4005_DHDH_A_20260623T231316_20260623T231350_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -17.42,
       "validFraction": 1.0,
-      "sweepAreas": [
-        81.41,
-        82.84,
-        84.15,
-        85.4,
-        86.72
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.32,
+          "windowFraction": 0.003
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 3.02,
+          "windowFraction": 0.0288
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 16.02,
+          "windowFraction": 0.1527
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 43.77,
+          "windowFraction": 0.4174
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 68.59,
+          "windowFraction": 0.6541
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 78.57,
+          "windowFraction": 0.7493
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 82.33,
+          "windowFraction": 0.7851
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 85.21,
+          "windowFraction": 0.8126
+        }
       ]
     },
     {
       "date": "2026-07-05",
-      "granule_id": "NISAR_L2_PR_GCOV_024_141_A_014_4005_DHDH_A_20260705T231315_20260705T231350_P05023_N_F_J_001",
-      "waterAreaKm2": 82.72,
-      "minAreaKm2": 78.88,
-      "maxAreaKm2": 86.51,
+      "granuleId": "NISAR_L2_PR_GCOV_024_141_A_014_4005_DHDH_A_20260705T231315_20260705T231350_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -16.89,
       "validFraction": 1.0,
-      "sweepAreas": [
-        78.88,
-        80.84,
-        82.73,
-        84.54,
-        86.51
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.19,
+          "windowFraction": 0.0018
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 1.96,
+          "windowFraction": 0.0187
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 11.56,
+          "windowFraction": 0.1103
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 36.05,
+          "windowFraction": 0.3438
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 63.12,
+          "windowFraction": 0.6019
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 75.71,
+          "windowFraction": 0.722
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 80.51,
+          "windowFraction": 0.7678
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 84.49,
+          "windowFraction": 0.8058
+        }
       ]
     },
     {
       "date": "2026-07-17",
-      "granule_id": "NISAR_L2_PR_GCOV_025_141_A_014_4005_DHDH_A_20260717T231314_20260717T231349_P05023_N_F_J_001",
-      "waterAreaKm2": 83.27,
-      "minAreaKm2": 80.85,
-      "maxAreaKm2": 86.23,
+      "granuleId": "NISAR_L2_PR_GCOV_025_141_A_014_4005_DHDH_A_20260717T231314_20260717T231349_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -16.67,
       "validFraction": 1.0,
-      "sweepAreas": [
-        80.85,
-        82.06,
-        83.27,
-        84.65,
-        86.23
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.14,
+          "windowFraction": 0.0013
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 1.52,
+          "windowFraction": 0.0145
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 9.48,
+          "windowFraction": 0.0904
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 32.14,
+          "windowFraction": 0.3065
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 61.59,
+          "windowFraction": 0.5874
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 77.28,
+          "windowFraction": 0.737
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 81.87,
+          "windowFraction": 0.7808
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 84.97,
+          "windowFraction": 0.8103
+        }
       ]
     },
     {
       "date": "2026-08-10",
-      "granule_id": "NISAR_L2_PR_GCOV_027_141_A_014_4005_DHDH_A_20260810T231313_20260810T231348_P05023_N_F_J_001",
-      "waterAreaKm2": 82.77,
-      "minAreaKm2": 80.73,
-      "maxAreaKm2": 85.11,
+      "granuleId": "NISAR_L2_PR_GCOV_027_141_A_014_4005_DHDH_A_20260810T231313_20260810T231348_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -17.18,
       "validFraction": 1.0,
-      "sweepAreas": [
-        80.73,
-        81.77,
-        82.78,
-        83.81,
-        85.11
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.24,
+          "windowFraction": 0.0023
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 2.45,
+          "windowFraction": 0.0233
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 13.67,
+          "windowFraction": 0.1304
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 40.16,
+          "windowFraction": 0.383
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 66.74,
+          "windowFraction": 0.6365
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 78.13,
+          "windowFraction": 0.7451
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 81.53,
+          "windowFraction": 0.7775
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 84.12,
+          "windowFraction": 0.8022
+        }
       ]
     },
     {
       "date": "2026-08-22",
-      "granule_id": "NISAR_L2_PR_GCOV_028_141_A_014_4005_DHDH_A_20260822T231312_20260822T231347_P05023_N_F_J_001",
-      "waterAreaKm2": 0.0,
-      "minAreaKm2": 0.0,
-      "maxAreaKm2": 0.0,
+      "granuleId": "NISAR_L2_PR_GCOV_028_141_A_014_4005_DHDH_A_20260822T231312_20260822T231347_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": 23.31,
       "validFraction": 1.0,
-      "sweepAreas": [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
+      "excluded": true,
+      "exclusionReason": "excluded: radiometric outlier (|m_d - M| = 40.00 dB > 2.62 dB) and low correlation (mean_corr = 0.279 < 0.362)",
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 0.0,
+          "windowFraction": 0.0
+        }
       ]
     },
     {
       "date": "2026-09-03",
-      "granule_id": "NISAR_L2_PR_GCOV_029_141_A_014_4005_DHDH_A_20260903T231312_20260903T231347_P05023_N_F_J_001",
-      "waterAreaKm2": 80.59,
-      "minAreaKm2": 77.57,
-      "maxAreaKm2": 84.45,
+      "granuleId": "NISAR_L2_PR_GCOV_029_141_A_014_4005_DHDH_A_20260903T231312_20260903T231347_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -16.7,
       "validFraction": 1.0,
-      "sweepAreas": [
-        77.57,
-        79.12,
-        80.59,
-        82.34,
-        84.45
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.14,
+          "windowFraction": 0.0014
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 1.62,
+          "windowFraction": 0.0154
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 10.12,
+          "windowFraction": 0.0965
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 33.44,
+          "windowFraction": 0.3189
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 61.07,
+          "windowFraction": 0.5824
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 74.61,
+          "windowFraction": 0.7115
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 79.12,
+          "windowFraction": 0.7546
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 82.71,
+          "windowFraction": 0.7888
+        }
       ]
     },
     {
       "date": "2026-09-15",
-      "granule_id": "NISAR_L2_PR_GCOV_030_141_A_014_4005_DHDH_A_20260915T231312_20260915T231347_P05023_N_F_J_001",
-      "waterAreaKm2": 77.86,
-      "minAreaKm2": 74.81,
-      "maxAreaKm2": 82.08,
+      "granuleId": "NISAR_L2_PR_GCOV_030_141_A_014_4005_DHDH_A_20260915T231312_20260915T231347_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -17.37,
       "validFraction": 1.0,
-      "sweepAreas": [
-        74.81,
-        76.26,
-        77.86,
-        79.69,
-        82.08
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.38,
+          "windowFraction": 0.0037
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 3.57,
+          "windowFraction": 0.0341
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 17.37,
+          "windowFraction": 0.1657
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 44.13,
+          "windowFraction": 0.4208
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 65.43,
+          "windowFraction": 0.624
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 73.17,
+          "windowFraction": 0.6978
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 76.63,
+          "windowFraction": 0.7308
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 80.48,
+          "windowFraction": 0.7675
+        }
       ]
     },
     {
       "date": "2026-09-27",
-      "granule_id": "NISAR_L2_PR_GCOV_031_141_A_014_4005_DHDH_A_20260927T231312_20260927T231347_P05023_N_F_J_001",
-      "waterAreaKm2": 73.16,
-      "minAreaKm2": 68.04,
-      "maxAreaKm2": 78.96,
+      "granuleId": "NISAR_L2_PR_GCOV_031_141_A_014_4005_DHDH_A_20260927T231312_20260927T231347_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -16.46,
       "validFraction": 1.0,
-      "sweepAreas": [
-        68.04,
-        70.52,
-        73.18,
-        75.93,
-        78.96
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.22,
+          "windowFraction": 0.0021
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 2.27,
+          "windowFraction": 0.0216
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 12.31,
+          "windowFraction": 0.1174
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 34.9,
+          "windowFraction": 0.3329
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 56.22,
+          "windowFraction": 0.5361
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 65.79,
+          "windowFraction": 0.6274
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 70.83,
+          "windowFraction": 0.6755
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 76.24,
+          "windowFraction": 0.7271
+        }
       ]
     },
     {
       "date": "2026-10-09",
-      "granule_id": "NISAR_L2_PR_GCOV_032_141_A_014_4005_DHDH_A_20261009T231312_20261009T231347_P05023_N_F_J_001",
-      "waterAreaKm2": 71.72,
-      "minAreaKm2": 67.35,
-      "maxAreaKm2": 76.17,
+      "granuleId": "NISAR_L2_PR_GCOV_032_141_A_014_4005_DHDH_A_20261009T231312_20261009T231347_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -15.39,
       "validFraction": 1.0,
-      "sweepAreas": [
-        67.35,
-        69.63,
-        71.73,
-        73.86,
-        76.17
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.06,
+          "windowFraction": 0.0005
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 0.71,
+          "windowFraction": 0.0068
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 5.32,
+          "windowFraction": 0.0507
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 21.45,
+          "windowFraction": 0.2046
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 46.12,
+          "windowFraction": 0.4398
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 62.2,
+          "windowFraction": 0.5931
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 69.0,
+          "windowFraction": 0.658
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 74.08,
+          "windowFraction": 0.7065
+        }
       ]
     },
     {
       "date": "2026-10-21",
-      "granule_id": "NISAR_L2_PR_GCOV_033_141_A_014_4005_DHDH_A_20261021T231312_20261021T231347_P05023_N_F_J_001",
-      "waterAreaKm2": 67.01,
-      "minAreaKm2": 61.57,
-      "maxAreaKm2": 74.16,
+      "granuleId": "NISAR_L2_PR_GCOV_033_141_A_014_4005_DHDH_A_20261021T231312_20261021T231347_P05023_N_F_J_001",
+      "crid": "P05023",
+      "dataMaturity": "PROVISIONAL",
+      "medianHhDb": -14.26,
       "validFraction": 1.0,
-      "sweepAreas": [
-        61.57,
-        64.34,
-        67.02,
-        70.21,
-        74.16
+      "excluded": false,
+      "exclusionReason": null,
+      "referenceGrid": [
+        {
+          "thresholdDb": -24,
+          "lowBackscatterAreaKm2": 0.07,
+          "windowFraction": 0.0006
+        },
+        {
+          "thresholdDb": -22,
+          "lowBackscatterAreaKm2": 0.84,
+          "windowFraction": 0.008
+        },
+        {
+          "thresholdDb": -20,
+          "lowBackscatterAreaKm2": 5.57,
+          "windowFraction": 0.0531
+        },
+        {
+          "thresholdDb": -18,
+          "lowBackscatterAreaKm2": 19.8,
+          "windowFraction": 0.1888
+        },
+        {
+          "thresholdDb": -16,
+          "lowBackscatterAreaKm2": 39.61,
+          "windowFraction": 0.3777
+        },
+        {
+          "thresholdDb": -14,
+          "lowBackscatterAreaKm2": 53.88,
+          "windowFraction": 0.5138
+        },
+        {
+          "thresholdDb": -12,
+          "lowBackscatterAreaKm2": 62.61,
+          "windowFraction": 0.5971
+        },
+        {
+          "thresholdDb": -10,
+          "lowBackscatterAreaKm2": 70.3,
+          "windowFraction": 0.6705
+        }
       ]
     }
   ]
