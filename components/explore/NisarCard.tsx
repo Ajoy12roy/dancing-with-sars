@@ -678,6 +678,67 @@ export function NisarCard({ initialData }: NisarCardProps) {
           </li>
         </ul>
       </details>
+
+      {/* ── What This Could Mean (Hypotheses & Future Uses) ── */}
+      <details className="border border-hairline bg-surface-2 p-3.5 rounded-[2px] text-xs font-sans text-ink space-y-3">
+        <summary className="font-mono font-medium text-text-secondary cursor-pointer hover:text-ink">
+          What this could mean: hypotheses and future uses
+        </summary>
+        <div className="mt-3 space-y-4">
+          {/* Block 1: Possible drivers */}
+          <div className="space-y-1.5">
+            <h4 className="font-serif font-semibold text-ink text-xs">
+              Possible drivers (Hypothesis (not tested))
+            </h4>
+            <p className="text-text-secondary text-[11px] leading-relaxed">
+              L-band radar backscatter (~24 cm wavelength) is physically sensitive to several environmental variables documented in the ASF NISAR User Guide (https://nisar-docs.asf.alaska.edu/gcov/):
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-text-secondary text-[11px] leading-relaxed">
+              <li>
+                <strong className="text-ink">Surface roughness:</strong> Specular reflections over smooth terrain divert radar pulses away from the receiver (resulting in lower backscatter), while rougher surfaces cause diffuse scattering back to the sensor.
+              </li>
+              <li>
+                <strong className="text-ink">Dielectric constant and moisture:</strong> Variations in soil moisture and wetness saturation alter the dielectric properties of the surface, directly shifting backscatter intensity.
+              </li>
+              <li>
+                <strong className="text-ink">Vegetation structure:</strong> The long L-band wavelength penetrates foliage canopies to interact with branches and vertical stems via volume scattering and double-bounce reflection.
+              </li>
+              <li>
+                <strong className="text-ink">Polarization differences:</strong> Co-polarized HH is responsive to horizontal structures and specular surface reflections, whereas cross-polarized HV is dominated by volume scattering from vegetation.
+              </li>
+            </ul>
+            <p className="font-mono text-[10px] text-text-secondary mt-1">
+              None of these were tested against ground data.
+            </p>
+          </div>
+
+          {/* Block 2: Possible future uses of NISAR */}
+          <div className="space-y-1.5 border-t border-hairline pt-3">
+            <h4 className="font-serif font-semibold text-ink text-xs">
+              Possible future uses of NISAR
+            </h4>
+            <ul className="list-disc list-inside space-y-1 text-text-secondary text-[11px] leading-relaxed">
+              <li>
+                <strong className="text-ink">Wetlands and floodplains monitoring:</strong> Continuous mapping of inundation dynamics beneath dense vegetation canopies across large wetland systems (possible application, not demonstrated here).
+              </li>
+              <li>
+                <strong className="text-ink">Forest change:</strong> Tracking canopy structure variations, disturbance, and biomass dynamics (possible application, not demonstrated here).
+              </li>
+              <li>
+                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring crop growth cycles and field moisture status (possible application, not demonstrated here).
+              </li>
+              <li>
+                <strong className="text-ink">Ground deformation:</strong> Measuring millimeter-scale land subsidence and tectonic displacement with repeat-pass interferometry (possible application, not demonstrated here).
+              </li>
+            </ul>
+          </div>
+
+          {/* Block 3: Next steps */}
+          <div className="border-t border-hairline pt-2 text-[11px] text-text-secondary leading-relaxed">
+            <strong className="text-ink">Next steps:</strong> independent validation (for example comparison with the NASA OPERA surface water product and optical imagery), threshold calibration, reprocessed (non-provisional) NISAR data.
+          </div>
+        </div>
+      </details>
     </section>
   );
 }

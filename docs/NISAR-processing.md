@@ -200,3 +200,27 @@ The time series is published in `data/nisar/hakaluki-haor/timeseries.json` (sche
    Cumulative HTTP range streaming was tracked and estimated at ~75 MB for metadata and slice reads, well below the 1.0 GB limit.
 10. **Unverified Hypotheses**:
    Any potential hardware or software explanation for the 2026-08-22 anomaly remains an unverified *Hypothesis (not tested)*.
+
+---
+
+## 9. Official Documentation Sources and Hypotheses Citations
+
+1. **ASF NISAR User Guide (GCOV)**:
+   URL: `https://nisar-docs.asf.alaska.edu/gcov/`
+   Documentation of physical radar backscatter sensitivities at L-band (~24 cm wavelength):
+   - Surface roughness: specular forward-scattering over smooth terrain vs diffuse backscatter over rough surfaces.
+   - Dielectric constant & soil moisture: electrical permittivity changes driven by moisture saturation.
+   - Canopy penetration & vegetation structure: long-wavelength penetration through foliage to interact with branches and tree trunks.
+   - Polarimetric response: co-pol (HH) sensitivity to horizontal structures vs cross-pol (HV) volume scattering.
+
+2. **NASA Space Apps Challenge Reference ("Dancing with the SARs")**:
+   Potential application domains for L-band SAR observations:
+   - Wetlands and floodplains monitoring.
+   - Forest change and biomass disturbance tracking.
+   - Agriculture and soil moisture monitoring.
+   - Ground deformation and surface displacement interferometry.
+
+3. **Data Availability and Archive**:
+   - Availability overview & data gap: `https://nisar-docs.asf.alaska.edu/availability-overview/`
+   - Common Metadata Repository: `https://cmr.earthdata.nasa.gov/search/collections.json`
+
