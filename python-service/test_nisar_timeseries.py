@@ -13,6 +13,7 @@ from rasterio.transform import from_origin
 from rasterio.crs import CRS
 
 from nisar_timeseries import (
+    otsu_from_counts,
     compute_pooled_histogram_and_otsu,
     compute_water_timeseries,
     generate_change_result
@@ -131,3 +132,60 @@ def test_generate_change_result(synthetic_timeseries_tifs, tmp_path):
     assert res["aoiId"] == "nisar-hakaluki-2026"
     assert "categories" in res
     assert "metrics" in res
+
+
+def test_otsu_synthetic_two_gaussians():
+    """
+    Step 2a unit test: Synthetic mixture of two Gaussians with known means.
+    Verifies that the recovered Otsu threshold lies strictly between the means
+    and 0.0 <= eta <= 1.0.
+    """
+    bin_edges = np.arange(-30.0, 5.25, 0.25)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    mean_water = -20.0
+    mean_land = -8.0
+    np.random.seed(42)
+    sample_water = np.random.normal(mean_water, 1.5, size=20000)
+    sample_land = np.random.normal(mean_land, 1.5, size=20000)
+    mixture = np.concatenate([sample_water, sample_land])
+
+    counts, _ = np.histogram(mixture, bins=bin_edges)
+    threshold, sigma_b_sq, sigma_t_sq, eta = otsu_from_counts(bin_centers, counts)
+
+    # Threshold must lie strictly between the two component means
+    assert mean_water < threshold < mean_land
+    # Inter-class variance ratio must strictly satisfy 0 <= eta <= 1
+    assert 0.0 <= eta <= 1.0
+    # For well-separated modes, eta should be substantial (>= 0.70)
+    assert eta >= 0.70
+    assert sigma_b_sq <= sigma_t_sq
+
+
+def test_otsu_unimodal_vs_bimodal_eta():
+    """
+    Step 2a unit test: Verifies that eta of a unimodal sample is clearly lower
+    than eta of a well-separated bimodal sample.
+    """
+    bin_edges = np.arange(-30.0, 5.25, 0.25)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    np.random.seed(123)
+    # 1. Unimodal sample: single broad Gaussian
+    unimodal_sample = np.random.normal(-14.0, 3.5, size=40000)
+    counts_uni, _ = np.histogram(unimodal_sample, bins=bin_edges)
+    th_uni, _, _, eta_uni = otsu_from_counts(bin_centers, counts_uni)
+
+    # 2. Well-separated bimodal sample: two distinct narrow modes
+    mode1 = np.random.normal(-22.0, 1.0, size=20000)
+    mode2 = np.random.normal(-6.0, 1.0, size=20000)
+    bimodal_sample = np.concatenate([mode1, mode2])
+    counts_bi, _ = np.histogram(bimodal_sample, bins=bin_edges)
+    th_bi, _, _, eta_bi = otsu_from_counts(bin_centers, counts_bi)
+
+    assert 0.0 <= eta_uni <= 1.0
+    assert 0.0 <= eta_bi <= 1.0
+    # Bimodal eta must be substantially higher than unimodal eta
+    assert eta_bi - eta_uni > 0.20
+    assert eta_bi >= 0.90
+
