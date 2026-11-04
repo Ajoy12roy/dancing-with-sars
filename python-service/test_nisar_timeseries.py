@@ -107,7 +107,7 @@ def test_compute_water_timeseries(synthetic_timeseries_tifs):
 
     rec0 = res["records"][0]
     rec1 = res["records"][1]
-    # Date 2 had larger water area
+    # Date 2 had larger low-backscatter area
     assert rec1["waterAreaKm2"] > rec0["waterAreaKm2"]
     assert rec0["minAreaKm2"] <= rec0["waterAreaKm2"] <= rec0["maxAreaKm2"]
 

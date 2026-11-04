@@ -9,13 +9,13 @@ This report documents the revised data-quality processing, multi-temporal analys
 | Item | Day 7a Report (Erroneous / Unsubstantiated) | Day 7a.1 Correction (Evidence-Based & Deterministic) |
 |---|---|---|
 | **Otsu $\eta$ Ratio** | Reported $\eta = 1.2635$ (mathematically impossible; $\eta \in [0, 1]$). | Corrected to **$\eta = 0.7923$**. Root cause diagnosed: pixels outside the $[-30, +5]$ dB histogram range (especially ~1M outlier pixels on 2026-08-22) were dropped from bin counts but counted in total pixels, breaking the probability sum ($\sum p \ne 1$). Now $\sigma_B^2$ and $\sigma_T^2$ are derived from the exact same histogram. |
-| **Bimodality Claim** | Claimed `is_bimodal: True` based on flawed $\eta$ and arbitrary peak counts. | Evaluated with pre-declared **Bimodality Rule**: $\eta \ge 0.50$ (PASS: $0.7923$), `spread <= 3 dB` (PASS: $1.25\text{ dB}$), `valley_ratio <= 0.60` (**FAIL**: $0.7027 > 0.60$). Verdict: **FAILED ("threshold NOT reliably determinable")**. |
-| **Operational Threshold** | Imposed single threshold of $-10.62\text{ dB}$, marking ~80% of window as "water". | **No single threshold could be justified; results are shown as a threshold grid.** Single-threshold change detection outputs were removed per Step 4a. |
-| **Quantity Terminology** | Labelled backscatter below threshold as "water area". | Quantity corrected to **"low-backscatter area (HH)"**. At L-band, backscatter below $-10$ to $-16\text{ dB}$ includes wet vegetation, flooded crops, and saturated soil; only backscatter $< -20\text{ dB}$ corresponds primarily to open water surfaces. |
-| **Cycle 028 (2026-08-22)** | Labelled "provisional calibration anomaly" without proof, yet included in pooled statistics. | Formally excluded via pre-declared **radiometric outlier** ($|m_d - M| = 40.00\text{ dB} > 2.62\text{ dB}$) and **low correlation** ($\bar{r} = 0.279 < 0.362$) rules. Cause explicitly marked: **`Cause: NOT ESTABLISHED`**. |
+| **Bimodality Claim** | Claimed `is_bimodal: True` based on flawed $\eta$ and arbitrary local maxima counts. | Evaluated with pre-declared **Bimodality Rule**: $\eta \ge 0.50$ (PASS: $0.7923$), `spread <= 3 dB` (PASS: $1.25\text{ dB}$), `valley_ratio <= 0.60` (**FAIL**: $0.7027 > 0.60$). Verdict: **FAILED ("threshold NOT reliably determinable")**. |
+| **Operational Threshold** | Imposed single threshold of $-10.62\text{ dB}$, marking ~80% of window as inundated. | **No single threshold could be justified; results are shown as a threshold grid.** Single-threshold change detection outputs were removed per Step 4a. |
+| **Quantity Terminology** | Labelled backscatter below threshold as inundation area. | Quantity corrected to **"low-backscatter area (HH)"**. At L-band, backscatter below $-10$ to $-16\text{ dB}$ includes wet vegetation, inundated crops, and saturated soil; only backscatter $< -20\text{ dB}$ corresponds primarily to flat specular surfaces. |
+| **Cycle 028 (2026-08-22)** | Labelled provisional instrument flaw without proof, yet included in pooled statistics. | Formally excluded via pre-declared **radiometric outlier** ($|m_d - M| = 40.00\text{ dB} > 2.62\text{ dB}$) and **low correlation** ($\bar{r} = 0.279 < 0.362$) rules. Cause explicitly marked: **`Cause: NOT ESTABLISHED`**. |
 | **Missing Cycle 026 (2026-07-29)** | 24-day gap between 2026-07-17 and 2026-08-10 was unreported. | Live CMR query verified zero granules exist. Investigated and linked to official ASF user guide: **Permanent instrument data gap** between `2026-07-27T22:03:25Z` and `2026-08-10T00:55:27Z`. |
 | **Pair Selection** | Selected 2026-06-23 vs 2026-07-17 ($2.97\%$ change) arbitrarily. | Bimodality failed; per Step 4a, no change pair was produced or retained. |
-| **Speculative Notes** | Added qualitative labels ("Initial monsoon peak", "Autumn low water", "Dry season base extent"). | **All speculative table notes removed.** |
+| **Speculative Notes** | Added qualitative labels based on assumed seasonal cycles. | **All speculative table notes removed.** |
 | **Window Coverage** | Unstated that 1024 x 1024 window covered only a fraction of the AOI. | Window geometry and coverage explicitly quantified: **$104.86\text{ km}^2$ covers $32.40\%$** (the NW quadrant) of the Hakaluki case bounding box ($323.62\text{ km}^2$). Incomparable with full C-band case. |
 
 ---
@@ -117,8 +117,8 @@ Using the 0.25 dB histogram of HH dB pooled over the 9 non-excluded dates (9,427
 - **Inter-Class Variance Ratio ($\eta$)**: **`0.7923`** (satisfies $\eta \in [0, 1]$)
 - **Moving Average Smoothing**: Window width = 5 bins ($1.25\text{ dB}$)
 - **Top 2 Local Maxima**:
-  - Left Peak (Water / Low Backscatter): **`-17.88 dB`** (density = `0.03220`)
-  - Right Peak (Land / Rough Surfaces): **`-5.88 dB`** (density = `0.00703`)
+  - Left Mode (Low Backscatter): **`-17.88 dB`** (density = `0.03220`)
+  - Right Mode (Rough Surfaces): **`-5.88 dB`** (density = `0.00703`)
 - **Valley Position**: **`-11.62 dB`** (density = `0.00494`)
 - **Valley Ratio**: `0.00494 / 0.00703 =` **`0.7027`**
 - **Per-Date Otsu Thresholds**:
@@ -193,7 +193,7 @@ The time series is published in `data/nisar/hakaluki-haor/timeseries.json` (sche
 6. **No Independent Water Map Validation**:
    Results have not been benchmarked against cloud-free high-resolution optical imagery (e.g. Sentinel-2 / Landsat-9) acquired coincidentally with the radar passes.
 7. **Physical Backscatter Quantity**:
-   The measured quantity is radar backscatter below a threshold. At L-band (wavelength ~24 cm), backscatter between $-16\text{ dB}$ and $-10\text{ dB}$ includes wet vegetation, saturated paddy fields, and mudflats in addition to open water surfaces.
+   The measured quantity is radar backscatter below a threshold. At L-band (wavelength ~24 cm), backscatter between $-16\text{ dB}$ and $-10\text{ dB}$ includes wet vegetation, saturated paddy fields, and mudflats in addition to specular flat surfaces.
 8. **Pixel Spacing**:
    Pixel areas are computed from the 10.0 m projected UTM grid ($100\text{ m}^2$ per pixel = $0.0001\text{ km}^2$).
 9. **Estimated Streaming Transfer**:
