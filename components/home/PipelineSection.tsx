@@ -23,7 +23,7 @@ const STEPS = [
     name: 'Classification & Area in km²',
     codeRef: 'morphological filtering',
     summary:
-      'Applies physical thresholds (e.g. ≤ −16 dB for specular water, ≤ −3 dB for canopy loss). Filters isolated noise clusters (< 20 pixels) and multiplies pixel counts by ground resolution into exact km².',
+      'Applies physical thresholds (e.g. ≤ −16 dB for specular water, ≤ −3 dB for canopy loss). Filters isolated noise clusters (< 20 pixels) and multiplies pixel counts by ground resolution into estimated km² with sensitivity range.',
   },
   {
     step: '04',

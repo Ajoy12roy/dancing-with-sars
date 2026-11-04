@@ -45,9 +45,17 @@ export function WhyRadarSection() {
             <h3 className="text-base font-headline font-semibold text-text-primary mb-2">
               All-weather, day-and-night observation
             </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Optical sensors cannot image through cloud decks, haze, smoke, or darkness. Synthetic Aperture Radar (SAR) transmits microwave pulses (wavelengths ~5.6&nbsp;cm for C-band, ~24&nbsp;cm for L-band) that penetrate thick cloud cover unhindered, providing guaranteed observations during major monsoon floods and storm events.
+            <p className="text-sm text-text-secondary leading-relaxed mb-2">
+              Optical sensors cannot image through cloud decks, haze, smoke, or darkness; radar penetrates clouds unhindered.
             </p>
+            <details className="text-xs text-text-secondary leading-relaxed group">
+              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
+                Technical details
+              </summary>
+              <div className="pt-1.5 border-t border-hairline/60 text-text-secondary">
+                Synthetic Aperture Radar (SAR) transmits microwave pulses (wavelengths ~5.6&nbsp;cm for C-band, ~24&nbsp;cm for L-band) that penetrate thick cloud decks, providing guaranteed observations during major storm events.
+              </div>
+            </details>
           </div>
           <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
             Operational in 100% cloud cover
@@ -64,9 +72,17 @@ export function WhyRadarSection() {
             <h3 className="text-base font-headline font-semibold text-text-primary mb-2">
               Direct measurement of roughness &amp; moisture
             </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Open water acts as a smooth specular mirror, bouncing radar pulses away from the receiver and producing distinct low backscatter values (&le;&nbsp;&minus;16.0&nbsp;dB). In contrast, rough soil, crop canopies, and urban structures produce diffuse or double-bounce returns, creating sharp physical contrast between flooded and dry ground.
+            <p className="text-sm text-text-secondary leading-relaxed mb-2">
+              Smooth water surfaces reflect radar energy away, creating strong physical contrast against rough terrestrial surfaces.
             </p>
+            <details className="text-xs text-text-secondary leading-relaxed group">
+              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
+                Technical details
+              </summary>
+              <div className="pt-1.5 border-t border-hairline/60 text-text-secondary">
+                Water acts as a specular reflector, bouncing radar pulses away from the antenna and producing low backscatter (&le;&nbsp;&minus;16.0&nbsp;dB at C-band). This C-band threshold is not assumed for NISAR L-band; for NISAR no single threshold was justified. In contrast, rough soil, crop canopies, and urban structures produce diffuse or double-bounce returns.
+              </div>
+            </details>
           </div>
           <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
             Calibrated radiometric thresholding
@@ -83,12 +99,20 @@ export function WhyRadarSection() {
             <h3 className="text-base font-headline font-semibold text-text-primary mb-2">
               Fixed orbital geometry for date comparison
             </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Spacecraft fly exact repeat orbits (e.g. Sentinel-1&apos;s 6-to-12 day revisit cycles) from the exact same observation angles. Comparing before and after scenes from identical orbital tracks isolates genuine physical surface transformations, free from the sun-angle and shadow discrepancies inherent in optical photography.
+            <p className="text-sm text-text-secondary leading-relaxed mb-2">
+              Repeat orbits from identical angles isolate genuine surface change without illumination or shadow artifacts.
             </p>
+            <details className="text-xs text-text-secondary leading-relaxed group">
+              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
+                Technical details
+              </summary>
+              <div className="pt-1.5 border-t border-hairline/60 text-text-secondary">
+                Spacecraft fly exact repeat orbits (e.g. Sentinel-1&apos;s 6-to-12 day revisit cycles) from identical observation angles. Comparing scenes from identical orbital tracks isolates genuine surface transformations, free from sun-angle differences inherent in optical imagery.
+              </div>
+            </details>
           </div>
           <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
-            Rigorous pixel-by-pixel log-ratio differencing
+            Pixel-by-pixel log-ratio differencing with sensitivity range
           </div>
         </div>
       </div>

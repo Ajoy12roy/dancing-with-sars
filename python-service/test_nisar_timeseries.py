@@ -7,6 +7,10 @@ Tests use synthetic georeferenced GeoTIFF rasters.
 
 from pathlib import Path
 import pytest
+
+# Skip this test module if optional NISAR dependencies (h5py) are absent
+h5py = pytest.importorskip("h5py")
+
 import numpy as np
 import rasterio
 from rasterio.transform import from_origin
@@ -103,7 +107,7 @@ def test_compute_water_timeseries(synthetic_timeseries_tifs):
 
     rec0 = res["records"][0]
     rec1 = res["records"][1]
-    # Date 2 had larger water area
+    # Date 2 had larger low-backscatter area
     assert rec1["waterAreaKm2"] > rec0["waterAreaKm2"]
     assert rec0["minAreaKm2"] <= rec0["waterAreaKm2"] <= rec0["maxAreaKm2"]
 

@@ -12,6 +12,8 @@ import {
   buildReliabilityNotesLines,
   PAGE_INTROS,
   type ChikuContextData,
+  buildNisarNarrationParts,
+  type NisarTimeseriesLike,
 } from '@/lib/chiku-script';
 import { type SensitivityData } from '@/lib/sensitivity';
 import {
@@ -162,6 +164,7 @@ function getEventGroup(eventType: string): ChikuEventGroup {
     case 'welcome':
     case 'test-voice':
     case 'explain-view':
+    case 'nisar-view':
       return 'view';
     case 'processing':
     case 'analysis-loading':
@@ -190,6 +193,7 @@ function getEventPriority(eventType: string): ChikuPriority {
     case 'welcome':
     case 'test-voice':
     case 'explain-view':
+    case 'nisar-view':
     case 'analysis-ready':
     case 'analysis-failed':
     case 'upload-rejected':
@@ -238,12 +242,13 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       ? userMinimized
       : (() => {
           try {
-            return localStorage.getItem('terrapulse-chiku-minimized') === 'true';
+            const saved = localStorage.getItem('terrapulse-chiku-minimized');
+            return saved !== null ? saved === 'true' : true;
           } catch {
-            return false;
+            return true;
           }
         })()
-    : false;
+    : true;
 
   const narrationDetail: 'full' | 'short' = isMounted
     ? userNarrationDetail !== null
@@ -251,12 +256,12 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
       : (() => {
           try {
             const saved = localStorage.getItem('terrapulse-chiku-narration');
-            return saved === 'short' ? 'short' : 'full';
+            return saved === 'full' ? 'full' : 'short';
           } catch {
-            return 'full';
+            return 'short';
           }
         })()
-    : 'full';
+    : 'short';
 
   const hasSpeechSupport = isMounted && typeof window !== 'undefined' && 'speechSynthesis' in window;
 
@@ -333,7 +338,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   const availableVoicesRef = useRef<SpeechSynthesisVoice[]>(availableVoices);
   const hasSpokenWelcomeRef = useRef<boolean>(false);
 
-  const narrationDetailRef = useRef<'full' | 'short'>('full');
+  const narrationDetailRef = useRef<'full' | 'short'>('short');
 
   useEffect(() => {
     narrationDetailRef.current = narrationDetail;
@@ -742,6 +747,22 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
         return;
       }
 
+      if (event.type === 'nisar-view') {
+        const tsData = (event.data?.timeseries as NisarTimeseriesLike | undefined) || {};
+        const detail = narrationDetailRef.current;
+        const parts = buildNisarNarrationParts(tsData, detail);
+        if (parts.length > 0 && parts[0]) {
+          setCurrentText(parts[0]);
+          queueRef.current?.enqueue({
+            key: `nisar-view:${Date.now()}`,
+            group: 'view',
+            priority: 3,
+            parts,
+          });
+        }
+        return;
+      }
+
       const eventData = event.data as Record<string, unknown> | undefined;
       const keySuffix =
         typeof eventData?.caseId === 'string'
@@ -897,7 +918,7 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
   return (
     <aside
       aria-label="Chiku SAR Radar Guide"
-      className={`fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 max-w-[calc(100vw-24px)] sm:max-w-sm w-84 bg-surface border border-hairline rounded-[2px] p-3 shadow-none ${className}`}
+      className={`fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 max-w-[calc(100vw-24px)] sm:max-w-sm w-84 max-h-[40vh] sm:max-h-none overflow-y-auto bg-surface border border-hairline rounded-[2px] p-3 shadow-none ${className}`}
     >
       {/* Header bar */}
       <div className="flex items-center justify-between pb-2 border-b border-hairline mb-2.5">

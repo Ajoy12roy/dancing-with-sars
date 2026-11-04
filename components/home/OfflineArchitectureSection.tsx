@@ -7,29 +7,37 @@ const OFFLINE_FEATURES = [
     num: '01',
     title: 'Offline Radar Basemap',
     technicalTag: 'Zero Tile Server Calls',
-    description:
-      'Defaults to a neutral survey background with local SAR before-scene backscatter raster overlays, an SVG/polyline coordinate graticule in IBM Plex Mono, and a metric scale bar. Fully functional without an internet connection.',
+    summary:
+      'Defaults to a neutral survey background with local SAR backscatter raster overlays, an SVG graticule, and a metric scale bar.',
+    details:
+      'Fully functional without an internet connection. Coordinates and scale indicators render client-side without calling third-party map tile servers.',
   },
   {
     num: '02',
     title: 'Self-Hosted Fonts & Map Assets',
     technicalTag: 'Zero CDN Dependencies',
-    description:
-      'Typography (Source Serif 4, Public Sans, IBM Plex Mono) is bundled locally via next/font/local. All Leaflet marker icons, layer graphics, and styles are served directly from public/leaflet/ without external unpkg or cdnjs requests.',
+    summary:
+      'Typography and map assets are self-hosted with zero external CDN dependencies.',
+    details:
+      'Typography (Source Serif 4, Public Sans, IBM Plex Mono) is bundled locally via next/font/local. All Leaflet marker icons, layer graphics, and styles are served directly from public/leaflet/.',
   },
   {
     num: '03',
     title: 'Local Python Service Processing',
     technicalTag: 'Local Workstation Execution',
-    description:
-      'Custom GeoTIFF uploads are processed on your local machine using rasterio, numpy, and scipy. Rasters, spatial bounds, and coordinates never leave your workstation, ensuring complete data privacy and offline readiness.',
+    summary:
+      'Offline processing applies to local builds; hosted deployments serve precomputed cases directly.',
+    details:
+      'On hosted sites, precomputed cases are served directly from the server. In local builds, rasters are processed locally using Python, rasterio, numpy, and scipy without external network requests.',
   },
   {
     num: '04',
     title: 'Deterministic Fallback Insights',
     technicalTag: 'Zero API Key Required',
-    description:
-      'When GEMINI_API_KEY is not configured or during field operations without connectivity, the narrative panel automatically synthesizes deterministic, publication-grade analytical summaries directly from the computed metrics.',
+    summary:
+      'Analytical summaries generate deterministically when no API key is configured or when offline.',
+    details:
+      'When GEMINI_API_KEY is not configured, the narrative panel automatically synthesizes deterministic analytical summaries directly from the computed metrics.',
   },
 ];
 
@@ -85,13 +93,22 @@ export function OfflineArchitectureSection() {
                 {feat.title}
               </h3>
 
-              <p className="text-xs text-text-secondary leading-relaxed">
-                {feat.description}
+              <p className="text-xs text-text-secondary leading-relaxed mb-2">
+                {feat.summary}
               </p>
+
+              <details className="text-xs text-text-secondary leading-relaxed group">
+                <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-0.5 focus:outline-none focus-visible:underline">
+                  Technical details
+                </summary>
+                <div className="pt-1.5 border-t border-hairline/60 text-text-secondary text-[11px]">
+                  {feat.details}
+                </div>
+              </details>
             </div>
 
             <div className="mt-4 pt-3 border-t border-hairline text-[11px] font-data text-text-caption">
-              Offline status: <span className="text-teal font-medium">Fully verified &bull; Autonomous</span>
+              Offline status: <span className="text-teal font-medium">Applies to local build (hosted site uses configured endpoints)</span>
             </div>
           </div>
         ))}

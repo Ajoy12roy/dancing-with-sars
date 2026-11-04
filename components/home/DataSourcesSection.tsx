@@ -41,17 +41,17 @@ export function DataSourcesSection() {
       <div className="border border-hairline p-6 bg-surface rounded-[2px]">
 
         <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-3xl">
-          All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and obtained through Google Earth Engine (also available from NASA&apos;s Alaska Satellite Facility ASF DAAC). Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
+          All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and NASA-ISRO NISAR L-band GCOV (NISAR_L2_GCOV_PROVISIONAL_V1), PROVISIONAL, from ASF DAAC, analyzed in our <Link href="/explore#nisar" className="text-teal hover:underline font-medium">NISAR L-band card</Link>. Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-data">
           <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
             <span className="text-text-caption block text-[11px] mb-1">CONSTELLATION</span>
-            <span className="text-text-primary font-medium">Copernicus Sentinel-1 (C-band)</span>
+            <span className="text-text-primary font-medium">Sentinel-1 (C-band) &bull; NISAR (L-band)</span>
           </div>
           <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
             <span className="text-text-caption block text-[11px] mb-1">DATA ACCESS &amp; ARCHIVES</span>
-            <span className="text-text-primary font-medium">Google Earth Engine (also from ASF DAAC)</span>
+            <span className="text-text-primary font-medium">Google Earth Engine &amp; ASF DAAC</span>
           </div>
           <div className="border border-hairline p-3 bg-surface-2 rounded-sm">
             <span className="text-text-caption block text-[11px] mb-1">GEOSPATIAL PROCESSING</span>

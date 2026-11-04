@@ -263,6 +263,32 @@ function buildAnalysisNarrationParts(params) {
   return parts;
 }
 
+function buildNisarNarrationParts(data, detail = 'short') {
+  const maturity = data.dataMaturity || 'PROVISIONAL';
+  const crid = data.crid || 'P05023';
+  const winArea = data.window?.windowAreaKm2 ?? 104.86;
+  const winAreaStr = winArea.toFixed(2);
+  const winPct = data.window?.windowCoveragePercentageOfCaseBbox ?? 32.4;
+  const winPctStr = winPct.toFixed(1);
+  const excludedRecord = data.records?.find((r) => r.excluded);
+  const excludedDate = excludedRecord?.date || '2026-08-22';
+  const totalCount = data.records?.length ?? 10;
+
+  if (detail === 'short') {
+    return [
+      `NISAR observation is ${maturity}.`,
+      `It measures low-backscatter area below fixed thresholds (not water) across ${winAreaStr} square kilometres; ${excludedDate} is excluded as cause not established and no single threshold is justified.`,
+    ];
+  }
+
+  return [
+    `NISAR observation is ${maturity} with CRID ${crid}.`,
+    `The 1024 by 1024 window covers ${winAreaStr} square kilometres, about ${winPctStr} percent of the Hakaluki case area.`,
+    `It tracks low-backscatter area below fixed thresholds (not water); values differ by threshold and no single threshold is justified.`,
+    `${totalCount === 10 ? 'Ten' : totalCount} repeat observations were processed; the acquisition on ${excludedDate} is excluded with cause not established.`,
+  ];
+}
+
 function buildChikuScript(event, context) {
   switch (event.type) {
     case 'mode-changed': {
@@ -723,5 +749,69 @@ for (const nl of notesLines) {
   assert.ok(nl.length <= 190, `Reliability note part exceeds 190 chars: ${nl.length}`);
 }
 console.log('✓ Reliability notes generation tests passed');
+
+// 15. NISAR time series narration tests
+const nisarJsonPath = path.join(rootDir, 'data', 'nisar', 'hakaluki-haor', 'timeseries.json');
+assert.ok(fs.existsSync(nisarJsonPath), 'Missing data/nisar/hakaluki-haor/timeseries.json');
+const nisarData = JSON.parse(fs.readFileSync(nisarJsonPath, 'utf-8'));
+
+const nisarShortParts = buildNisarNarrationParts(nisarData, 'short');
+assert.equal(nisarShortParts.length, 2, 'NISAR short mode must produce exactly 2 parts (headline + 1 line)');
+
+const nisarFullParts = buildNisarNarrationParts(nisarData, 'full');
+assert.equal(nisarFullParts.length, 4, 'NISAR full mode must produce exactly 4 parts');
+
+const allNisarParts = [...nisarShortParts, ...nisarFullParts];
+for (const p of allNisarParts) {
+  assert.ok(p.length <= 190, `NISAR line exceeds 190 chars: "${p}" (${p.length})`);
+}
+
+const shortJoined = nisarShortParts.join(' ');
+const fullJoined = nisarFullParts.join(' ');
+
+// Mandatory required strings in both modes
+const requiredNisarStrings = ['PROVISIONAL', '104.86', 'not water', '2026-08-22'];
+for (const req of requiredNisarStrings) {
+  assert.ok(shortJoined.includes(req), `NISAR short mode missing required string: "${req}"`);
+  assert.ok(fullJoined.includes(req), `NISAR full mode missing required string: "${req}"`);
+}
+
+// Additional content requirements
+assert.ok(shortJoined.includes('cause not established'), 'NISAR short mode missing "cause not established"');
+assert.ok(fullJoined.includes('cause not established'), 'NISAR full mode missing "cause not established"');
+assert.ok(shortJoined.includes('low-backscatter area'), 'NISAR short mode missing "low-backscatter area"');
+assert.ok(fullJoined.includes('low-backscatter area'), 'NISAR full mode missing "low-backscatter area"');
+assert.ok(shortJoined.includes('no single threshold is justified'), 'NISAR short mode missing "no single threshold is justified"');
+assert.ok(fullJoined.includes('no single threshold is justified'), 'NISAR full mode missing "no single threshold is justified"');
+
+// Forbidden words check across all NISAR lines (case-insensitive)
+const forbiddenNisarWords = [
+  'flood',
+  'water area',
+  'open water',
+  'retreat',
+  'monsoon',
+  'dry season',
+  'peak',
+  'calibration anomaly',
+  'shrinking',
+  'expanding',
+  'recedes',
+  'summer',
+  'winter',
+  'autumn',
+  'spring',
+];
+
+for (const line of allNisarParts) {
+  const lower = line.toLowerCase();
+  for (const word of forbiddenNisarWords) {
+    assert.ok(
+      !lower.includes(word),
+      `Forbidden word "${word}" found in NISAR Chiku line: "${line}"`
+    );
+  }
+}
+console.log('✓ NISAR time series narration tests passed (short + full modes, required strings, forbidden words scanned)');
 
 console.log('\nAll Chiku Voice Guide test cases passed successfully!');

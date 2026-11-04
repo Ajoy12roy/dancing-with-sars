@@ -15,6 +15,7 @@ import { DataPanel } from '@/components/ui/DataPanel';
 import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
+import { NisarCard } from '@/components/explore/NisarCard';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
@@ -35,8 +36,6 @@ function parseModeParam(param: string | null): AnalysisMode | null {
 }
 
 function modeToParam(m: AnalysisMode): string {
-  if (m === 'river-erosion') return 'erosion';
-  if (m === 'surface-water') return 'water';
   return m;
 }
 
@@ -353,6 +352,14 @@ function ExploreContent() {
             <p className="text-text-secondary text-sm sm:text-base max-w-3xl mx-auto font-sans leading-relaxed">
               {displayDescription}
             </p>
+            <details className="text-xs text-text-secondary max-w-2xl mx-auto group">
+              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
+                Technical details
+              </summary>
+              <div className="pt-1.5 border-t border-hairline/60 text-[11px] text-text-secondary font-sans leading-relaxed text-left">
+                Processes Sentinel-1 C-band Synthetic Aperture Radar rasters using calibrated decibel thresholding, spatial filtering, and multi-threshold sensitivity sweeps. All calculated metrics and classifications are deterministic.
+              </div>
+            </details>
           </div>
 
           {/* ── Row 2: Two-Sided Controls (Left: Quick Demo & Upload, Right: Case Study Selector) ── */}
@@ -649,8 +656,54 @@ function ExploreContent() {
                 </div>
               )}
 
+              {/* ── Compact In-Page Jump Anchor Bar (No layout shift) ── */}
+              <div className="col-span-12 py-1.5 px-3 border border-hairline bg-surface rounded-[2px] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+                <div className="flex flex-wrap items-center gap-1.5 text-text-secondary">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-text-caption">Jump to:</span>
+                  <a
+                    href="#map"
+                    className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                  >
+                    Map
+                  </a>
+                  <span className="text-hairline">/</span>
+                  <a
+                    href="#sensitivity"
+                    className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                  >
+                    Sensitivity
+                  </a>
+                  <span className="text-hairline">/</span>
+                  <a
+                    href="#ai-insight"
+                    className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                  >
+                    AI insight
+                  </a>
+                  {activeTab === 'demo' && (
+                    <>
+                      <span className="text-hairline">|</span>
+                      <span className="font-mono text-[10px] uppercase text-amber-700 dark:text-amber-400">NISAR:</span>
+                      <a
+                        href="#nisar-threshold-grid"
+                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                      >
+                        Threshold grid
+                      </a>
+                      <span className="text-hairline">/</span>
+                      <a
+                        href="#nisar-limitations"
+                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                      >
+                        Limitations
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+
               {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
-              <div className="col-span-12 lg:col-span-7 flex" role="region" aria-label="SAR Imagery Comparison Viewport">
+              <div id="map" className="col-span-12 lg:col-span-7 flex scroll-mt-6" role="region" aria-label="SAR Imagery Comparison Viewport">
                 <BeforeAfterViewer
                   beforeImage={displayData.beforeImage}
                   afterImage={displayData.afterImage}
@@ -681,7 +734,7 @@ function ExploreContent() {
 
               {/* ── Case Study Card (under the viewer for the selected demo) ── */}
               {activeTab === 'demo' && currentCaseStudy && (
-                <div className="col-span-12">
+                <div id="sensitivity" className="col-span-12 scroll-mt-6">
                   <CaseStudyCard
                     caseStudy={currentCaseStudy}
                     dateBefore={displayData.dateBefore}
@@ -734,7 +787,7 @@ function ExploreContent() {
                 </DataPanel>
               </div>
 
-              <div className="col-span-12 lg:col-span-5 flex">
+              <div id="ai-insight" className="col-span-12 lg:col-span-5 flex scroll-mt-6">
                 <AIInsightPanel
                   data={displayData}
                   percentChanged={displayData.percentChanged}
@@ -757,6 +810,11 @@ function ExploreContent() {
                   data={displayData}
                   mode={displayData.mode || activeAoi.mode || mode}
                 />
+              </div>
+
+              {/* ── Row 4: NASA NISAR L-band Analysis Card ── */}
+              <div className="col-span-12">
+                <NisarCard />
               </div>
             </>
           )}
