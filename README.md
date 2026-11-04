@@ -3,7 +3,7 @@
 > Earth insights. A safer tomorrow. — SAR before/after change-detection platform making NASA-accessible radar data easy for everyone.  
 > **NASA International Space Apps Challenge 2026** — Challenge: *"Dancing with the SARs"*
 
-Live demo: <add Render URL>
+Live preview (Vercel): [https://dancing-with-sars.vercel.app](https://dancing-with-sars.vercel.app) (branch `release/vercel-preview`)
 
 ---
 
@@ -33,6 +33,18 @@ The platform provides two primary workflows:
 - **River Bank Erosion & Accretion (`river-erosion`)**: Analyzes channel migration along dynamic braided rivers by identifying land-to-water erosion and water-to-land sediment accretion within a spatial corridor buffered around the active river channel. Computes multi-year net land change and annualized erosion rates.
 - **Forest Canopy Loss (`deforestation`)**: Flags canopy loss and clear-cutting by tracking volumetric radar backscatter loss across vegetative crown cover.
 - **Surface Water Dynamics (`surface-water`)**: Quantifies seasonal surface water expansion, wetland fluctuations, and lake/reservoir depletion between two observation epochs.
+
+---
+
+### NASA NISAR L-Band Time Series (PROVISIONAL)
+
+In addition to operational C-band Sentinel-1 processing, TerraPulse integrates real Level-2 Geocoded Covariance (GCOV) radar rasters from the NASA-ISRO Synthetic Aperture Radar (NISAR) mission:
+- **Dataset Maturity**: **PROVISIONAL** release under Composite Release ID **P05023**. Granules are subject to forward reprocessing by the NASA/ISRO Science Data System.
+- **Acquisitions**: 10 repeat-pass observations covering Hakaluki Haor, Sylhet Division, Bangladesh, between **2026-06-23** and **2026-10-21** (ascending track 141, frame 014, mode 4005, 10 m pixel spacing).
+- **Spatial Coverage**: A 1024×1024 pixel subset covering **104.86 km²** (the northwestern quadrant), representing **32.4%** of the Hakaluki case bounding box (323.62 km²). It is not directly comparable with the full C-band Hakaluki case extent (321.14 km²).
+- **Metric**: Reports **low-backscatter area (HH)** across an 8-level reference grid ($-24\text{ dB}$ to $-10\text{ dB}$).
+- **No Single Threshold Justified**: The pooled HH backscatter histogram failed the pre-declared bimodality rule (valley ratio $0.7027 > 0.60$); consequently, no single threshold could be scientifically justified. Values differ by threshold.
+- **Excluded Observation**: The acquisition on **2026-08-22** is excluded from baseline statistics (cause not established; radiometric outlier with $|\bar{m}_d - M| = 40.00\text{ dB}$).
 
 ---
 
@@ -113,6 +125,7 @@ An additional **6 candidate case studies** are registered with status `pending-d
      - `cox-bazar-kutupalong-2017` (618.2% span)
      - `amazon` (740.3% span)
      *Interpretation*: In high-sensitivity cases, backscatter distributions are closely clustered around the threshold cutoff, so small threshold adjustments produce large changes in classified area. Headline figures should be interpreted alongside the full sensitivity bracket.
+6. **NISAR L-Band Provisional Status & Spatial Extent**: NISAR L-band data is provisional (CRID P05023) and uncalibrated for surface water classification. The 1024×1024 analysis window covers 104.86 km² (32.4% of the Hakaluki case bounding box); no single threshold is scientifically justified due to unimodal backscatter distributions. The acquisition on 2026-08-22 is excluded with cause not established.
 
 ---
 
@@ -126,6 +139,15 @@ An additional **6 candidate case studies** are registered with status `pending-d
   - **Pre-2023 cases** (`sylhet`, `sindh-pakistan-2022`, `cox-bazar-kutupalong-2017`): Pre-date OPERA S1 operational archive launch (late 2023).
   - **Full coverage table**: See [`docs/validation-coverage.md`](docs/validation-coverage.md).
 - **Candidate Reference Datasets**: Documented with verified working URLs in [`docs/VALIDATION.md`](docs/VALIDATION.md) (Copernicus EMS Rapid Mapping activations EMSR720, EMSR580, EMSR235; Copernicus GFM; NASA OPERA DSWx-S1; JRC Global Surface Water; Global Forest Watch; INPE PRODES; MapBiomas Brasil; CEGIS Bangladesh; REACH/UNHCR).
+
+---
+
+## AI Usage Disclosure
+
+TerraPulse maintains complete transparency regarding the use of Artificial Intelligence:
+1. **Optional Text Summary (No Calculations)**: The AI Insight panel uses an optional Large Language Model (Gemini) strictly to draft a 3-sentence plain English summary of pre-calculated metrics. This runs **only when an API key is configured** on the server; otherwise, the platform serves a deterministic offline template. The model receives computed numbers only and computes no areas or detection results.
+2. **100% Deterministic Core Pipeline**: All satellite data processing, backscatter thresholding, changed area totals, sensitivity analysis ranges, raster visualizations, vector polygons, and Chiku voice narration lines are generated entirely by deterministic Python and TypeScript code without generative models.
+3. **AI-Assisted Development**: AI-assisted developer tools were utilized during the project development lifecycle for code authoring, testing, and interface design assistance. All scientific algorithms and data outputs were independently reviewed and verified.
 
 ---
 
@@ -305,8 +327,11 @@ TerraPulse was built following WCAG 2.2 AA guidelines to ensure radar observatio
 ### Chiku Voice Guide
 
 TerraPulse features an interactive character guide, **Chiku**, mounted across key pages (`/`, `/explore`, `/how-it-works`, `/data-sources`):
-- **What Chiku Speaks**: Deterministic, natural explanations for all core activities—four monitoring mode descriptions (Flood, Deforestation, River change, Surface water), case studies with date ranges, upload validation and sanitization, page orientations, interaction hints (before/after slider movement, sensitivity disclosure tables, text map summaries), and change detection findings.
-- **Explain This View & Full/Short Narration**: A dedicated **Explain this view** button in the guide panel provides an on-demand, user-gestured vocal breakdown of the currently selected case or active page orientation. Users can choose between **Full Narration** (headline area, honest threshold setting disclaimer, tested perturbation range, mathematical sensitivity class, radar filtering methodology, and data-derived reliability notes) and **Short Narration** (headline plus sensitivity class).
+- **Short Default Mode**: For new visitors, narration defaults to **Short Mode** (stored preferences in `localStorage` take precedence). Voice narration remains strictly **OFF by default**.
+- **Compact Panel by Default**: Starts as a compact pill avatar at bottom-right that does not obscure map or dashboard controls. Clicking expands the full interface; minimizing returns to the pill without interrupting speech or toggling voice settings. On mobile screens, the expanded panel is capped at ~40% viewport height.
+- **Deterministic NISAR Narration**: Evaluates NISAR time series data strictly from `data/nisar/hakaluki-haor/timeseries.json`, explaining low-backscatter area below fixed thresholds (not water), PROVISIONAL data maturity, 104.86 km² window coverage, exclusion of 2026-08-22 with cause not established, and that no single threshold is justified.
+- **What Chiku Explains**: Deterministic, natural explanations for all core activities—four monitoring mode descriptions (Flood, Deforestation, River change, Surface water), case studies with date ranges, upload validation and sanitization, page orientations, interaction hints (before/after slider movement, sensitivity disclosure tables, text map summaries), and change detection findings.
+- **Explain This View & Full/Short Narration**: A dedicated **Explain this view** button in the guide panel provides an on-demand vocal breakdown of the currently selected case or active page orientation. Users can choose between **Full Narration** (headline area, honest threshold setting disclaimer, tested perturbation range, mathematical sensitivity class, radar filtering methodology, and data-derived reliability notes) and **Short Narration** (headline plus sensitivity class).
 - **Threshold Default Disclaimer**: Full narration explicitly communicates algorithmic honesty: *"The headline result uses a <label> of <centre>: <meaning>. This is a fixed default setting, not a value proven to be the best."* It never claims an arbitrary threshold is "best" or "validated".
 - **Immediate Stop Control**: A visible **Stop** button in the header bar allows users to halt any ongoing speech immediately.
 - **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), generating audio locally on your device with zero cloud API latency, zero external network calls, and no model generation (scripts are pure deterministic functions).
