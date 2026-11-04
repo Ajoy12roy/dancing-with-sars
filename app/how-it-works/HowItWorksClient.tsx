@@ -720,6 +720,52 @@ export function HowItWorksClient() {
             </div>
           </div>
         </div>
+
+        {/* AI Usage Disclosure */}
+        <section id="ai-usage" className="scroll-mt-8">
+          <GraticuleFrame>
+            <div className="p-6 md:p-8 bg-surface rounded-[2px]">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-block w-2.5 h-2.5 bg-teal" />
+                <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+                  AI Usage Disclosure
+                </h2>
+              </div>
+              <p className="text-sm text-text-secondary leading-relaxed max-w-3xl mb-6">
+                TerraPulse adheres to strict scientific honesty and transparency regarding the role of Artificial Intelligence:
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-text-secondary">
+                <div className="space-y-2 border border-hairline p-4 rounded-[2px] bg-surface-2">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    1. Optional Text Summary (No Calculations)
+                  </h3>
+                  <p className="leading-relaxed">
+                    The AI Insight panel uses an optional Large Language Model (Gemini) strictly to draft a 3-sentence plain English summary of pre-calculated metrics. This runs <strong>only when an API key is configured</strong> on the server; otherwise, the platform serves a fully deterministic offline template. The AI receives computed numbers only and computes no areas or detection results.
+                  </p>
+                </div>
+
+                <div className="space-y-2 border border-hairline p-4 rounded-[2px] bg-surface-2">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    2. 100% Deterministic Core Pipeline
+                  </h3>
+                  <p className="leading-relaxed">
+                    All satellite data processing, backscatter thresholding, changed area totals, sensitivity analysis ranges, raster visualizations, vector polygons, and Chiku voice narration lines are generated entirely by deterministic Python and TypeScript code without generative models.
+                  </p>
+                </div>
+
+                <div className="space-y-2 border border-hairline p-4 rounded-[2px] bg-surface-2">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    3. AI-Assisted Development
+                  </h3>
+                  <p className="leading-relaxed">
+                    AI-assisted developer tools were utilized during the project development lifecycle for code authoring, testing, and interface design assistance. All scientific algorithms and data outputs were independently reviewed and verified.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </GraticuleFrame>
+        </section>
       </div>
     </div>
   );

@@ -104,6 +104,14 @@ export function Footer() {
                   Data Sources
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/how-it-works#ai-usage"
+                  className="inline-flex items-center min-h-9 text-[14px] text-footer-text hover:text-footer-link-hover transition-colors"
+                >
+                  AI Usage Disclosure
+                </Link>
+              </li>
             </ul>
           </div>
 
