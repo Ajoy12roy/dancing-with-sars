@@ -146,9 +146,8 @@ def main():
         "stretch": f"{V_MIN} dB to {V_MAX} dB, linear grayscale (0 = {V_MIN} dB, 255 = {V_MAX} dB)",
         "method": "Bilinear downsampling from 1024x1024 (10m UTM 46N) to 512x512 pixels",
         "rule": (
-            "4 NON-excluded dates chosen: first acquisition (2026-06-23, max fraction 0.6541), "
-            "intermediate high (2026-08-10, fraction 0.6365), intermediate low (2026-10-09, fraction 0.4398), "
-            "and last acquisition (2026-10-21, min fraction 0.3777) at reference threshold -16 dB."
+            "first date, last date, and two intermediate dates by rank at -16 dB; "
+            "the largest/smallest fractions coincide with the first/last date"
         ),
         "excludedDate": "2026-08-22",
         "excludedReason": "Radiometric outlier (|m_d - M| = 40.00 dB > 2.62 dB); no preview raster generated.",

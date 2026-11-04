@@ -532,7 +532,7 @@ export function NisarCard({ initialData }: NisarCardProps) {
             Raster Preview Gallery (512×512)
           </h3>
           <p className="text-xs font-sans text-text-secondary">
-            Fixed stretch: -25 dB to 0 dB linear grayscale (0 = -25 dB, 255 = 0 dB). Bilinear downsampling from 1024×1024 (10m) to 512×512.
+            Fixed stretch: -25 dB to 0 dB linear grayscale (0 = -25 dB, 255 = 0 dB). Bilinear downsampling from 1024×1024 (10m) to 512×512. Selection: first date, last date, and two intermediate dates by rank at -16 dB; the largest/smallest fractions coincide with the first/last date.
           </p>
         </div>
 
@@ -637,7 +637,7 @@ export function NisarCard({ initialData }: NisarCardProps) {
         <span className="font-mono font-semibold text-ink mr-1">Data gap note:</span>
         No acquisition on 2026-07-29 (nominal cycle 026). A documented permanent instrument data gap occurred
         between 2026-07-27T22:03:25Z and 2026-08-10T00:55:27Z (source: nisar-docs availability-overview).
-        The granule was not downlinked by the spacecraft.
+        No granule exists for this date.
       </div>
 
       {/* ── g. Limitations Details ── */}
@@ -695,16 +695,16 @@ export function NisarCard({ initialData }: NisarCardProps) {
             </p>
             <ul className="list-disc list-inside space-y-1 text-text-secondary text-[11px] leading-relaxed">
               <li>
-                <strong className="text-ink">Surface roughness:</strong> Specular reflections over smooth terrain divert radar pulses away from the receiver (resulting in lower backscatter), while rougher surfaces cause diffuse scattering back to the sensor.
+                <strong className="text-ink">Surface roughness:</strong> Backscatter values indicate the degree of surface roughness and structural complexity across the landscape.
               </li>
               <li>
-                <strong className="text-ink">Dielectric constant and moisture:</strong> Variations in soil moisture and wetness saturation alter the dielectric properties of the surface, directly shifting backscatter intensity.
+                <strong className="text-ink">Dielectric constant and moisture:</strong> Backscatter values directly indicate the relative moisture (dielectric properties) content of targets like soils and vegetation.
               </li>
               <li>
-                <strong className="text-ink">Vegetation structure:</strong> The long L-band wavelength penetrates foliage canopies to interact with branches and vertical stems via volume scattering and double-bounce reflection.
+                <strong className="text-ink">Vegetation structure:</strong> L-band backscatter observations support tracking aboveground biomass dynamics and canopy structure variations.
               </li>
               <li>
-                <strong className="text-ink">Polarization differences:</strong> Co-polarized HH is responsive to horizontal structures and specular surface reflections, whereas cross-polarized HV is dominated by volume scattering from vegetation.
+                <strong className="text-ink">Polarization differences:</strong> Co-polarized (HH) and cross-polarized (HV) channels differ in sensitivity between planar surface structures and volumetric scattering.
               </li>
             </ul>
             <p className="font-mono text-[10px] text-text-secondary mt-1">
@@ -719,16 +719,16 @@ export function NisarCard({ initialData }: NisarCardProps) {
             </h4>
             <ul className="list-disc list-inside space-y-1 text-text-secondary text-[11px] leading-relaxed">
               <li>
-                <strong className="text-ink">Wetlands and floodplains monitoring:</strong> Continuous mapping of inundation dynamics beneath dense vegetation canopies across large wetland systems (possible application, not demonstrated here).
+                <strong className="text-ink">Wetlands and floodplains monitoring:</strong> Observation of wetlands and floodplains (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Forest change:</strong> Tracking canopy structure variations, disturbance, and biomass dynamics (possible application, not demonstrated here).
+                <strong className="text-ink">Forest change:</strong> Tracking forest footprints and vegetation disturbance (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring crop growth cycles and field moisture status (possible application, not demonstrated here).
+                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring agricultural land and soil moisture shifts (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Ground deformation:</strong> Measuring millimeter-scale land subsidence and tectonic displacement with repeat-pass interferometry (possible application, not demonstrated here).
+                <strong className="text-ink">Ground deformation:</strong> Measuring surface movements on a centimeter scale, such as land subsidence (possible application, not demonstrated here).
               </li>
             </ul>
           </div>
