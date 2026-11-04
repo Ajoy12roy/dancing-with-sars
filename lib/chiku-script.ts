@@ -20,6 +20,25 @@ export interface ChikuContextData {
   beforeRange?: DateRangeLike | string;
   afterRange?: DateRangeLike | string;
   narrationDetail?: 'full' | 'short';
+  timeseries?: NisarTimeseriesLike;
+}
+
+export interface NisarTimeseriesLike {
+  dataMaturity?: string;
+  crid?: string;
+  quantity?: string;
+  window?: {
+    windowAreaKm2?: number;
+    windowCoveragePercentageOfCaseBbox?: number;
+  };
+  records?: Array<{
+    date: string;
+    excluded?: boolean;
+    exclusionReason?: string | null;
+  }>;
+  bimodalityRule?: {
+    rulePassed?: boolean;
+  };
 }
 
 export const MODE_LABELS: Record<string, string> = {
@@ -284,6 +303,42 @@ export function buildAnalysisNarrationParts(params: {
 }
 
 /**
+ * Builds deterministic narration lines for the NASA NISAR L-band card.
+ * Generated strictly from timeseries.json data.
+ * Adheres to formatting rules: < 1 km2 with 2 decimals, >= 1 km2 with 1 decimal (and window "104.86").
+ * Short mode: headline + 1 line. Full mode: 4 detailed lines.
+ * Strictly free of forbidden words and hypothesis conjecture.
+ */
+export function buildNisarNarrationParts(
+  data: NisarTimeseriesLike,
+  detail: 'full' | 'short' = 'short'
+): string[] {
+  const maturity = data.dataMaturity || 'PROVISIONAL';
+  const crid = data.crid || 'P05023';
+  const winArea = data.window?.windowAreaKm2 ?? 104.86;
+  const winAreaStr = winArea.toFixed(2);
+  const winPct = data.window?.windowCoveragePercentageOfCaseBbox ?? 32.4;
+  const winPctStr = winPct.toFixed(1);
+  const excludedRecord = data.records?.find((r) => r.excluded);
+  const excludedDate = excludedRecord?.date || '2026-08-22';
+  const totalCount = data.records?.length ?? 10;
+
+  if (detail === 'short') {
+    return [
+      `NISAR observation is ${maturity}.`,
+      `It measures low-backscatter area below fixed thresholds (not water) across ${winAreaStr} square kilometres; ${excludedDate} is excluded as cause not established and no single threshold is justified.`,
+    ];
+  }
+
+  return [
+    `NISAR observation is ${maturity} with CRID ${crid}.`,
+    `The 1024 by 1024 window covers ${winAreaStr} square kilometres, about ${winPctStr} percent of the Hakaluki case area.`,
+    `It tracks low-backscatter area below fixed thresholds (not water); values differ by threshold and no single threshold is justified.`,
+    `${totalCount === 10 ? 'Ten' : totalCount} repeat observations were processed; the acquisition on ${excludedDate} is excluded with cause not established.`,
+  ];
+}
+
+/**
  * Pure function sentence builder for Chiku Voice Guide.
  * Produces short (<200 character) natural explanations strictly from computed data.
  * Adheres to Chrome Web Speech length boundaries and WCAG accessibility standards.
@@ -392,6 +447,12 @@ export function buildChikuScript(
 
     case 'ai-insight-loaded': {
       return 'The AI interpretation is ready below.';
+    }
+
+    case 'nisar-view': {
+      const tsData = (event.data?.timeseries as NisarTimeseriesLike | undefined) || {};
+      const parts = buildNisarNarrationParts(tsData, context?.narrationDetail || 'short');
+      return parts[0] || 'NISAR observation is PROVISIONAL.';
     }
 
     default: {

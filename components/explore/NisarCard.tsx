@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useId } from 'react';
 import Image from 'next/image';
+import { Sparkles } from 'lucide-react';
+import { useAccessibility } from '@/context';
 import type { NisarTimeseriesData } from '@/lib/nisar';
 
 interface NisarCardProps {
@@ -13,6 +15,7 @@ export function NisarCard({ initialData }: NisarCardProps) {
   const [loading, setLoading] = useState<boolean>(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [selectedThreshold, setSelectedThreshold] = useState<number>(-16);
+  const { emitEvent } = useAccessibility();
   const svgId = useId();
 
   useEffect(() => {
@@ -105,19 +108,37 @@ export function NisarCard({ initialData }: NisarCardProps) {
     >
       {/* ── a. Header Badges and Subtitle ── */}
       <div className="space-y-2 border-b border-hairline pb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
-            NASA NISAR L-band
-          </span>
-          <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-[2px]">
-            {dataMaturity}
-          </span>
-          <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
-            CRID: {crid}
-          </span>
-          <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
-            Pol: {polarization}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
+              NASA NISAR L-band
+            </span>
+            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-[2px]">
+              {dataMaturity}
+            </span>
+            <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+              CRID: {crid}
+            </span>
+            <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+              Pol: {polarization}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              emitEvent({
+                type: 'nisar-view',
+                message: 'NISAR observation is PROVISIONAL.',
+                data: { timeseries: data },
+              });
+            }}
+            className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-teal hover:text-ink border border-hairline hover:border-teal rounded-[2px] bg-surface hover:bg-surface-2 transition-colors focus:outline-2 focus:outline-teal focus:outline-offset-2 cursor-pointer"
+            title="Listen to Chiku narration for NISAR time series"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-teal" aria-hidden="true" />
+            <span>Explain with Chiku</span>
+          </button>
         </div>
         <h2 id="nisar-heading" className="text-xl font-serif text-ink tracking-tight font-semibold">
           NISAR GCOV Time Series

@@ -15,6 +15,7 @@ export type AccessibilityEventType =
   | 'ai-insight-loaded'
   | 'page-intro'
   | 'hint'
+  | 'nisar-view'
   | 'general';
 
 export interface AccessibilityEvent {
