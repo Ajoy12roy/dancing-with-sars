@@ -1,6 +1,9 @@
-rasterio==1.5.1
-numpy==2.5.3
-scipy==1.18.1
+rasterio==1.5.1 ; python_version >= "3.12"
+rasterio==1.4.4 ; python_version < "3.12"
+numpy==2.5.3 ; python_version >= "3.12"
+numpy==2.4.6 ; python_version < "3.12"
+scipy==1.18.1 ; python_version >= "3.12"
+scipy==1.17.1 ; python_version < "3.12"
 pillow==12.3.0
 affine==3.0.1
 fastapi==0.162.0

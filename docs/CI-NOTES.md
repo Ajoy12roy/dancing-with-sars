@@ -35,3 +35,37 @@ In commit `54fedb0` (`fix(ci): robust sample path resolution and optional nisar 
   - 6 test_nisar_gcov.py tests
   - 2 test_nisar_timeseries.py tests
 - No assertions weakened, no tests removed.
+
+
+## 5. Update: Dependency Installation Failure on Python 3.11 (Fixed)
+
+### GitHub Actions Failure Log
+In GitHub Actions CI job `CI / Python 3.11 (Pytest)`:
+```text
+ERROR: Ignored the following versions that require a different python version: 1.5.0 Requires-Python >=3.12; 1.5.1 Requires-Python >=3.12
+ERROR: No matching distribution found for rasterio==1.5.1
+```
+
+### Cause (ESTABLISHED)
+Inspecting PyPI metadata (`https://pypi.org/pypi/<pkg>/<version>/json`) revealed that three pinned packages in `python-service/requirements.txt` require Python 3.12 or newer:
+- `rasterio==1.5.1` specifies `Requires-Python: >=3.12` (previous release for 3.11 is `1.4.4` with `Requires-Python: >=3.10`)
+- `numpy==2.5.3` specifies `Requires-Python: >=3.12` (previous release for 3.11 is `2.4.6` with `Requires-Python: >=3.11`)
+- `scipy==1.18.1` specifies `Requires-Python: >=3.12` (previous release for 3.11 is `1.17.1` with `Requires-Python: >=3.11`)
+
+Because pip on Python 3.11 strictly enforces `Requires-Python`, no distribution exists on PyPI for `rasterio==1.5.1`, `numpy==2.5.3`, or `scipy==1.18.1` on Python 3.11 runners.
+
+### Correction to Earlier CI Notes
+The earlier notes above addressed test runtime execution failures (missing `data/samples/` and unhandled `h5py` imports). They did not address this pre-test installation step failure in `pip install -r python-service/requirements.txt` on the Python 3.11 CI runner.
+
+### Resolution Applied
+Added PEP 508 environment markers to `python-service/requirements.txt` so Python 3.12 continues to use the exact same pins while Python 3.11 installs the latest compatible releases:
+```text
+rasterio==1.5.1 ; python_version >= "3.12"
+rasterio==1.4.4 ; python_version < "3.12"
+numpy==2.5.3 ; python_version >= "3.12"
+numpy==2.4.6 ; python_version < "3.12"
+scipy==1.18.1 ; python_version >= "3.12"
+scipy==1.17.1 ; python_version < "3.12"
+```
+
+All 3.11 wheels (`rasterio 1.4.4`, `numpy 2.4.6`, `scipy 1.17.1` and their dependencies) resolve and download cleanly against Linux manylinux binary targets without conflicts.

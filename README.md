@@ -198,7 +198,7 @@ dancing-with-sars/
 ### 1. Prerequisites
 - **Node.js**: `20.9.0` or later
 - **npm**: `9.x` or later
-- **Python**: `3.11` to `3.14` (with `pip`)
+- **Python**: `3.11` or `3.12` (both run in CI)
 
 ### 2. Frontend Development Server
 ```bash
