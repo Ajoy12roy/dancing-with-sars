@@ -159,7 +159,7 @@ export function NisarCard({ initialData }: NisarCardProps) {
       </div>
 
       {/* ── c. Threshold-Grid Time Series (Plain SVG) ── */}
-      <div className="space-y-3">
+      <div id="nisar-threshold-grid" className="space-y-3 scroll-mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-0.5">
             <h3 className="text-sm font-serif font-semibold text-ink">
@@ -662,7 +662,7 @@ export function NisarCard({ initialData }: NisarCardProps) {
       </div>
 
       {/* ── g. Limitations Details ── */}
-      <details className="border border-hairline bg-surface-2 p-3.5 rounded-[2px] text-xs font-sans text-ink space-y-2">
+      <details id="nisar-limitations" className="border border-hairline bg-surface-2 p-3.5 rounded-[2px] text-xs font-sans text-ink space-y-2 scroll-mt-6">
         <summary className="font-mono font-medium text-text-secondary cursor-pointer hover:text-ink">
           Data limitations and methodological constraints
         </summary>

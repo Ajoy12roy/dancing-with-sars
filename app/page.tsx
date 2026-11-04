@@ -159,9 +159,22 @@ export default function HomePage() {
             className="hero-paragraph mt-6 text-base sm:text-lg md:text-[20px] leading-[1.6] max-w-190 mx-auto"
           >
             A platform that compares before/after SAR satellite images to detect
-            and explain surface change — floods, land-cover shifts — with
-            scientific precision and AI-narrated insight; offline use applies to the local build.
+            and explain surface change with scientific precision and AI-narrated insight;
+            offline use applies to the local build.
           </motion.p>
+
+          <motion.div variants={itemVariants} className="mt-3 text-xs text-text-secondary text-left max-w-xl mx-auto">
+            <details className="group border border-hairline/60 bg-surface/80 rounded-[2px] p-2">
+              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none focus:outline-none focus-visible:underline">
+                Technical details
+              </summary>
+              <div className="pt-2 text-[12px] leading-relaxed text-text-secondary border-t border-hairline/60 mt-1.5 space-y-1">
+                <p>
+                  Compares repeat-pass Sentinel-1 C-band (5.405 GHz) and NISAR L-band (1.26 GHz) backscatter rasters on identical orbital geometries. Applies spatial speckle filtering, calibrated decibel thresholding, and empirical sensitivity sweeps to quantify surface transformations without black-box modeling.
+                </p>
+              </div>
+            </details>
+          </motion.div>
 
           {/* 4. Two buttons: height 56px, padding 0 28px, radius 2px, weight 600, no glow, no shadow */}
           <motion.div

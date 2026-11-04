@@ -29,8 +29,21 @@ export function AboutSection() {
       </h2>
       <div className="mt-4 max-w-3xl space-y-3 text-base text-text-secondary leading-relaxed">
         <p>
-          TerraPulse is a scientific geospatial platform that compares before and after Synthetic Aperture Radar (SAR) satellite imagery to detect, quantify, and explain surface changes with radar precision. The platform provides four specialized analysis pipelines: flood inundation, river bank erosion and accretion, forest canopy loss, and surface water dynamics. Built with deterministic remote sensing algorithms, self-hosted cartography, and precomputed demonstration assets, the system operates completely offline without external cloud dependencies or API keys. When an optional Gemini API key is configured, the platform translates deterministic radar backscatter variations into plain-language environmental interpretations.
+          TerraPulse is a scientific geospatial platform that compares before and after Synthetic Aperture Radar (SAR) satellite imagery to detect, quantify, and explain surface changes with radar precision.
         </p>
+        <details className="mt-2 text-sm text-text-secondary leading-relaxed group">
+          <summary className="font-data text-xs text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
+            Technical details
+          </summary>
+          <div className="pt-2 space-y-2 border-t border-hairline/60 text-xs">
+            <p>
+              The platform provides four specialized analysis pipelines: flood inundation, river bank erosion and accretion, forest canopy loss, and surface water dynamics. Built with deterministic remote sensing algorithms, self-hosted cartography, and precomputed demonstration assets, the system operates locally without external cloud dependencies or API keys.
+            </p>
+            <p>
+              When an optional Gemini API key is configured, the platform translates deterministic radar backscatter variations into plain-language environmental interpretations.
+            </p>
+          </div>
+        </details>
       </div>
     </motion.section>
   );

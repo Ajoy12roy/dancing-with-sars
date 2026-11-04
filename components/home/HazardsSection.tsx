@@ -40,9 +40,9 @@ const HAZARDS = [
     mode: 'surface-water',
     kicker: 'Hydrological Cycles',
     description:
-      'Quantifies seasonal wetland expansion, water body replenishment, and dry-season reservoir contraction.',
+      'Quantifies wetland extent dynamics and reservoir boundary shifts across acquisition dates.',
     href: '/explore?mode=surface-water',
-    metricsSummary: 'Baseline vs. peak water area &bull; Expansion delta percentage',
+    metricsSummary: 'Baseline vs. subsequent extent &bull; Delta percentage and threshold range',
   },
 ];
 
@@ -98,9 +98,18 @@ export function HazardsSection() {
                 {h.title}
               </h3>
 
-              <p className="text-xs text-text-secondary leading-relaxed mb-4">
+              <p className="text-xs text-text-secondary leading-relaxed mb-2">
                 {h.description}
               </p>
+
+              <details className="text-xs text-text-secondary leading-relaxed mb-4 group">
+                <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-0.5 focus:outline-none focus-visible:underline">
+                  Technical details
+                </summary>
+                <div className="pt-1.5 border-t border-hairline/60 text-text-secondary text-[11px] font-data">
+                  <div dangerouslySetInnerHTML={{ __html: h.metricsSummary }} />
+                </div>
+              </details>
             </div>
 
             <div className="pt-3 border-t border-hairline flex items-center justify-between">
