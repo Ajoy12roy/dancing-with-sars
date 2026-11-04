@@ -109,3 +109,12 @@ All technical specifications, HDF5 datasets, and projection definitions were ver
 - **NASA CMR Collections API**: [https://cmr.earthdata.nasa.gov/search/collections.json](https://cmr.earthdata.nasa.gov/search/collections.json)
 
 *(All 7 reference URLs listed in this guide have been actively validated with HTTP 200 responses).*
+
+---
+
+## 8. NASA Space Apps Challenge 2026 Reference ("Dancing with the SARs")
+
+Key observation targets highlighted by the NASA challenge text:
+- wetlands and floodplains
+- surface movement on the centimeter scale, such as for earthquakes and land subsidence
+

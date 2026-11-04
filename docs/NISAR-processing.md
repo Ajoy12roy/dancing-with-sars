@@ -214,11 +214,11 @@ The time series is published in `data/nisar/hakaluki-haor/timeseries.json` (sche
    - Polarization channels: "describe the intensity of the radar backscatter for the given polarization" (`gcov`).
 
 2. **NASA Space Apps Challenge Reference ("Dancing with the SARs")**:
-   Application domains from the official challenge text:
-   - "wetlands and floodplains"
-   - "forest footprints and deforestation/wildfire"
-   - "crop type and health and soil moisture"
-   - "surface movement on the centimeter scale, such as for earthquakes and land subsidence"
+   Application domains from `docs/NISAR.md` (Section 8) and official challenge text:
+   - "wetlands and floodplains" (exact excerpt from `docs/NISAR.md` line 118)
+   - "surface movement on the centimeter scale, such as for earthquakes and land subsidence" (exact excerpt from `docs/NISAR.md` line 119)
+   - Forest change: Tracking forest footprints and disturbance from deforestation or wildfires (paraphrase of the NASA challenge text)
+   - Agriculture and soil moisture: Monitoring crop type, crop health, and soil moisture shifts (paraphrase of the NASA challenge text)
 
 3. **Data Availability, Archive & Attribution**:
    - Availability overview & data gap: `https://nisar-docs.asf.alaska.edu/availability-overview/`

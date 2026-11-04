@@ -701,10 +701,10 @@ export function NisarCard({ initialData }: NisarCardProps) {
                 <strong className="text-ink">Moisture variability:</strong> Observations constrain patterns of soil moisture and their temporal variability across diverse land cover types.
               </li>
               <li>
-                <strong className="text-ink">Vegetated and wetland systems:</strong> Radar backscatter responds to vegetation cover and moisture across wooded, agricultural, and wetland systems.
+                <strong className="text-ink">Vegetated and wetland systems:</strong> NISAR science goals include carbon storage and uptake in wooded, agricultural, wetland, and permafrost systems.
               </li>
               <li>
-                <strong className="text-ink">Polarization channels:</strong> Co-polarized (HH) channels describe the intensity of the radar backscatter for the given polarization.
+                <strong className="text-ink">Polarization channels:</strong> GCOV gives the backscatter intensity for each polarization; this card uses HH.
               </li>
             </ul>
             <p className="font-mono text-[10px] text-text-secondary mt-1">
@@ -722,10 +722,10 @@ export function NisarCard({ initialData }: NisarCardProps) {
                 <strong className="text-ink">Wetlands and floodplains:</strong> Observation of wetlands and floodplains (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Forest change:</strong> Tracking forest footprints and deforestation/wildfire (possible application, not demonstrated here).
+                <strong className="text-ink">Forest change:</strong> Tracking forest footprints and disturbance from deforestation or wildfires (possible application, not demonstrated here; paraphrase of the NASA challenge text).
               </li>
               <li>
-                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring crop type and health and soil moisture (possible application, not demonstrated here).
+                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring crop type, crop health, and soil moisture shifts (possible application, not demonstrated here; paraphrase of the NASA challenge text).
               </li>
               <li>
                 <strong className="text-ink">Ground deformation:</strong> Measuring surface movement on the centimeter scale, such as for earthquakes and land subsidence (possible application, not demonstrated here).
