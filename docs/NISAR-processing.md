@@ -205,22 +205,24 @@ The time series is published in `data/nisar/hakaluki-haor/timeseries.json` (sche
 
 ## 9. Official Documentation Sources and Hypotheses Citations
 
-1. **ASF NISAR User Guide (GCOV)**:
-   URL: `https://nisar-docs.asf.alaska.edu/gcov/`
-   Documentation of physical radar backscatter sensitivities at L-band (~24 cm wavelength):
-   - Surface roughness: specular forward-scattering over smooth terrain vs diffuse backscatter over rough surfaces.
-   - Dielectric constant & soil moisture: electrical permittivity changes driven by moisture saturation.
-   - Canopy penetration & vegetation structure: long-wavelength penetration through foliage to interact with branches and tree trunks.
-   - Polarimetric response: co-pol (HH) sensitivity to horizontal structures vs cross-pol (HV) volume scattering.
+1. **ASF NISAR User Guide (GCOV & NISAR Intro)**:
+   URLs: `https://nisar-docs.asf.alaska.edu/gcov/` and `https://nisar-docs.asf.alaska.edu/nisar-intro`
+   Documentation of physical radar backscatter and polarimetry at L-band (~24 cm wavelength):
+   - Surface structure and orientation: "reveal the structure, orientation and environmental conditions of the surface elements" (`nisar-intro`).
+   - Soil moisture variability: "Constrain global patterns of soil moisture and their temporal variability" (`nisar-intro`).
+   - Vegetated and wetland systems: "carbon storage and uptake in wooded, agricultural, wetland, and permafrost systems" (`nisar-intro`).
+   - Polarization channels: "describe the intensity of the radar backscatter for the given polarization" (`gcov`).
 
 2. **NASA Space Apps Challenge Reference ("Dancing with the SARs")**:
-   Potential application domains for L-band SAR observations:
-   - Wetlands and floodplains monitoring.
-   - Forest change and biomass disturbance tracking.
-   - Agriculture and soil moisture monitoring.
-   - Ground deformation and surface displacement interferometry.
+   Application domains from the official challenge text:
+   - "wetlands and floodplains"
+   - "forest footprints and deforestation/wildfire"
+   - "crop type and health and soil moisture"
+   - "surface movement on the centimeter scale, such as for earthquakes and land subsidence"
 
-3. **Data Availability and Archive**:
+3. **Data Availability, Archive & Attribution**:
    - Availability overview & data gap: `https://nisar-docs.asf.alaska.edu/availability-overview/`
-   - Common Metadata Repository: `https://cmr.earthdata.nasa.gov/search/collections.json`
+   - Citation guidance: `https://nisar-docs.asf.alaska.edu/data-use-citation-guidance` links to NASA Earthdata standard data use guidance (`https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-use-guidance`), which states "NASA should be acknowledged as the source of the material where applicable."
+   - Footer attribution wording ("NISAR data: NASA/ISRO, distributed by ASF DAAC.") is project wording, not an official ASF acknowledgement text.
+
 

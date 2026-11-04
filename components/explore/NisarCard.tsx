@@ -691,20 +691,20 @@ export function NisarCard({ initialData }: NisarCardProps) {
               Possible drivers (Hypothesis (not tested))
             </h4>
             <p className="text-text-secondary text-[11px] leading-relaxed">
-              L-band radar backscatter (~24 cm wavelength) is physically sensitive to several environmental variables documented in the ASF NISAR User Guide (https://nisar-docs.asf.alaska.edu/gcov/):
+              L-band radar backscatter (~24 cm wavelength) relates to physical variables documented in the ASF NISAR User Guide (https://nisar-docs.asf.alaska.edu/gcov/ and https://nisar-docs.asf.alaska.edu/nisar-intro):
             </p>
             <ul className="list-disc list-inside space-y-1 text-text-secondary text-[11px] leading-relaxed">
               <li>
-                <strong className="text-ink">Surface roughness:</strong> Backscatter values indicate the degree of surface roughness and structural complexity across the landscape.
+                <strong className="text-ink">Surface structure and orientation:</strong> The polarimetric properties of the observed surface reveal the structure, orientation, and environmental conditions of surface elements.
               </li>
               <li>
-                <strong className="text-ink">Dielectric constant and moisture:</strong> Backscatter values directly indicate the relative moisture (dielectric properties) content of targets like soils and vegetation.
+                <strong className="text-ink">Moisture variability:</strong> Observations constrain patterns of soil moisture and their temporal variability across diverse land cover types.
               </li>
               <li>
-                <strong className="text-ink">Vegetation structure:</strong> L-band backscatter observations support tracking aboveground biomass dynamics and canopy structure variations.
+                <strong className="text-ink">Vegetated and wetland systems:</strong> Radar backscatter responds to vegetation cover and moisture across wooded, agricultural, and wetland systems.
               </li>
               <li>
-                <strong className="text-ink">Polarization differences:</strong> Co-polarized (HH) and cross-polarized (HV) channels differ in sensitivity between planar surface structures and volumetric scattering.
+                <strong className="text-ink">Polarization channels:</strong> Co-polarized (HH) channels describe the intensity of the radar backscatter for the given polarization.
               </li>
             </ul>
             <p className="font-mono text-[10px] text-text-secondary mt-1">
@@ -719,16 +719,16 @@ export function NisarCard({ initialData }: NisarCardProps) {
             </h4>
             <ul className="list-disc list-inside space-y-1 text-text-secondary text-[11px] leading-relaxed">
               <li>
-                <strong className="text-ink">Wetlands and floodplains monitoring:</strong> Observation of wetlands and floodplains (possible application, not demonstrated here).
+                <strong className="text-ink">Wetlands and floodplains:</strong> Observation of wetlands and floodplains (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Forest change:</strong> Tracking forest footprints and vegetation disturbance (possible application, not demonstrated here).
+                <strong className="text-ink">Forest change:</strong> Tracking forest footprints and deforestation/wildfire (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring agricultural land and soil moisture shifts (possible application, not demonstrated here).
+                <strong className="text-ink">Agriculture and soil moisture:</strong> Monitoring crop type and health and soil moisture (possible application, not demonstrated here).
               </li>
               <li>
-                <strong className="text-ink">Ground deformation:</strong> Measuring surface movements on a centimeter scale, such as land subsidence (possible application, not demonstrated here).
+                <strong className="text-ink">Ground deformation:</strong> Measuring surface movement on the centimeter scale, such as for earthquakes and land subsidence (possible application, not demonstrated here).
               </li>
             </ul>
           </div>
