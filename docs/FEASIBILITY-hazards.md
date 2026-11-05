@@ -37,11 +37,11 @@ From `data/case-studies/seed.json` and `data/precomputed/sylhet/result.json`:
 - **Dataset**: OCHA / HDX Common Operational Datasets (COD-AB) for Bangladesh
 - **Official URL**: `https://data.humdata.org/dataset/cod-ab-bgd`
 - **Administrative Levels Available**:
-  - Admin 0: National boundary
-  - Admin 1: 8 Divisions
-  - Admin 2: 64 Districts
-  - Admin 3: 507 Upazilas / City Corporations
-  - *Note*: Admin 4 (Unions) are **not included** in COD-AB Bangladesh.
+  - Admin 0: National boundary (NOT VERIFIED)
+  - Admin 1: 8 Divisions (NOT VERIFIED)
+  - Admin 2: 64 Districts (NOT VERIFIED)
+  - Admin 3: 507 Upazilas / City Corporations (NOT VERIFIED)
+  - *Note*: "507 Upazilas" and "Unions not included in COD-AB" are **NOT VERIFIED** (page text was not directly fetched due to the AWS WAF block on data.humdata.org).
 - **Licence**: Creative Commons Attribution for Intergovernmental Organisations (CC BY-IGO).
   - Excerpt: *"Creative Commons Attribution for Intergovernmental Organisations"* (5 words).
 - **Distribution Formats & Sizes**:
@@ -49,7 +49,7 @@ From `data/case-studies/seed.json` and `data/precomputed/sylhet/result.json`:
   - Shapefile: $31.52\text{ MB}$
   - GeoJSON: $36.01\text{ MB}$
   - Excel/XLSX attribute table: $0.60\text{ MB}$
-- **Sylhet Inclusion**: Sylhet Division (Admin 1), Sylhet District (Admin 2), and Sylhet upazilas (Sylhet Sadar, Fenchuganj, Golapganj, Balaganj) are present in Admin 3.
+- **Sylhet Inclusion**: Sylhet Division (Admin 1), Sylhet District (Admin 2), and Sylhet upazilas (Sylhet Sadar, Fenchuganj, Golapganj, Balaganj) are present in Admin 3 (NOT VERIFIED from fetched text due to WAF).
 - **Automated Access Note**: Programmatic `urllib`/`curl` downloads to `data.humdata.org` return HTTP 202 with header `x-amzn-waf-action: challenge` (AWS WAF anti-bot gate). Direct browser downloads work without restriction.
 
 ### A4. Optional Context Layers
@@ -66,6 +66,15 @@ Using the downloaded WorldPop 2020 Bangladesh raster ($76.8\text{ MB}$) clipped 
   - **Default Baseline** ($-16.0\text{ dB}$, $37.26\text{ km}^2$ flooded): **$72,703\text{ people}$** ($7.0\%$ of AOI population)
   - **Sensitivity Maximum** ($-14.0\text{ dB}$, $44.05\text{ km}^2$ flooded): **$91,213\text{ people}$** ($8.8\%$ of AOI population)
   - **Exposure Sensitivity Range**: **$56,349\text{ to }91,213\text{ people}$**
+- **Prototype Area vs. Stored Pipeline Numbers**:
+  | Threshold Level | Prototype Area | Stored Pipeline Area | Status / Observation |
+  | :--- | :--- | :--- | :--- |
+  | Sensitivity Min ($-18.0\text{ dB}$) | $30.91\text{ km}^2$ | $30.85\text{ km}^2$ | Prototype area vs stored: 30.91 vs 30.85 (min) |
+  | Default Baseline ($-16.0\text{ dB}$) | $37.26\text{ km}^2$ | $37.19\text{ km}^2$ | Prototype area vs stored: 37.26 vs 37.19 km2 (default) |
+  | Sensitivity Max ($-14.0\text{ dB}$) | $44.05\text{ km}^2$ | $44.01\text{ km}^2$ | Prototype area vs stored: 44.05 vs 44.01 (max) |
+  *Prototype area vs stored: 37.26 vs 37.19 km2 (default), 30.91 vs 30.85 (min), 44.05 vs 44.01 (max): difference NOT explained yet; the UI must use the pipeline's stored numbers.*
+- **Per-Upazila Exposure Status**: **NOT RUN** (administrative boundaries were not obtained programmatically because of the AWS WAF block on `data.humdata.org`).
+- **Population Range Disclaimer**: The min-max range reflects the threshold sweep only; it does not include population-model error, the 2020 vs 2022 time mismatch or the 100 m vs 20 m resolution mismatch.
 - **Primary Error Sources**:
   1. *Resolution Disaggregation*: Disaggregating 100m ambient population into 20m radar pixels assumes uniform distribution within each 100m cell.
   2. *Temporal Mismatch*: 2020 census model vs. June 2022 flood event (unrecorded displacement and demographic shift).
@@ -127,31 +136,32 @@ Using the downloaded WorldPop 2020 Bangladesh raster ($76.8\text{ MB}$) clipped 
      - Description: Curated satellite documentation of major global wildfire incidents.
      - Excerpt: `https://earthobservatory.nasa.gov/topic/fires`: *"human-set fires spread in a landscape parched by drought."* (9 words).
 
-### B3. NASA CMR Coverage Check for Candidate Wildfires
-Queried NASA CMR for `NISAR_L2_GCOV_PROVISIONAL_V1` granules covering candidate 2026 fire events:
+### B3. NASA CMR Coverage Check for Candidate Geographic Areas
+Note: The three candidate geographic areas (Chile Biobio, Pantanal, Texas) were NOT identified from FIRMS or from a fetched page naming a 2026 fire. CMR searches return granules intersecting a bounding box; this confirms spatial overlap of the radar footprint, not proof that an active burned area exists within the granule footprint.
 
-1. **Candidate 1: Chile Biobio Wildfire Region** (`[-73.5°W, -38.0°S, -71.5°W, -36.5°S]`):
-   - **Pre-Event Granule**: `NISAR_L2_PR_GCOV_014_003_A_159_2005_DHDH_A_20260226T105150_20260226T105226_P05023_N_F_J_001`
+1. **Candidate Area 1: Chile Biobio Region** (`[-73.5°W, -38.0°S, -71.5°W, -36.5°S]`):
+   - Relabel: **NISAR GCOV pair over a candidate AREA; fire event and dates NOT VERIFIED**.
+   - **Earlier Granule**: `NISAR_L2_PR_GCOV_014_003_A_159_2005_DHDH_A_20260226T105150_20260226T105226_P05023_N_F_J_001`
      - Acquisition Date: `2026-02-26T10:51:50Z` (Track 159, Frame 2005, Ascending)
-   - **Post-Event Granule**: `NISAR_L2_PR_GCOV_015_003_A_159_2005_DHDH_A_20260310T105150_20260310T105226_P05023_N_F_J_001`
+   - **Later Granule**: `NISAR_L2_PR_GCOV_015_003_A_159_2005_DHDH_A_20260310T105150_20260310T105226_P05023_N_F_J_001`
      - Acquisition Date: `2026-03-10T10:51:50Z` (Track 159, Frame 2005, Ascending)
    - **Repeat Period**: Exactly 12 days on the identical orbital track and frame.
 
-2. **Candidate 2: Brazil Pantanal / Corumbá Region** (`[-58.0°W, -20.0°S, -56.5°W, -18.5°S]`):
+2. **Candidate Area 2: Brazil Pantanal Region** (`[-58.0°W, -20.0°S, -56.5°W, -18.5°S]`):
    - CMR Hits: 0.
-   - Status: **No coverage found** in the 2026 provisional collection.
+   - Status: **No coverage found** in the 2026 provisional collection (fire event and dates NOT VERIFIED).
 
-3. **Candidate 3: Texas Panhandle Region** (`[-102.0°W, 35.0°N, -100.0°W, 36.5°N]`):
+3. **Candidate Area 3: Texas Panhandle Region** (`[-102.0°W, 35.0°N, -100.0°W, 36.5°N]`):
    - CMR Hits: 0.
-   - Status: **No coverage found** in the 2026 provisional collection.
+   - Status: **No coverage found** in the 2026 provisional collection (fire event and dates NOT VERIFIED).
 
 ### B4. SAR Wildfire Documentation & Sentinel-1 Fallback
 - **Documentation Verification**:
   - `https://nisar-docs.asf.alaska.edu/gcov/`: Excerpt: *"Geocoded Polarimetric Covariance ( GCOV ) products provide calibrated backscatter measurements corrected for both radiometric and terrain distortions"* (15 words). Wildfire and burn scars are not explicitly documented on `nisar-docs.asf.alaska.edu` (**NOT VERIFIED** for fire keywords on ASF NISAR docs).
-  - General SAR Remote Sensing Principles: Wildfires remove vegetative canopy, reducing microwave volume scattering (especially in cross-polarization VH or HV). However, post-fire soil exposure and moisture shifts can increase surface backscatter, causing ambiguous net changes.
+  - General SAR Remote Sensing Principles: That burning canopy causes radar volume scattering to drop sharply is a **Hypothesis (not tested)**. Post-fire soil exposure and moisture shifts can increase surface backscatter, causing ambiguous net changes.
 - **Sentinel-1 Fallback in Existing Pipeline**:
-  - `python-service/process_change.py` already implements `mode="deforestation"` using cross-polarization VH with `loss_threshold_db=-3.0 dB`.
-  - Because canopy combustion produces severe volume scattering loss analogous to deforestation, Sentinel-1 GRD VH pre-fire and post-fire pairs can be processed directly by the existing codebase without adding any new dependencies.
+  - `python-service/process_change.py` already implements `mode="deforestation"` targeting cross-polarization VH with `loss_threshold_db=-3.0 dB`.
+  - **Hypothesis (not tested)**: Burning canopy causes radar volume scattering to drop sharply analogous to deforestation; Sentinel-1 GRD VH pairs could hypothetically be processed by the existing codebase without adding any new dependencies, but this remains untested for fire events.
 
 ### B5. Scope of Supported Claims
 - **Supported Claims**:
@@ -193,7 +203,7 @@ From USGS Volcano Hazards Program (`https://www.usgs.gov/programs/VHP/comprehens
   - *"or they can subside at any time and not be followed by an eruption."* (14 words).
   - *"These precursors do not indicate the type or scale of an expected eruption"* (12 words).
 - **Single-Sensor Eruption Probability**:
-  - **NOT VERIFIED**. No authoritative volcano observatory (USGS, Smithsonian GVP, INGV) produces or validates an eruption probability percentage from a single sensor. Ground inflation can persist for decades or subside without an eruption (e.g., Campi Flegrei, Yellowstone).
+  - **NOT VERIFIED**. No authoritative volcano observatory (USGS, Smithsonian GVP, INGV) produces or validates an eruption probability percentage from a single sensor. Ground inflation can subside at any time and not be followed by an eruption.
 
 ### C3. Scientific Conclusion & Disclaimer Policy
 **Conclusion**: An eruption probability percentage **CANNOT** be computed from data available to this project. Eruption forecasting requires continuous, multi-parameter monitoring (seismicity networks, gas flux, hydrothermal chemistry) interpreted by mandated geological observatories.
@@ -201,12 +211,12 @@ From USGS Volcano Hazards Program (`https://www.usgs.gov/programs/VHP/comprehens
 #### Proposed UI Text: What We Deliberately Do Not Predict
 1. Terra Pulse does not compute eruption probability percentages or forecast the timing or scale of volcanic eruptions.
 2. Volcanic forecasting requires integrated multi-parameter monitoring—including continuous seismic networks, volcanic gas emissions, and thermal measurements—which satellite radar alone cannot provide.
-3. Satellite radar observations provide measurements of surface backscatter or line-of-sight displacement, but ground deformation frequently persists for decades or subsides without an eruption.
+3. Satellite radar observations provide measurements of surface backscatter or line-of-sight displacement, but ground deformation can subside at any time and not be followed by an eruption.
 4. Official volcanic alert levels and evacuation directives are issued exclusively by authorized national volcano observatories.
 
 ### C4. 2026 NISAR Volcanic Coverage & Deformation Pipeline Requirements
 - **Volcanic AOI**: Hawaii Island (Kīlauea / Mauna Loa), `[-155.8°W, 19.2°N, -155.1°W, 19.6°N]`
-- **2026 CMR Coverage**: 29 `NISAR_L2_GUNW_PROVISIONAL_V1` granules available in CMR.
+- **2026 CMR Coverage**: 29 `NISAR_L2_GUNW_PROVISIONAL_V1` granules available in CMR (NASA data use and citation guidance applies; licence status: NOT VERIFIED).
 - **Sample Granule**: `NISAR_L2_PR_GUNW_009_072_D_079_010_4000_SH_20260102T045817_20260102T045836_20260114T045817_20260114T045837_P05023_N_P_J_001`
   - Track 079, Frame 010, Descending, Pair dates `2026-01-02` to `2026-01-14`.
 - **Pipeline Requirements for a Deformation Demonstration**:
@@ -222,8 +232,8 @@ From USGS Volcano Hazards Program (`https://www.usgs.gov/programs/VHP/comprehens
 
 | Hazard Domain | Verdict | Primary Data & Licence | Estimated Implementation Effort | Primary Technical / Scientific Risk | Claims Allowed | Claims NOT Allowed | Mandatory UI Limitations |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Flood Exposure** | **FEASIBLE** | - Sentinel-1 / NISAR SAR Water Mask (`process_change.py`)<br>- WorldPop Bangladesh 2020 (CC BY 4.0, $76.8\text{ MB}$)<br>- OCHA/HDX COD-AB Bangladesh (CC BY-IGO) | **8–12 hours**<br>(3–4 Antigravity prompts) | Spatial mismatch between 100m ambient population and 20m SAR pixels; residential night/day census assumption; unmodeled vertical evacuation in multi-story structures. | - Estimated ambient population residing within radar-detected water boundaries.<br>- Sensitivity bounds (min/max range).<br>- Relative district/upazila exposure comparisons. | - Boat/vehicle rescue route dispatching.<br>- Casualty or death toll predictions.<br>- Emergency humanitarian food/medicine quotas. | Banner: *"Prototype exposure model based on 2020 census disaggregation (WorldPop) and 20m SAR inundation. Does not model building height, vertical evacuation, or real-time presence. Not for tactical evacuation dispatch."* |
-| **Wildfire (Burn Scars)** | **PARTLY FEASIBLE** | - NASA FIRMS Active Fire Points (VIIRS/MODIS, Open data with citation)<br>- NISAR L2 GCOV (Provisional P05023) or Sentinel-1 VH (`mode="deforestation"`) | **16–24 hours**<br>(6–8 Antigravity prompts) | Temporal revisit latency (6–12 days); backscatter ambiguity where soil exposure and rain counteract vegetative volume loss; cloud-penetrating SAR does not detect active heat. | - Burned-area change in SAR backscatter compared with thermal hotspots.<br>- Delineation of vegetative canopy loss after fire events. | - Real-time active flame detection.<br>- Fire propagation / spread forecasting.<br>- Smoke dispersion / air quality modeling. | Banner: *"SAR measures changes in physical surface structure between repeat orbits (days to weeks apart). Thermal points indicate active heat anomalies at pass time. SAR does not detect active flames or predict fire paths."* |
-| **Volcano (Ground Deformation)** | **NOT FEASIBLE** *(for eruption forecasting)*<br><br>**PARTLY FEASIBLE** *(for exploratory InSAR surface displacement)* | - NISAR L2 GUNW (Provisional P05023, public domain)<br>- USGS Volcano Hazards Program reference data | **20–30 hours** *(displacement viewer)*<br><br>*Infinite / Impossible for eruption forecasting* | False alarms from treating deformation as eruption prediction; ground deformation can persist for decades without eruption; phreatic eruptions can occur without deformation. | - Satellite line-of-sight relative surface displacement between two radar acquisitions (cm scale). | - Eruption probability percentages.<br>- Eruption date or time forecasts.<br>- Official volcanic hazard alert designations. | Mandatory Section: *"What We Deliberately Do Not Predict"*. Permanent banner: *"Surface displacement measurements do not predict eruptions. Consult official USGS or national volcano observatories for official hazard alerts."* |
+| **Flood Exposure** | **FEASIBLE** | - Sentinel-1 / NISAR SAR Water Mask (`process_change.py`)<br>- WorldPop Bangladesh 2020 (CC BY 4.0, $76.8\text{ MB}$)<br>- OCHA/HDX COD-AB Bangladesh (CC BY-IGO) | **8–12 hours (rough guess, not measured)**<br>(3–4 Antigravity prompts (rough guess, not measured)) | Spatial mismatch between 100m ambient population and 20m SAR pixels; residential night/day census assumption; unmodeled vertical evacuation in multi-story structures. The min-max range reflects the threshold sweep only; it does not include population-model error, the 2020 vs 2022 time mismatch or the 100 m vs 20 m resolution mismatch. | - Estimated ambient population residing within radar-detected water boundaries.<br>- Sensitivity bounds (min/max range).<br>- Relative district/upazila exposure comparisons. | - Boat/vehicle rescue route dispatching.<br>- Casualty or death toll predictions.<br>- Emergency humanitarian food/medicine quotas. | Banner: *"Prototype exposure model based on 2020 census disaggregation (WorldPop) and 20m SAR inundation. Does not model building height, vertical evacuation, or real-time presence. The min-max range reflects threshold sweep only. Not for tactical evacuation dispatch."* |
+| **Wildfire (Burn Scars)** | **PARTLY FEASIBLE** | - NASA FIRMS Active Fire Points (VIIRS/MODIS, Open data with citation)<br>- NISAR L2 GCOV (Provisional P05023; licence status: NOT VERIFIED; NASA data use and citation guidance applies) or Sentinel-1 VH (`mode="deforestation"`) | **16–24 hours (rough guess, not measured)**<br>(6–8 Antigravity prompts (rough guess, not measured)) | Temporal revisit latency (6–12 days); backscatter ambiguity where soil exposure and rain counteract vegetative volume loss; cloud-penetrating SAR does not detect active heat. | - Burned-area change in SAR backscatter compared with thermal hotspots.<br>- Delineation of vegetative canopy loss after fire events. | - Real-time active flame detection.<br>- Fire propagation / spread forecasting.<br>- Smoke dispersion / air quality modeling. | Banner: *"SAR measures changes in physical surface structure between repeat orbits (days to weeks apart). Thermal points indicate active heat anomalies at pass time. SAR does not detect active flames or predict fire paths."* |
+| **Volcano (Ground Deformation)** | **NOT FEASIBLE** *(for eruption forecasting)*<br><br>**PARTLY FEASIBLE** *(for exploratory InSAR surface displacement)* | - NISAR L2 GUNW (Provisional P05023; licence status: NOT VERIFIED; NASA data use and citation guidance applies)<br>- USGS Volcano Hazards Program reference data | **20–30 hours (rough guess, not measured; displacement viewer)**<br><br>*Infinite / Impossible for eruption forecasting* | False alarms from treating deformation as eruption prediction; ground deformation can subside at any time and not be followed by an eruption; phreatic eruptions can occur without deformation. | - Satellite line-of-sight relative surface displacement between two radar acquisitions (cm scale). | - Eruption probability percentages.<br>- Eruption date or time forecasts.<br>- Official volcanic hazard alert designations. | Mandatory Section: *"What We Deliberately Do Not Predict"*. Permanent banner: *"Surface displacement measurements do not predict eruptions. Ground deformation can subside at any time and not be followed by an eruption. Consult official USGS or national volcano observatories for official hazard alerts."* |
 
 ---
