@@ -145,7 +145,7 @@ An additional **6 candidate case studies** are registered with status `pending-d
 ## AI Usage Disclosure
 
 TerraPulse maintains complete transparency regarding the use of Artificial Intelligence:
-1. **Optional Text Summary (No Calculations)**: The AI Insight panel uses an optional Large Language Model (Gemini) strictly to draft a 3-sentence plain English summary of pre-calculated metrics. This runs **only when an API key is configured** on the server; otherwise, the platform serves a deterministic offline template. The model receives computed numbers only and computes no areas or detection results.
+1. **Optional Text Summary (No Calculations)**: The AI Insight panel uses an optional Large Language Model strictly to draft a plain English summary of pre-calculated metrics. This runs **only when an API key is configured** on the server; otherwise, the platform serves a deterministic offline template. All numbers shown come from the deterministic pipeline. The AI only writes text from those numbers; AI-generated text can contain errors, so check it against the numbers.
 2. **100% Deterministic Core Pipeline**: All satellite data processing, backscatter thresholding, changed area totals, sensitivity analysis ranges, raster visualizations, vector polygons, and Chiku voice narration lines are generated entirely by deterministic Python and TypeScript code without generative models.
 3. **AI-Assisted Development**: AI-assisted developer tools were utilized during the project development lifecycle for code authoring, testing, and interface design assistance. All scientific algorithms and data outputs were independently reviewed and verified.
 
