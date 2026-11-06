@@ -29,3 +29,9 @@
 - **Directory Checked**: `data/samples/bgd-admin/`
 - **Status**: **NOT RUN: admin boundaries not provided**
 - **Observation**: `data/samples/bgd-admin/` does not exist or is empty; automated downloads from HDX are blocked by AWS WAF. In accordance with the prompt instructions, processing continues at the study area level without per-upazila results.
+
+---
+
+## 3. Comparison with Earlier Prototype (Day 8b Verification)
+
+The earlier prototype differed by about 2.3% (72,703 vs 74,413 exposed people); the cause is not established.
