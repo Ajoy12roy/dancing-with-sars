@@ -289,6 +289,31 @@ function buildNisarNarrationParts(data, detail = 'short') {
   ];
 }
 
+function buildSylhetExposureNarrationParts(data, detail = 'short') {
+  const defVal = data.minDefaultMax?.default?.estimatedPeopleInExtent ?? 74413;
+  const minVal = data.minDefaultMax?.min?.estimatedPeopleInExtent ?? 57480;
+  const maxVal = data.minDefaultMax?.max?.estimatedPeopleInExtent ?? 93745;
+  const defPct = data.minDefaultMax?.default?.populationSharePct ?? 7.1;
+
+  const defRounded = Math.round(defVal / 1000) * 1000;
+  const minRounded = Math.round(minVal / 1000) * 1000;
+  const maxRounded = Math.round(maxVal / 1000) * 1000;
+
+  if (detail === 'short') {
+    return [
+      `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}.`,
+      `This estimate is a prototype, not validated, based on spreading 2020 population counts over mapped new water.`,
+    ];
+  }
+
+  return [
+    `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}, or ${formatNumberInWords(defPct)} percent of the study area population.`,
+    `Across the radar threshold sweep, the range is ${formatNumberInWords(minRounded)} to ${formatNumberInWords(maxRounded)} estimated people.`,
+    `This estimate is a prototype, not validated; the range reflects only the choice of radar threshold.`,
+    `Population model error, building height, and demographic changes between 2020 and 2022 are not included.`,
+  ];
+}
+
 function buildChikuScript(event, context) {
   switch (event.type) {
     case 'mode-changed': {
@@ -390,6 +415,12 @@ function buildChikuScript(event, context) {
 
     case 'ai-insight-loaded': {
       return 'The AI interpretation is ready below.';
+    }
+
+    case 'exposure-view': {
+      const expData = event.data?.exposure || {};
+      const parts = buildSylhetExposureNarrationParts(expData, context?.narrationDetail || 'short');
+      return parts[0] || 'Estimated people living inside the mapped new-water extent: prototype, not validated.';
     }
 
     default: {
@@ -813,5 +844,61 @@ for (const line of allNisarParts) {
   }
 }
 console.log('✓ NISAR time series narration tests passed (short + full modes, required strings, forbidden words scanned)');
+
+// 16. Sylhet flood exposure narration tests
+const exposureJsonPath = path.join(rootDir, 'data', 'exposure', 'sylhet.json');
+assert.ok(fs.existsSync(exposureJsonPath), 'Missing data/exposure/sylhet.json');
+const exposureData = JSON.parse(fs.readFileSync(exposureJsonPath, 'utf-8'));
+
+const exposureShortParts = buildSylhetExposureNarrationParts(exposureData, 'short');
+assert.equal(exposureShortParts.length, 2, 'Exposure short mode must produce exactly 2 parts (headline + 1 line)');
+
+const exposureFullParts = buildSylhetExposureNarrationParts(exposureData, 'full');
+assert.equal(exposureFullParts.length, 4, 'Exposure full mode must produce exactly 4 parts');
+
+const allExposureParts = [...exposureShortParts, ...exposureFullParts];
+for (const p of allExposureParts) {
+  assert.ok(p.length <= 190, `Exposure line exceeds 190 chars: "${p}" (${p.length})`);
+}
+
+const expShortJoined = exposureShortParts.join(' ').toLowerCase();
+const expFullJoined = exposureFullParts.join(' ').toLowerCase();
+
+// Required keywords: 'prototype', 'not validated', 'estimated'
+const requiredExposureWords = ['prototype', 'not validated', 'estimated'];
+for (const word of requiredExposureWords) {
+  assert.ok(expShortJoined.includes(word), `Exposure short mode missing required word: "${word}"`);
+  assert.ok(expFullJoined.includes(word), `Exposure full mode missing required word: "${word}"`);
+}
+
+// Required content: rounded numbers, percentage, threshold choice
+assert.ok(expShortJoined.includes('74000'), 'Short mode missing rounded headline 74000');
+assert.ok(expFullJoined.includes('74000'), 'Full mode missing rounded headline 74000');
+assert.ok(expFullJoined.includes('57000') && expFullJoined.includes('94000'), 'Full mode missing range 57000 to 94000');
+assert.ok(expFullJoined.includes('7.1 percent'), 'Full mode missing percentage 7.1 percent');
+assert.ok(expFullJoined.includes('radar threshold'), 'Full mode missing radar threshold mention');
+
+// Forbidden words check across all exposure lines (case-insensitive)
+const forbiddenExposureWords = [
+  'affected population',
+  'relief',
+  'priority',
+  'evacuation',
+  'casualties',
+  'rescue',
+  'flooded people',
+  'trapped',
+];
+
+for (const line of allExposureParts) {
+  const lower = line.toLowerCase();
+  for (const word of forbiddenExposureWords) {
+    assert.ok(
+      !lower.includes(word),
+      `Forbidden word "${word}" found in Exposure Chiku line: "${line}"`
+    );
+  }
+}
+console.log('✓ Sylhet exposure narration tests passed (short + full modes, required strings, forbidden words scanned)');
 
 console.log('\nAll Chiku Voice Guide test cases passed successfully!');
