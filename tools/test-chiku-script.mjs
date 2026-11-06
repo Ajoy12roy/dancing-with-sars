@@ -3,431 +3,93 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import vm from 'node:vm';
+
+const require = createRequire(import.meta.url);
+const ts = require('typescript');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
-export const MODE_LABELS = {
-  flood: 'Flood',
-  'river-erosion': 'River erosion',
-  deforestation: 'Deforestation',
-  'surface-water': 'Surface water',
-};
+// ── In-memory TypeScript module loader ──
+const moduleCache = new Map();
 
-export const PAGE_INTROS = {
-  '/': "This is Terra Pulse. It compares radar images from two dates to show where Earth's surface has changed.",
-  '/explore': 'Pick a case study, or upload your own pair of radar images.',
-  '/how-it-works': 'Here is how the method works, from the radar image to the changed area.',
-  '/data-sources': "Our demo cases use Sentinel-1 radar through Google Earth Engine. NASA's ASF archive also distributes the same data.",
-};
-
-export const INTERACTION_HINTS = {
-  slider: 'Drag the slider to compare the two dates.',
-  sensitivity: 'This table shows how the result changes if the threshold moves. A wide range means less certainty.',
-  'text-summary': 'This is a text description of the map.',
-};
-
-function getSensitivityClass(sens) {
-  const centreStep =
-    sens.steps?.find((s) => s.value === sens.centre) ||
-    sens.steps?.[Math.floor((sens.steps?.length || 0) / 2)];
-  const centreArea = centreStep ? centreStep.areaKm2 : 0;
-  if (centreArea <= 0) return 'stable';
-  const span = sens.maxAreaKm2 - sens.minAreaKm2;
-  const ratio = span / centreArea;
-  if (ratio < 0.15) return 'stable';
-  if (ratio <= 0.50) return 'moderate';
-  return 'high';
-}
-
-function getSensitivityParameterLabel(paramName) {
-  if (paramName === 'water_threshold') return 'water threshold';
-  if (paramName === 'loss_threshold_db') return 'loss threshold';
-  return (paramName || '').replace(/_/g, ' ');
-}
-
-function formatRangeString(range) {
-  if (!range) return null;
-  if (typeof range === 'string') {
-    const trimmed = range.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-  if (typeof range === 'object' && range !== null) {
-    const { start, end } = range;
-    if (start && end) {
-      return start === end ? start : `${start} to ${end}`;
-    }
-    if (start) return start;
-    if (end) return end;
-  }
-  return null;
-}
-
-function cleanUploadError(errorText) {
-  if (!errorText) return 'Please check the file format and try again.';
-  let cleaned = errorText
-    .replace(/[A-Za-z]:\\[^\s]+/g, '')
-    .replace(/\/[^\s]+\/[^\s]+/g, '')
-    .replace(/\bat\s+[\w\d_.]+(?:\.py)?(?:\s+line\s+\d+)?(?:\s+\(.*?\))?/gi, '')
-    .replace(/\b[\w\d_.-]+\.py\b/gi, '')
-    .replace(/Error:\s*/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!cleaned) cleaned = 'Please check the file format and try again.';
-  const prefix = 'I could not use that file. ';
-  const maxLen = 195 - prefix.length;
-  if (cleaned.length > maxLen) {
-    cleaned = cleaned.slice(0, maxLen - 3) + '...';
-  }
-  return cleaned;
-}
-
-function formatNumberInWords(val) {
-  if (val === 0) return '0';
-  const isNegative = val < 0;
-  const absVal = Math.abs(val);
-  const formattedAbs = absVal % 1 === 0 ? absVal.toFixed(0) : absVal.toFixed(1);
-  return isNegative ? `minus ${formattedAbs}` : formattedAbs;
-}
-
-function splitForSpeech(text, maxLen = 190) {
-  if (!text) return [];
-  const trimmed = text.trim();
-  if (!trimmed) return [];
-  if (trimmed.length <= maxLen) return [trimmed];
-
-  const rawSentences = [];
-  let startIdx = 0;
-  for (let i = 0; i < trimmed.length; i++) {
-    const ch = trimmed[i];
-    if (ch === '.' || ch === '!' || ch === '?') {
-      if (ch === '.') {
-        const prev = i > 0 ? trimmed[i - 1] : '';
-        const next = i + 1 < trimmed.length ? trimmed[i + 1] : '';
-        if (/\d/.test(prev) && /\d/.test(next)) {
-          continue;
-        }
-      }
-      if (i + 1 === trimmed.length || /\s/.test(trimmed[i + 1])) {
-        const sentence = trimmed.slice(startIdx, i + 1).trim();
-        if (sentence) rawSentences.push(sentence);
-        startIdx = i + 1;
-      }
-    }
-  }
-  const leftover = trimmed.slice(startIdx).trim();
-  if (leftover) rawSentences.push(leftover);
-
-  const parts = [];
-  let current = '';
-
-  for (const s of rawSentences) {
-    if (s.length <= maxLen) {
-      if (!current) {
-        current = s;
-      } else if ((current + ' ' + s).length <= maxLen) {
-        current = current + ' ' + s;
-      } else {
-        parts.push(current);
-        current = s;
-      }
-    } else {
-      if (current) {
-        parts.push(current);
-        current = '';
-      }
-      const words = s.split(/\s+/);
-      let wordAcc = '';
-      for (const w of words) {
-        if (!wordAcc) {
-          wordAcc = w;
-        } else if ((wordAcc + ' ' + w).length <= maxLen) {
-          wordAcc = wordAcc + ' ' + w;
-        } else {
-          parts.push(wordAcc);
-          wordAcc = w;
-        }
-      }
-      if (wordAcc) {
-        parts.push(wordAcc);
-      }
-    }
-  }
-  if (current) {
-    parts.push(current);
+function loadTsModule(filePath) {
+  const resolvedPath = path.resolve(filePath);
+  if (moduleCache.has(resolvedPath)) {
+    return moduleCache.get(resolvedPath);
   }
 
-  return parts;
+  let src = fs.readFileSync(resolvedPath, 'utf8');
+  // Rewrite @/ path aliases to absolute paths for Node resolution
+  src = src.replace(/from\s+['"]@\/(.*?)['"]/g, (m, p) => {
+    const abs = path.resolve(rootDir, p).replace(/\\/g, '/');
+    return `from '${abs}'`;
+  });
+  src = src.replace(/require\(['"]@\/(.*?)['"]\)/g, (m, p) => {
+    const abs = path.resolve(rootDir, p).replace(/\\/g, '/');
+    return `require('${abs}')`;
+  });
+
+  const transpiled = ts.transpileModule(src, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      esModuleInterop: true,
+      resolveJsonModule: true,
+    },
+  });
+
+  const mod = { exports: {} };
+  moduleCache.set(resolvedPath, mod.exports);
+
+  const customRequire = (reqPath) => {
+    if (reqPath.endsWith('.json')) {
+      return JSON.parse(fs.readFileSync(reqPath, 'utf8'));
+    }
+    const candidateTs = reqPath.endsWith('.ts') ? reqPath : `${reqPath}.ts`;
+    if (fs.existsSync(candidateTs)) {
+      return loadTsModule(candidateTs);
+    }
+    if (fs.existsSync(reqPath)) {
+      return loadTsModule(reqPath);
+    }
+    return require(reqPath);
+  };
+
+  const wrapper = vm.runInThisContext(
+    `(function (exports, require, module, __filename, __dirname) { ${transpiled.outputText} \n})`,
+    { filename: resolvedPath }
+  );
+  wrapper(mod.exports, customRequire, mod, resolvedPath, path.dirname(resolvedPath));
+  moduleCache.set(resolvedPath, mod.exports);
+  return mod.exports;
 }
 
-function getRadarMethodExplanation(mode) {
-  switch (mode) {
-    case 'flood':
-      return 'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter, then flag pixels that drop below the threshold as open water.';
-    case 'deforestation':
-      return 'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter, then flag pixels where backscatter dropped by more than the threshold between pre- and post-dates.';
-    case 'river-erosion':
-      return 'We compare land-to-water transitions using radar backscatter smoothing and thresholding, filtering patches smaller than 20 pixels.';
-    case 'surface-water':
-      return 'We smooth Sentinel-1 radar backscatter and flag pixels below the threshold as surface water, filtering isolated speckle.';
-    default:
-      return 'We smooth Sentinel-1 radar backscatter with a 5-pixel median filter and apply deterministic thresholding.';
-  }
-}
+// ── Import real exported functions and constants directly from lib/chiku-script.ts ──
+const chikuScriptModule = loadTsModule(path.resolve(rootDir, 'lib/chiku-script.ts'));
 
-function buildThresholdLine(mode, sensitivity) {
-  const paramLabel = getSensitivityParameterLabel(sensitivity.parameterName);
-  const centreSpoken = `${formatNumberInWords(sensitivity.centre)} decibels`;
-
-  let meaning = 'values beyond this trigger the change detection';
-  if (sensitivity.parameterName === 'water_threshold') {
-    meaning = 'pixels darker than this are counted as water';
-  } else if (sensitivity.parameterName === 'loss_threshold_db') {
-    meaning = 'drops greater than this indicate canopy loss';
-  }
-
-  return `The headline result uses a ${paramLabel} of ${centreSpoken}: ${meaning}. This is a fixed default setting, not a value proven to be the best.`;
-}
-
-function buildTestedRangeLine(sensitivity) {
-  const steps = sensitivity.steps || [];
-  const minStep = steps.length > 0 ? steps[0].value : sensitivity.centre;
-  const maxStep = steps.length > 0 ? steps[steps.length - 1].value : sensitivity.centre;
-  const useTwoDecimals = sensitivity.minAreaKm2 < 1 || sensitivity.maxAreaKm2 < 1;
-  const minArea = useTwoDecimals ? sensitivity.minAreaKm2.toFixed(2) : sensitivity.minAreaKm2.toFixed(1);
-  const maxArea = useTwoDecimals ? sensitivity.maxAreaKm2.toFixed(2) : sensitivity.maxAreaKm2.toFixed(1);
-
-  return `We also tested ${formatNumberInWords(minStep)} to ${formatNumberInWords(maxStep)} decibels. The area ranged from ${minArea} to ${maxArea} square kilometres.`;
-}
-
-function buildSensitivityClassSentence(sensitivity) {
-  const cls = getSensitivityClass(sensitivity);
-  switch (cls) {
-    case 'stable':
-      return 'This detection is relatively stable across threshold choices.';
-    case 'moderate':
-      return 'Different threshold choices change the detected area moderately.';
-    case 'high':
-      return 'Treat this number with extra caution: small threshold changes move the result significantly.';
-  }
-}
-
-function buildRadarMethodLine(mode) {
-  return getRadarMethodExplanation(mode);
-}
-
-function buildReliabilityNotesLines(notes) {
-  if (!notes || notes.length === 0) return [];
-  const validNotes = notes.slice(0, 3);
-  const intro = 'Reliability notes, computed from data, not written by AI.';
-  const noteLines = [];
-
-  for (const note of validNotes) {
-    const split = splitForSpeech(note, 190);
-    noteLines.push(...split);
-  }
-
-  return [intro, ...noteLines];
-}
-
-function buildAnalysisNarrationParts(params) {
-  const { mode = 'flood', affectedAreaKm2, percentChanged, sensitivity, detail = 'full' } = params;
-
-  let headline = 'Analysis complete.';
-  if (typeof affectedAreaKm2 === 'number' && typeof percentChanged === 'number') {
-    const areaStr = affectedAreaKm2 < 1 ? affectedAreaKm2.toFixed(2) : affectedAreaKm2.toFixed(1);
-    headline = `Analysis complete. About ${areaStr} square kilometres changed, ${percentChanged.toFixed(1)} percent of the area.`;
-  } else if (typeof affectedAreaKm2 === 'number') {
-    const areaStr = affectedAreaKm2 < 1 ? affectedAreaKm2.toFixed(2) : affectedAreaKm2.toFixed(1);
-    headline = `Analysis complete. About ${areaStr} square kilometres changed across the area.`;
-  }
-
-  if (detail === 'short') {
-    if (sensitivity) {
-      return [headline, buildSensitivityClassSentence(sensitivity)];
-    }
-    return [headline];
-  }
-
-  const parts = [headline];
-
-  if (sensitivity) {
-    parts.push(buildThresholdLine(mode, sensitivity));
-    parts.push(buildTestedRangeLine(sensitivity));
-    parts.push(buildSensitivityClassSentence(sensitivity));
-  }
-
-  parts.push(buildRadarMethodLine(mode));
-
-  return parts;
-}
-
-function buildNisarNarrationParts(data, detail = 'short') {
-  const maturity = data.dataMaturity || 'PROVISIONAL';
-  const crid = data.crid || 'P05023';
-  const winArea = data.window?.windowAreaKm2 ?? 104.86;
-  const winAreaStr = winArea.toFixed(2);
-  const winPct = data.window?.windowCoveragePercentageOfCaseBbox ?? 32.4;
-  const winPctStr = winPct.toFixed(1);
-  const excludedRecord = data.records?.find((r) => r.excluded);
-  const excludedDate = excludedRecord?.date || '2026-08-22';
-  const totalCount = data.records?.length ?? 10;
-
-  if (detail === 'short') {
-    return [
-      `NISAR observation is ${maturity}.`,
-      `It measures low-backscatter area below fixed thresholds (not water) across ${winAreaStr} square kilometres; ${excludedDate} is excluded as cause not established and no single threshold is justified.`,
-    ];
-  }
-
-  return [
-    `NISAR observation is ${maturity} with CRID ${crid}.`,
-    `The 1024 by 1024 window covers ${winAreaStr} square kilometres, about ${winPctStr} percent of the Hakaluki case area.`,
-    `It tracks low-backscatter area below fixed thresholds (not water); values differ by threshold and no single threshold is justified.`,
-    `${totalCount === 10 ? 'Ten' : totalCount} repeat observations were processed; the acquisition on ${excludedDate} is excluded with cause not established.`,
-  ];
-}
-
-function buildSylhetExposureNarrationParts(data, detail = 'short') {
-  const defVal = data.minDefaultMax?.default?.estimatedPeopleInExtent ?? 74413;
-  const minVal = data.minDefaultMax?.min?.estimatedPeopleInExtent ?? 57480;
-  const maxVal = data.minDefaultMax?.max?.estimatedPeopleInExtent ?? 93745;
-  const defPct = data.minDefaultMax?.default?.populationSharePct ?? 7.1;
-
-  const defRounded = Math.round(defVal / 1000) * 1000;
-  const minRounded = Math.round(minVal / 1000) * 1000;
-  const maxRounded = Math.round(maxVal / 1000) * 1000;
-
-  if (detail === 'short') {
-    return [
-      `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}.`,
-      `This estimate is a prototype, not validated, based on spreading 2020 population counts over mapped new water.`,
-    ];
-  }
-
-  return [
-    `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}, or ${formatNumberInWords(defPct)} percent of the study area population.`,
-    `Across the radar threshold sweep, the range is ${formatNumberInWords(minRounded)} to ${formatNumberInWords(maxRounded)} estimated people.`,
-    `This estimate is a prototype, not validated; the range reflects only the choice of radar threshold.`,
-    `Population model error, building height, and demographic changes between 2020 and 2022 are not included.`,
-  ];
-}
-
-function buildChikuScript(event, context) {
-  switch (event.type) {
-    case 'mode-changed': {
-      const modeKey = event.data?.mode || context?.mode || 'flood';
-      switch (modeKey) {
-        case 'flood':
-          return 'Flood monitoring mode is ready. It maps new water between the two dates.';
-        case 'deforestation':
-          return 'Deforestation mode is ready. It looks for a drop in radar backscatter that can indicate canopy loss.';
-        case 'river-erosion':
-          return 'River change mode is ready. It maps net land-to-water change along the river between the two dates.';
-        case 'surface-water':
-          return 'Surface water mode is ready. It maps open water and how it changes between two dates.';
-        default: {
-          const label = MODE_LABELS[modeKey] || modeKey;
-          return `${label} mode is ready.`.slice(0, 195);
-        }
-      }
-    }
-
-    case 'page-intro': {
-      const route = event.data?.route || '/';
-      return PAGE_INTROS[route] || PAGE_INTROS['/'] || '';
-    }
-
-    case 'hint': {
-      const hintId = event.data?.hintId || '';
-      return INTERACTION_HINTS[hintId] || event.message || '';
-    }
-
-    case 'case-selected': {
-      const title = context?.caseTitle || event.data?.title || 'Case study';
-      const before = formatRangeString(context?.beforeRange || event.data?.beforeRange);
-      const after = formatRangeString(context?.afterRange || event.data?.afterRange);
-
-      if (before && after) {
-        return `Loaded ${title}. Comparing ${before} with ${after}.`.slice(0, 195);
-      }
-      return `Loaded ${title}.`.slice(0, 195);
-    }
-
-    case 'upload-accepted': {
-      return 'Your satellite images have been uploaded successfully.';
-    }
-
-    case 'upload-rejected': {
-      const rawError =
-        event.data?.error ||
-        (event.message ? event.message.replace(/^Upload rejected:\s*/i, '') : '');
-      const reason = cleanUploadError(rawError);
-      return `I could not use that file. ${reason}`.slice(0, 195);
-    }
-
-    case 'analysis-loading':
-    case 'general': {
-      if (event.type === 'analysis-loading' || event.message?.toLowerCase().includes('analyzing')) {
-        return 'Analyzing the satellite imagery. Please wait.';
-      }
-      return event.message ? event.message.slice(0, 195) : 'Terra Pulse radar guide ready.';
-    }
-
-    case 'analysis-ready': {
-      const area = context?.affectedAreaKm2 ?? event.data?.affectedAreaKm2;
-      const pct = context?.percentChanged ?? event.data?.percentChanged;
-      const sens = context?.sensitivity || event.data?.sensitivity;
-
-      let sentence1 = 'Analysis complete.';
-      if (typeof area === 'number' && typeof pct === 'number') {
-        const areaStr = area < 1 ? area.toFixed(2) : area.toFixed(1);
-        sentence1 = `Analysis complete. About ${areaStr} square kilometres changed, ${pct.toFixed(1)} percent of the area.`;
-      } else if (typeof area === 'number') {
-        const areaStr = area < 1 ? area.toFixed(2) : area.toFixed(1);
-        sentence1 = `Analysis complete. About ${areaStr} square kilometres changed across the area.`;
-      }
-
-      if (sens) {
-        const cls = getSensitivityClass(sens);
-        const useTwoDecimals = sens.minAreaKm2 < 1 || sens.maxAreaKm2 < 1;
-        const minStr = useTwoDecimals ? sens.minAreaKm2.toFixed(2) : sens.minAreaKm2.toFixed(1);
-        const maxStr = useTwoDecimals ? sens.maxAreaKm2.toFixed(2) : sens.maxAreaKm2.toFixed(1);
-
-        let sentence2 = '';
-        if (cls === 'high') {
-          sentence2 = `High sensitivity: treat this number as indicative only, spanning ${minStr} to ${maxStr} square kilometres.`;
-        } else if (cls === 'moderate') {
-          sentence2 = `Moderate sensitivity, spanning ${minStr} to ${maxStr} square kilometres across threshold offsets.`;
-        } else {
-          sentence2 = `Stable classification, spanning ${minStr} to ${maxStr} square kilometres under threshold variation.`;
-        }
-        return `${sentence1} ${sentence2}`.slice(0, 195);
-      }
-
-      return sentence1.slice(0, 195);
-    }
-
-    case 'analysis-failed': {
-      return 'The analysis could not finish. Please try again.';
-    }
-
-    case 'ai-insight-loaded': {
-      return 'The AI interpretation is ready below.';
-    }
-
-    case 'exposure-view': {
-      const expData = event.data?.exposure || {};
-      const parts = buildSylhetExposureNarrationParts(expData, context?.narrationDetail || 'short');
-      return parts[0] || 'Estimated people living inside the mapped new-water extent: prototype, not validated.';
-    }
-
-    default: {
-      return event.message ? event.message.slice(0, 195) : 'Terra Pulse radar guide ready.';
-    }
-  }
-}
+export const {
+  MODE_LABELS,
+  PAGE_INTROS,
+  INTERACTION_HINTS,
+  formatRangeString,
+  cleanUploadError,
+  formatNumberInWords,
+  formatThousandsForSpeech,
+  splitForSpeech,
+  buildThresholdLine,
+  buildTestedRangeLine,
+  buildSensitivityClassSentence,
+  buildRadarMethodLine,
+  buildReliabilityNotesLines,
+  buildAnalysisNarrationParts,
+  buildNisarNarrationParts,
+  buildSylhetExposureNarrationParts,
+  buildChikuScript,
+} = chikuScriptModule;
 
 console.log('Running Chiku Voice Guide Script Tests...\n');
 
@@ -843,6 +505,17 @@ for (const line of allNisarParts) {
     );
   }
 }
+// Event builder test: buildChikuScript with 'nisar-view' must return the first sentence of buildNisarNarrationParts
+const nisarEventScript = buildChikuScript(
+  { type: 'nisar-view', data: { timeseries: nisarData }, message: '' },
+  { narrationDetail: 'short' }
+);
+assert.equal(
+  nisarEventScript,
+  nisarShortParts[0],
+  'buildChikuScript for nisar-view must return first sentence of buildNisarNarrationParts'
+);
+
 console.log('✓ NISAR time series narration tests passed (short + full modes, required strings, forbidden words scanned)');
 
 // 16. Sylhet flood exposure narration tests
@@ -872,9 +545,9 @@ for (const word of requiredExposureWords) {
 }
 
 // Required content: rounded numbers, percentage, threshold choice
-assert.ok(expShortJoined.includes('74000'), 'Short mode missing rounded headline 74000');
-assert.ok(expFullJoined.includes('74000'), 'Full mode missing rounded headline 74000');
-assert.ok(expFullJoined.includes('57000') && expFullJoined.includes('94000'), 'Full mode missing range 57000 to 94000');
+assert.ok(expShortJoined.includes('74 thousand'), 'Short mode missing rounded headline 74 thousand');
+assert.ok(expFullJoined.includes('74 thousand'), 'Full mode missing rounded headline 74 thousand');
+assert.ok(expFullJoined.includes('57 thousand') && expFullJoined.includes('94 thousand'), 'Full mode missing range 57 thousand to 94 thousand');
 assert.ok(expFullJoined.includes('7.1 percent'), 'Full mode missing percentage 7.1 percent');
 assert.ok(expFullJoined.includes('radar threshold'), 'Full mode missing radar threshold mention');
 
@@ -899,6 +572,17 @@ for (const line of allExposureParts) {
     );
   }
 }
+// Event builder test: buildChikuScript with 'exposure-view' must return the first sentence of buildSylhetExposureNarrationParts
+const exposureEventScript = buildChikuScript(
+  { type: 'exposure-view', data: { exposure: exposureData }, message: '' },
+  { narrationDetail: 'short' }
+);
+assert.equal(
+  exposureEventScript,
+  exposureShortParts[0],
+  'buildChikuScript for exposure-view must return first sentence of buildSylhetExposureNarrationParts'
+);
+
 console.log('✓ Sylhet exposure narration tests passed (short + full modes, required strings, forbidden words scanned)');
 
 console.log('\nAll Chiku Voice Guide test cases passed successfully!');
