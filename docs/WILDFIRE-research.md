@@ -114,4 +114,51 @@ Pairs were classified into regional groups based on the geographic centroid of t
 
 Full footprint metadata and pair geometries are saved locally to `scratch/nisar-footprints.json` (gitignored).
 
+---
+
+## 3. Real Wildfire Event Selection (FIRMS + NISAR)
+
+Candidate consecutive pairs were evaluated chronologically against real NASA FIRMS VIIRS Standard Processing (`VIIRS_SNPP_SP`) and Near-Real-Time (`VIIRS_SNPP_NRT`) thermal anomaly detections. Hotspots were filtered strictly to nominal and high confidence classifications (`confidence in ('nominal', 'high', 'n', 'h')`) within the spatial intersection of both granules between $t_0$ and $t_1$. Hotspots were spatially clustered using Disjoint Set Union (DSU) with a 3 km Euclidean distance threshold on metric equidistant planar projections.
+
+### 3.1 Evaluation Parameters and Budget
+
+- **Pairs Evaluated:** 44 consecutive land pairs (chronological order starting from 2026-01-01)
+- **FIRMS Requests Budget:** 150 requests consumed (safety cap reached)
+- **Sensor:** VIIRS (Suomi-NPP / NOAA-20)
+- **Spatial Clustering Threshold:** 3,000 meters (3 km)
+
+### 3.2 Top 10 Candidate Pairs by Total Fire Radiative Power (FRP)
+
+| Pair ID | Track | Frame | Dir | $t_0$ | $t_1$ | Region | All Hotspots | Nominal/High | Largest Cluster | Cluster % | Total FRP (MW) | Max FRP (MW) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `T087_F004_A_C9_C10` | 087 | 004 | A | 2026-01-03 | 2026-01-15 | Africa | 1,248 | 1,248 | 63 | 5.0% | 4,865.1 | 62.9 |
+| `T106_F073_D_C9_C10` | 106 | 073 | D | 2026-01-04 | 2026-01-16 | Eurasia | 1,096 | 1,096 | 38 | 3.5% | 4,791.2 | 66.7 |
+| `T113_F071_D_C9_C10` | 113 | 071 | D | 2026-01-05 | 2026-01-17 | Americas | 519 | 519 | 54 | 10.4% | 4,441.5 | 71.5 |
+| `T055_F017_A_C9_C10` | 055 | 017 | A | 2026-01-01 | 2026-01-13 | Eurasia | 808 | 808 | 38 | 4.7% | 3,905.7 | 66.7 |
+| `T113_F079_D_C9_C10` | 113 | 079 | D | 2026-01-05 | 2026-01-17 | Americas | 586 | 586 | 115 | 19.6% | 3,714.3 | 62.9 |
+| `T113_F078_D_C9_C10` | 113 | 078 | D | 2026-01-05 | 2026-01-17 | Americas | 517 | 517 | 115 | 22.2% | 3,393.6 | 55.2 |
+| `T085_F072_D_C9_C10` | 085 | 072 | D | 2026-01-03 | 2026-01-15 | Americas | 137 | 137 | 48 | 35.0% | 2,774.5 | 188.4 |
+| `T098_F074_D_C9_C10` | 098 | 074 | D | 2026-01-04 | 2026-01-16 | Americas | 294 | 294 | 16 | 5.4% | 2,633.6 | 104.7 |
+| `T088_F174_A_C9_C10` | 088 | 174 | A | 2026-01-03 | 2026-01-15 | Americas | 227 | 227 | 10 | 4.4% | 2,416.2 | 82.7 |
+| `T113_F073_D_C9_C10` | 113 | 073 | D | 2026-01-05 | 2026-01-17 | Americas | 382 | 382 | 37 | 9.7% | 2,163.2 | 64.3 |
+
+### 3.3 Selection Decision and Stopping Rule
+
+- **Primary Selection Rule (Tier 1):** $\ge 200$ qualifying hotspots AND $\ge 70\%$ in a single connected 3 km cluster.
+  - *Result:* **0 pairs satisfied** (highest cluster share among pairs with $\ge 200$ hotspots was 49.8% in `T118_F070_D_C9_C10`).
+- **Relaxed Selection Rule (Tier 2):** $\ge 100$ qualifying hotspots AND $\ge 60\%$ in a single connected 3 km cluster.
+  - *Result:* **0 pairs satisfied** (highest cluster share among pairs with $\ge 100$ hotspots was 49.8% in `T118_F070_D_C9_C10`).
+- **Formal Status:** `NO EVENT SELECTED: rule not satisfied`
+
+#### Top 5 Pairs by Total Fire Radiative Power (FRP)
+1. `T087_F004_A_C9_C10` (Africa): 1,248 hotspots, 4,865.1 MW FRP, largest cluster 63 (5.0%)
+2. `T106_F073_D_C9_C10` (Eurasia): 1,096 hotspots, 4,791.2 MW FRP, largest cluster 38 (3.5%)
+3. `T113_F071_D_C9_C10` (Americas): 519 hotspots, 4,441.5 MW FRP, largest cluster 54 (10.4%)
+4. `T055_F017_A_C9_C10` (Eurasia): 808 hotspots, 3,905.7 MW FRP, largest cluster 38 (4.7%)
+5. `T113_F079_D_C9_C10` (Americas): 586 hotspots, 3,714.3 MW FRP, largest cluster 115 (19.6%)
+
+#### Physical Interpretation
+In January 2026, thermal activity captured across these early orbit cycles was driven by widespread, highly dispersed agricultural stubble and savanna clearing fires (such as in the Nigerian Guinea savanna and the Indo-Gangetic plains), rather than singular high-intensity wildfire mega-complexes. Detections were fragmented into dozens of small, isolated burn scars separated by several kilometers across large administrative regions.
+
+
 
