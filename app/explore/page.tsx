@@ -16,6 +16,7 @@ import { FileDropZone } from '@/components/upload/FileDropZone';
 import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
 import { NisarCard } from '@/components/explore/NisarCard';
+import { SylhetExposureCard } from '@/components/explore/SylhetExposureCard';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
@@ -680,6 +681,17 @@ function ExploreContent() {
                   >
                     AI insight
                   </a>
+                  {activeTab === 'demo' && selectedAoi === 'sylhet' && (
+                    <>
+                      <span className="text-hairline">/</span>
+                      <a
+                        href="#exposure"
+                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                      >
+                        Exposure
+                      </a>
+                    </>
+                  )}
                   {activeTab === 'demo' && (
                     <>
                       <span className="text-hairline">|</span>
@@ -811,6 +823,13 @@ function ExploreContent() {
                   mode={displayData.mode || activeAoi.mode || mode}
                 />
               </div>
+
+              {/* ── Row 3.5: Sylhet Flood Exposure Analytics Card ── */}
+              {activeTab === 'demo' && selectedAoi === 'sylhet' && (
+                <div className="col-span-12">
+                  <SylhetExposureCard />
+                </div>
+              )}
 
               {/* ── Row 4: NASA NISAR L-band Analysis Card ── */}
               <div className="col-span-12">

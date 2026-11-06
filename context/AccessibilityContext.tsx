@@ -16,6 +16,7 @@ export type AccessibilityEventType =
   | 'page-intro'
   | 'hint'
   | 'nisar-view'
+  | 'exposure-view'
   | 'general';
 
 export interface AccessibilityEvent {

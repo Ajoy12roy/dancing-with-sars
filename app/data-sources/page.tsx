@@ -215,6 +215,69 @@ export default function DataSourcesPage() {
             </div>
           </div>
         </div>
+
+        {/* WorldPop Population Data Card */}
+        <div className="bg-surface border border-hairline p-6 rounded-[2px] mt-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-hairline pb-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-data text-[10px] px-2 py-0.5 rounded-[2px] border border-hairline bg-surface-2 text-text-secondary">
+                  DEMOGRAPHIC MODEL
+                </span>
+                <span className="font-data text-[10px] px-2 py-0.5 rounded-[2px] border border-hairline bg-surface-2 text-text-secondary">
+                  Year 2020
+                </span>
+              </div>
+              <h3 className="font-headline font-semibold text-lg text-text-primary">
+                WorldPop Global High Resolution Population Denominators
+              </h3>
+              <p className="text-xs text-text-secondary mt-0.5">
+                Modelled population estimate (paraphrase), 3 arc-second (~100m) resolution count raster
+              </p>
+            </div>
+            <div className="text-xs font-data text-teal">
+              CC BY 4.0 / National Total Adjusted
+            </div>
+          </div>
+
+          <p className="text-sm text-text-secondary leading-relaxed">
+            WorldPop 2020 Bangladesh dataset, used for the Sylhet exposure estimate to compute estimated people living inside the mapped new-water extent via count-conserving areal weighting. The population layer is a modelled population estimate (paraphrase) produced by Random Forest dasymetric redistribution. Explore the interactive results in the{' '}
+            <Link href="/explore#exposure" className="text-teal hover:underline font-medium">
+              Sylhet Exposure Card &rarr;
+            </Link>
+          </p>
+
+          <div className="mt-4 p-3 bg-surface-2 border border-hairline rounded-[2px] space-y-1">
+            <p className="text-xs font-data text-teal leading-relaxed">
+              <strong>Licence:</strong> Creative Commons Attribution 4.0 International (CC BY 4.0).
+            </p>
+            <p className="text-[11px] font-sans text-text-caption leading-relaxed italic">
+              <strong>Citation:</strong> WorldPop (www.worldpop.org - School of Geography and Environmental Science, University of Southampton; Department of Geography and Geosciences, University of Louisville; Departement de Geographie, Universite de Namur) and Center for International Earth Science Information Network (CIESIN), Columbia University (2018). Global High Resolution Population Denominators Project - Funded by The Bill and Melinda Gates Foundation (OPP1134076).
+            </p>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-data border-t border-hairline pt-4">
+            <div>
+              <span className="text-text-secondary block">Spatial Resolution:</span>
+              <span className="text-text-primary">3.0 arc-seconds (~100m at equator)</span>
+            </div>
+            <div>
+              <span className="text-text-secondary block">Units:</span>
+              <span className="text-text-primary">People per cell (count raster)</span>
+            </div>
+            <div>
+              <span className="text-text-secondary block">Official Access:</span>
+              <a
+                href="https://hub.worldpop.org/geodata/summary?id=28451"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-teal hover:underline"
+              >
+                WorldPop Hub ↗
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* How anyone can get this NASA-accessible SAR data */}

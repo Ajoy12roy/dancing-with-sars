@@ -14,6 +14,8 @@ import {
   type ChikuContextData,
   buildNisarNarrationParts,
   type NisarTimeseriesLike,
+  buildSylhetExposureNarrationParts,
+  type SylhetExposureLike,
 } from '@/lib/chiku-script';
 import { type SensitivityData } from '@/lib/sensitivity';
 import {
@@ -165,6 +167,7 @@ function getEventGroup(eventType: string): ChikuEventGroup {
     case 'test-voice':
     case 'explain-view':
     case 'nisar-view':
+    case 'exposure-view':
       return 'view';
     case 'processing':
     case 'analysis-loading':
@@ -194,6 +197,7 @@ function getEventPriority(eventType: string): ChikuPriority {
     case 'test-voice':
     case 'explain-view':
     case 'nisar-view':
+    case 'exposure-view':
     case 'analysis-ready':
     case 'analysis-failed':
     case 'upload-rejected':
@@ -755,6 +759,22 @@ export function ChikuGuide({ contextData, className = '' }: ChikuGuideProps) {
           setCurrentText(parts[0]);
           queueRef.current?.enqueue({
             key: `nisar-view:${Date.now()}`,
+            group: 'view',
+            priority: 3,
+            parts,
+          });
+        }
+        return;
+      }
+
+      if (event.type === 'exposure-view') {
+        const expData = (event.data?.exposure as SylhetExposureLike | undefined) || {};
+        const detail = narrationDetailRef.current;
+        const parts = buildSylhetExposureNarrationParts(expData, detail);
+        if (parts.length > 0 && parts[0]) {
+          setCurrentText(parts[0]);
+          queueRef.current?.enqueue({
+            key: `exposure-view:${Date.now()}`,
             group: 'view',
             priority: 3,
             parts,

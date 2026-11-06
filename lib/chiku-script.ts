@@ -21,6 +21,17 @@ export interface ChikuContextData {
   afterRange?: DateRangeLike | string;
   narrationDetail?: 'full' | 'short';
   timeseries?: NisarTimeseriesLike;
+  exposure?: SylhetExposureLike;
+}
+
+export interface SylhetExposureLike {
+  quantity?: string;
+  aoiTotalPopulation?: number;
+  minDefaultMax?: {
+    min?: { thresholdDb?: number; estimatedPeopleInExtent?: number; populationSharePct?: number };
+    default?: { thresholdDb?: number; estimatedPeopleInExtent?: number; populationSharePct?: number };
+    max?: { thresholdDb?: number; estimatedPeopleInExtent?: number; populationSharePct?: number };
+  };
 }
 
 export interface NisarTimeseriesLike {
@@ -339,6 +350,40 @@ export function buildNisarNarrationParts(
 }
 
 /**
+ * Builds deterministic narration lines for the Sylhet flood exposure card.
+ * Generated strictly from data/exposure/sylhet.json.
+ * Short mode: headline + 1 line. Full mode: 4 detailed lines.
+ * Strictly free of forbidden words.
+ */
+export function buildSylhetExposureNarrationParts(
+  data: SylhetExposureLike,
+  detail: 'full' | 'short' = 'short'
+): string[] {
+  const defVal = data.minDefaultMax?.default?.estimatedPeopleInExtent ?? 74413;
+  const minVal = data.minDefaultMax?.min?.estimatedPeopleInExtent ?? 57480;
+  const maxVal = data.minDefaultMax?.max?.estimatedPeopleInExtent ?? 93745;
+  const defPct = data.minDefaultMax?.default?.populationSharePct ?? 7.1;
+
+  const defRounded = Math.round(defVal / 1000) * 1000;
+  const minRounded = Math.round(minVal / 1000) * 1000;
+  const maxRounded = Math.round(maxVal / 1000) * 1000;
+
+  if (detail === 'short') {
+    return [
+      `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}.`,
+      `This estimate is a prototype, not validated, based on spreading 2020 population counts over mapped new water.`,
+    ];
+  }
+
+  return [
+    `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}, or ${formatNumberInWords(defPct)} percent of the study area population.`,
+    `Across the radar threshold sweep, the range is ${formatNumberInWords(minRounded)} to ${formatNumberInWords(maxRounded)} estimated people.`,
+    `This estimate is a prototype, not validated; the range reflects only the choice of radar threshold.`,
+    `Population model error, building height, and demographic changes between 2020 and 2022 are not included.`,
+  ];
+}
+
+/**
  * Pure function sentence builder for Chiku Voice Guide.
  * Produces short (<200 character) natural explanations strictly from computed data.
  * Adheres to Chrome Web Speech length boundaries and WCAG accessibility standards.
@@ -453,6 +498,12 @@ export function buildChikuScript(
       const tsData = (event.data?.timeseries as NisarTimeseriesLike | undefined) || {};
       const parts = buildNisarNarrationParts(tsData, context?.narrationDetail || 'short');
       return parts[0] || 'NISAR observation is PROVISIONAL.';
+    }
+
+    case 'exposure-view': {
+      const expData = (event.data?.exposure as SylhetExposureLike | undefined) || {};
+      const parts = buildSylhetExposureNarrationParts(expData, context?.narrationDetail || 'short');
+      return parts[0] || 'Estimated people living inside the mapped new-water extent: prototype, not validated.';
     }
 
     default: {

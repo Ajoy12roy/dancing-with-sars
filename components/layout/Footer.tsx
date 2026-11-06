@@ -241,7 +241,7 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[13px] text-footer-text">
           <div className="flex flex-col">
             <p>© 2026 TerraPulse. Built for the NASA International Space Apps Challenge 2026.</p>
-            <p className="mt-1 text-[12px]">Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine. NISAR data: NASA/ISRO, distributed by ASF DAAC.</p>
+            <p className="mt-1 text-[12px]">Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine. NISAR data: NASA/ISRO, distributed by ASF DAAC. Population data: WorldPop (2020), CC BY 4.0.</p>
             <p className="mt-0.5 text-[12px]">Independent hackathon project, not endorsed by NASA.</p>
           </div>
           <div className="flex flex-wrap items-center gap-6">

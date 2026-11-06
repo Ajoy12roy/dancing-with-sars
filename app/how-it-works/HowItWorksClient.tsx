@@ -741,7 +741,7 @@ export function HowItWorksClient() {
                     1. Optional Text Summary (No Calculations)
                   </h3>
                   <p className="leading-relaxed">
-                    The AI Insight panel uses an optional Large Language Model (Gemini) strictly to draft a 3-sentence plain English summary of pre-calculated metrics. This runs <strong>only when an API key is configured</strong> on the server; otherwise, the platform serves a fully deterministic offline template. The AI receives computed numbers only and computes no areas or detection results.
+                    The AI Insight panel uses an optional Large Language Model (Google Gemini API, when a key is configured) strictly to draft a plain English summary of pre-calculated metrics. This runs <strong>only when an API key is configured</strong> on the server; otherwise, the platform serves a fully deterministic offline template. All numbers shown come from the deterministic pipeline. The AI only writes text from those numbers; AI-generated text can contain errors, so check it against the numbers.
                   </p>
                 </div>
 

@@ -129,6 +129,24 @@ An additional **6 candidate case studies** are registered with status `pending-d
 
 ---
 
+## Sylhet Exposure Estimate (Prototype)
+
+A count-conserving demographic exposure overlay combining Sentinel-1 radar change detection with WorldPop 2020 gridded population data:
+- **Quantity**: Estimated people living inside the mapped new-water extent.
+- **Headline Estimate**: About **74,000 people** living inside the mapped new-water extent at the default radar threshold (-16.0 dB, 37.19 km²), representing **7.1%** of the monitored study area population (1,044,343 residents across 218.10 km²).
+- **Sensitivity Range**: **57,000 to 94,000 people** across the -18.0 dB to -14.0 dB threshold sweep (30.85 to 44.01 km² flooded area, or 5.5% to 9.0% of the study area population).
+- **Methodology**: Count-conserving areal weighting warping the 20m binary SAR flood mask onto the ~100m WorldPop grid using average resampling.
+- **Key Limitations**:
+  - The range reflects only the radar backscatter threshold sweep; population-model error is not included.
+  - Temporal mismatch between the 2020 population model and the 2022 flood event.
+  - Spatial resolution mismatch between 100 m population grid cells and 20 m SAR pixels.
+  - Ground-level census dasymetric model; does not account for vertical multistory shelter.
+  - No real-time presence or human mobility tracking.
+  - SAR flood mask accuracy is subject to radar shadow, specular non-water surfaces, and emergent vegetation limitations.
+- **Operational Disclaimer**: Not for relief routing or casualty estimates.
+
+---
+
 ## Validation Status & Independent Comparison
 
 > **Scientific Honesty Notice**: Agreement with another model or map is not proof of accuracy. Both are estimates. We do not claim our results are validated ground truth. Where independent datasets exist, we measure spatial agreement. Where they do not, we document candidate sources for future comparison.
@@ -145,7 +163,7 @@ An additional **6 candidate case studies** are registered with status `pending-d
 ## AI Usage Disclosure
 
 TerraPulse maintains complete transparency regarding the use of Artificial Intelligence:
-1. **Optional Text Summary (No Calculations)**: The AI Insight panel uses an optional Large Language Model (Gemini) strictly to draft a 3-sentence plain English summary of pre-calculated metrics. This runs **only when an API key is configured** on the server; otherwise, the platform serves a deterministic offline template. The model receives computed numbers only and computes no areas or detection results.
+1. **Optional Text Summary (No Calculations)**: The AI Insight panel uses an optional Large Language Model (Google Gemini API, when a key is configured) strictly to draft a plain English summary of pre-calculated metrics. This runs **only when an API key is configured** on the server; otherwise, the platform serves a deterministic offline template. All numbers shown come from the deterministic pipeline. The AI only writes text from those numbers; AI-generated text can contain errors, so check it against the numbers.
 2. **100% Deterministic Core Pipeline**: All satellite data processing, backscatter thresholding, changed area totals, sensitivity analysis ranges, raster visualizations, vector polygons, and Chiku voice narration lines are generated entirely by deterministic Python and TypeScript code without generative models.
 3. **AI-Assisted Development**: AI-assisted developer tools were utilized during the project development lifecycle for code authoring, testing, and interface design assistance. All scientific algorithms and data outputs were independently reviewed and verified.
 
