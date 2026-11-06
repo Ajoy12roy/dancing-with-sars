@@ -142,6 +142,13 @@ Live queries to the FIRMS data availability endpoint (`/api/data_availability/cs
   - First data row length: 73 bytes
   - Average row length across 323 rows: 74.6 bytes/row
 
+#### 1.8.7 Summary of Operational Parameters for R2.1 Tiled Pipeline
+- **Global Ingestion Mode:** `world` area queries (`[-180,-90,180,90]`).
+- **Satellite and Sensor:** `VIIRS_SNPP` exclusively.
+- **Archive vs Real-Time Switch:** `VIIRS_SNPP_SP` for dates $\le$ 2026-07-31; `VIIRS_SNPP_NRT` for dates $\ge$ 2026-08-01.
+- **Request Chunking:** 12-day monthly windows queried in 3 chunks of at most 5 days (5, 5, 2 days).
+- **Polar Exclusion:** Hotspots with $|\text{latitude}| > 70^\circ$ are ignored.
+
 
 ---
 
