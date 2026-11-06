@@ -122,3 +122,4 @@ def query_firms_area(
         records.append(rec)
 
     return records
+

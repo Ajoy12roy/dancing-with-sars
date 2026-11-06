@@ -83,3 +83,35 @@ All facts in this section are extracted verbatim or cited directly from official
   ```csv
   latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight
   ```
+
+---
+
+## 2. NISAR 2026 Consecutive Pairs Inventory
+
+The NASA CMR Granule Search API was queried for the `NISAR_L2_GCOV_PROVISIONAL_V1` collection over 2026 (`temporal=2026-01-01T00:00:00Z,2026-12-31T23:59:59Z`) using `scripts/wildfire/inventory_nisar_pairs.py`.
+
+### 2.1 Inventory Statistics
+
+- **Total Granules Found in 2026 (CMR-Hits):** 165,199 granules
+- **Sampled Granules Analyzed:** 2,000 granules (paged in blocks of 100, stopped upon reaching safety cap of 2,000)
+- **Total CMR Requests Used:** 20 requests (cap <= 60 requests)
+- **Unique `(track, frame, direction)` Groups:** 301 groups
+- **Total Consecutive 12-Day Pairs Identified:** 1,148 pairs
+  - *Consecutive Pair Criteria:* Exactly 1 orbit repeat cycle difference (`cycle_post = cycle_pre + 1`, 12-day repeat), identical track, frame, direction, bandwidth mode, and polarization.
+
+### 2.2 Regional Distribution of Consecutive Pairs
+
+Pairs were classified into regional groups based on the geographic centroid of their bounding boxes:
+
+| Geographic Region | Consecutive Pairs | Percentage |
+| :--- | :---: | :---: |
+| **Americas** | 625 | 54.4% |
+| **Antarctica / Southern Ocean** | 295 | 25.7% |
+| **Eurasia** | 173 | 15.1% |
+| **Africa** | 31 | 2.7% |
+| **Australasia** | 24 | 2.1% |
+| **Total** | **1,148** | **100.0%** |
+
+Full footprint metadata and pair geometries are saved locally to `scratch/nisar-footprints.json` (gitignored).
+
+
