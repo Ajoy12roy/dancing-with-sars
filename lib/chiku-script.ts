@@ -89,7 +89,7 @@ export function formatRangeString(range: DateRangeLike | string | undefined | nu
   return null;
 }
 
-function cleanUploadError(errorText?: string): string {
+export function cleanUploadError(errorText?: string): string {
   if (!errorText) return 'Please check the file format and try again.';
   let cleaned = errorText
     .replace(/[A-Za-z]:\\[^\s]+/g, '')
@@ -119,6 +119,18 @@ export function formatNumberInWords(val: number): string {
   const absVal = Math.abs(val);
   const formattedAbs = absVal % 1 === 0 ? absVal.toFixed(0) : absVal.toFixed(1);
   return isNegative ? `minus ${formattedAbs}` : formattedAbs;
+}
+
+/**
+ * Formats rounded thousands for natural speech (e.g. 74000 -> "74 thousand").
+ * Used exclusively for exposure lines to prevent TTS engines spelling out raw digits.
+ */
+export function formatThousandsForSpeech(val: number): string {
+  if (val !== 0 && val % 1000 === 0) {
+    const thousands = Math.round(val / 1000);
+    return `${thousands} thousand`;
+  }
+  return formatNumberInWords(val);
 }
 
 /**
@@ -370,14 +382,14 @@ export function buildSylhetExposureNarrationParts(
 
   if (detail === 'short') {
     return [
-      `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}.`,
+      `Estimated people living inside the mapped new-water extent is about ${formatThousandsForSpeech(defRounded)}.`,
       `This estimate is a prototype, not validated, based on spreading 2020 population counts over mapped new water.`,
     ];
   }
 
   return [
-    `Estimated people living inside the mapped new-water extent is about ${formatNumberInWords(defRounded)}, or ${formatNumberInWords(defPct)} percent of the study area population.`,
-    `Across the radar threshold sweep, the range is ${formatNumberInWords(minRounded)} to ${formatNumberInWords(maxRounded)} estimated people.`,
+    `Estimated people living inside the mapped new-water extent is about ${formatThousandsForSpeech(defRounded)}, or ${formatNumberInWords(defPct)} percent of the study area population.`,
+    `Across the radar threshold sweep, the range is ${formatThousandsForSpeech(minRounded)} to ${formatThousandsForSpeech(maxRounded)} estimated people.`,
     `This estimate is a prototype, not validated; the range reflects only the choice of radar threshold.`,
     `Population model error, building height, and demographic changes between 2020 and 2022 are not included.`,
   ];

@@ -398,7 +398,7 @@ export function SylhetExposureCard({ initialData }: SylhetExposureCardProps) {
           under {data.populationSource.licenceName}.
         </p>
         <p className="text-[11px] text-text-caption leading-relaxed italic">
-          Citation: {data.populationSource.citation}
+          Citation: {data.populationSource.citation}{!data.populationSource.citation.includes('10.5258') ? ' https://dx.doi.org/10.5258/SOTON/WP00660' : ''}
         </p>
       </div>
 
@@ -408,7 +408,7 @@ export function SylhetExposureCard({ initialData }: SylhetExposureCardProps) {
           <span className="font-mono font-semibold uppercase text-ink mr-2">
             What this does not show:
           </span>
-          no displacement or shelter information, no road network access, and no injury records.
+          no information on shelters or where people moved, no road network access, and no injury records.
         </p>
         <p className="text-rust/90 font-medium text-[11px]">
           Not for relief routing or casualty estimates.
