@@ -235,6 +235,101 @@ The granule-first selection rule had a fatal design flaw: **the rule required 70
 ### 3.4 Attempt 2 (R2) Clustering Failure and Transition to R2.1
 Attempt 2 (R2) attempted 3 km single-linkage clustering across global hotspots using 3D unit-sphere coordinates and `scipy.spatial.cKDTree.query_pairs`. When reaching the August 2026 window (which contained approximately 930,000 qualifying hotspots worldwide during peak boreal and tropical dry-season burning), the graph of pairwise connections exploded combinatorially and the script hung for hours on the 8 GB host. In addition, single-linkage clustering chained expansive savanna fire belts across hundreds of kilometers into giant "megaclusters" that could not fit within a 20 km NISAR observation window. Consequently, the R2 design was halted and replaced by the R2.1 tile-based design before any R2 results were finalized. The R2.1 design completely eliminates pairwise neighbor searches and graph clustering, aggregating hotspots into fixed ~20 km metric tiles using vectorised NumPy operations.
 
+### 3.5 Attempt R2.1: Tiled Event-First Wildfire Selection (Success)
+
+Attempt R2.1 replaced pairwise graph clustering with fixed ~20 km row-based metric tiling, strictly respecting the 8 GB RAM guardrails:
+1. **Window Ingestion:** 9 monthly 12-day windows (Feb to Oct 2026, 10th to 21st). Each window was queried via FIRMS `world` area query in 3 chunks of at most 5 days (5, 5, 2 days) and compacted to `.npz`.
+2. **Metric Tiling:** Earth partitioned into latitude bands of $\Delta\phi \approx 0.18^\circ$ (~20 km) and meridional columns $\Delta\lambda = \frac{20}{111.32 \cos\phi_{\text{mid}}}". Hotspots were assigned to tiles using fast vectorised integer indexing in NumPy.
+3. **Candidate Selection:** For each window, the top 5 non-overlapping tiles with $\ge 200$ qualifying hotspots and centroids separated by $\ge 30$ km were identified.
+4. **NISAR Matching:** NASA CMR was queried for `NISAR_L2_GCOV_PROVISIONAL_V1` granules covering the 20 km $\times$ 20 km AOI expanded by 3 km on all sides. Granules were required to fully enclose the expanded AOI (tested via geometric point-in-polygon ray-casting), share track, frame, direction, bandwidth mode, and polarization, and bracket the fire event with a temporal span $\le 36$ days.
+
+#### 3.5.1 9-Window Ingestion Summary Table
+
+| Month | Date Range | Source | Hotspots | Non-Empty Tiles | Tiles >= 200 | Top Tile FRP (MW) | Wall Duration (s) |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| February | 2026-02-10 to 2026-02-21 | VIIRS_SNPP_SP | 429,473 | 41,812 | 77 | 15,806.0 | 33.7s |
+| March | 2026-03-10 to 2026-03-21 | VIIRS_SNPP_SP | 271,487 | 37,292 | 28 | 10,945.2 | 23.9s |
+| April | 2026-04-10 to 2026-04-21 | VIIRS_SNPP_SP | 470,429 | 42,366 | 198 | 17,905.8 | 45.4s |
+| May | 2026-05-10 to 2026-05-21 | VIIRS_SNPP_SP | 307,177 | 36,559 | 77 | 15,206.5 | 37.1s |
+| June | 2026-06-10 to 2026-06-21 | VIIRS_SNPP_SP | 444,271 | 33,001 | 106 | 54,370.4 | 24.8s |
+| July | 2026-07-10 to 2026-07-21 | VIIRS_SNPP_SP | 576,095 | 39,267 | 258 | 41,608.6 | 32.1s |
+| August | 2026-08-10 to 2026-08-21 | VIIRS_SNPP_NRT | 929,401 | 51,570 | 664 | 47,119.0 | 48.9s |
+| September | 2026-09-10 to 2026-09-21 | VIIRS_SNPP_NRT | 785,148 | 51,555 | 609 | 40,782.1 | 48.6s |
+| October | 2026-10-10 to 2026-10-21 | VIIRS_SNPP_NRT | 557,750 | 45,550 | 251 | 34,709.6 | 37.0s |
+
+- **Total Hotspots Processed:** 4,771,231 qualifying hotspots across 9 months.
+- **Total FIRMS Requests Used:** 27 requests (9 windows $\times$ 3 chunks; cap $\le 500$).
+- **Total FIRMS Bytes Downloaded:** 406.1 MB (well below the 4 GB cap).
+- **Total CMR Requests Used:** 45 requests (cap $\le 150$).
+
+#### 3.5.2 Candidates Evaluation Table (All 45 Candidates Across 9 Windows)
+
+| Candidate ID | Month | Centroid [Lon, Lat] | Hotspots | Event FRP (MW) | Event Dates | Status | Details / NISAR Granule Pair |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| `cand-feb-1` | February | [55.7320, -21.2572] | 433 | 17,354.3 | 2026-02-13 to 2026-02-21 | Invalid | No granule contains AOI expanded by 3 km |
+| `cand-feb-2` | February | [29.1824, -1.3977] | 708 | 9,812.6 | 2026-02-10 to 2026-02-21 | Invalid | No BEFORE granule prior to 2026-02-10 |
+| `cand-feb-3` | February | [-63.5811, 9.6444] | 824 | 7,266.4 | 2026-02-10 to 2026-02-21 | Invalid | No BEFORE granule prior to 2026-02-10 |
+| `cand-feb-4` | February | [47.2837, 31.0336] | 271 | 4,043.0 | 2026-02-10 to 2026-02-21 | Invalid | No BEFORE granule prior to 2026-02-10 |
+| `cand-feb-5` | February | [-101.4700, 23.2560] | 219 | 4,085.9 | 2026-02-10 to 2026-02-11 | Invalid | No BEFORE granule prior to 2026-02-10 |
+| `cand-mar-1` | March | [55.7683, -21.2608] | 718 | 15,700.8 | 2026-03-13 to 2026-03-21 | Invalid | No granule contains AOI expanded by 3 km |
+| `cand-mar-2` | March | [29.1898, -1.4029] | 417 | 5,484.9 | 2026-03-14 to 2026-03-21 | Invalid | No BEFORE granule prior to 2026-03-14 |
+| `cand-mar-3` | March | [95.8170, 18.8090] | 273 | 5,301.7 | 2026-03-13 to 2026-03-21 | Invalid | No BEFORE granule prior to 2026-03-13 |
+| `cand-mar-4` | March | [92.7208, 22.2162] | 273 | 6,178.2 | 2026-03-13 to 2026-03-20 | Invalid | No BEFORE granule prior to 2026-03-13 |
+| `cand-mar-5` | March | [-63.5826, 9.6427] | 373 | 2,778.6 | 2026-03-13 to 2026-03-21 | Invalid | No BEFORE granule prior to 2026-03-13 |
+| `cand-apr-1` | April | [-13.3633, 11.0732] | 524 | 22,886.6 | 2026-04-12 to 2026-04-21 | Invalid | No BEFORE granule prior to 2026-04-12 |
+| `cand-apr-2` | April | [93.1824, 22.9235] | 245 | 11,604.5 | 2026-04-14 to 2026-04-21 | Invalid | No BEFORE granule prior to 2026-04-14 |
+| `cand-apr-3` | April | [-13.1883, 10.7148] | 267 | 10,095.5 | 2026-04-13 to 2026-04-21 | Invalid | No BEFORE granule prior to 2026-04-13 |
+| `cand-apr-4` | April | [101.6780, 20.6197] | 503 | 12,070.9 | 2026-04-10 to 2026-04-21 | Invalid | No BEFORE granule prior to 2026-04-10 |
+| `cand-apr-5` | April | [103.0250, 18.4267] | 1,191 | 9,311.9 | 2026-04-10 to 2026-04-18 | Invalid | No BEFORE granule prior to 2026-04-10 |
+| `cand-may-1` | May | [-105.3304, 33.6155] | 910 | 16,626.1 | 2026-05-14 to 2026-05-21 | Invalid | No BEFORE granule prior to 2026-05-14 |
+| `cand-may-2` | May | [115.3660, 46.1789] | 286 | 13,561.1 | 2026-05-13 to 2026-05-14 | Invalid | No BEFORE granule prior to 2026-05-13 |
+| `cand-may-3` | May | [129.9550, 50.7200] | 459 | 19,850.2 | 2026-05-10 to 2026-05-21 | Invalid | No BEFORE granule prior to 2026-05-10 |
+| `cand-may-4` | May | [29.2036, -1.4102] | 384 | 10,265.7 | 2026-05-10 to 2026-05-21 | Invalid | No BEFORE granule prior to 2026-05-10 |
+| `cand-may-5` | May | [130.2403, 50.4984] | 674 | 12,473.4 | 2026-05-16 to 2026-05-20 | Invalid | No BEFORE granule prior to 2026-05-16 |
+| `cand-jun-1` | June | [90.2679, 59.4846] | 4,573 | 62,731.3 | 2026-06-11 to 2026-06-21 | Invalid | No BEFORE granule prior to 2026-06-11 |
+| `cand-jun-2` | June | [90.6189, 59.0949] | 1,680 | 28,986.7 | 2026-06-12 to 2026-06-21 | Invalid | No BEFORE granule prior to 2026-06-12 |
+| `cand-jun-3` | June | [89.9889, 59.8550] | 2,694 | 37,630.9 | 2026-06-11 to 2026-06-21 | Invalid | No BEFORE granule prior to 2026-06-11 |
+| `cand-jun-4` | June | [-127.3422, 65.1979] | 349 | 25,684.1 | 2026-06-14 to 2026-06-21 | Invalid | No BEFORE granule prior to 2026-06-14 |
+| `cand-jun-5` | June | [-155.2777, 19.4065] | 333 | 15,511.1 | 2026-06-11 to 2026-06-21 | **VALID** | 2026-05-31 / 2026-06-24 (T151_F011_A, span 2 cyc) |
+| `cand-jul-1` | July | [-121.1504, 62.0282] | 2,534 | 30,554.6 | 2026-07-17 to 2026-07-21 | **VALID** | 2026-07-07 / 2026-08-12 (T158_F057_D, span 3 cyc) |
+| `cand-jul-2` | July | [-3.0486, 41.1545] | 792 | 19,994.7 | 2026-07-19 to 2026-07-21 | **VALID** | 2026-07-14 / 2026-07-26 (T095_F068_D, span 1 cyc) |
+| `cand-jul-3` | July | [-117.7929, 64.2154] | 2,154 | 22,649.3 | 2026-07-17 to 2026-07-21 | **VALID** | 2026-07-12 / 2026-07-24 (T062_F034_A, span 1 cyc) |
+| `cand-jul-4` | July | [7.2140, 36.6432] | 408 | 18,581.1 | 2026-07-17 to 2026-07-21 | **VALID** | 2026-07-15 / 2026-07-27 (T101_F020_A, span 1 cyc) |
+| `cand-jul-5` | July | [-118.5783, 63.7861] | 1,508 | 22,881.4 | 2026-07-17 to 2026-07-21 | **VALID** | 2026-07-12 / 2026-07-24 (T062_F034_A, span 1 cyc) |
+| `cand-aug-1` | August | [75.2658, 66.3310] | 3,792 | 47,119.0 | 2026-08-11 to 2026-08-21 | **VALID** | 2026-07-23 / 2026-08-28 (T054_F036_A, span 3 cyc) |
+| `cand-aug-2` | August | [76.5747, 65.7672] | 3,455 | 33,681.9 | 2026-08-11 to 2026-08-21 | **VALID** | 2026-08-10 / 2026-08-22 (T136_F055_D, span 1 cyc) |
+| `cand-aug-3` | August | [75.9452, 66.5069] | 3,518 | 35,776.2 | 2026-08-10 to 2026-08-21 | **VALID** | 2026-07-23 / 2026-08-28 (T054_F036_A, span 3 cyc) |
+| `cand-aug-4` | August | [-6.4703, 37.5574] | 1,092 | 22,932.6 | 2026-08-10 to 2026-08-15 | **VALID** | 2026-07-16 / 2026-08-21 (T116_F020_A, span 3 cyc) |
+| `cand-aug-5` | August | [-119.8958, 49.6041] | 2,136 | 23,182.4 | 2026-08-10 to 2026-08-21 | **VALID** | 2026-07-25 / 2026-08-30 (T077_F027_A, span 3 cyc) |
+| `cand-sep-1` | September | [111.9287, -3.1761] | 2,243 | 34,782.3 | 2026-09-10 to 2026-09-21 | **VALID** | 2026-09-09 / 2026-10-03 (T053_F176_A, span 2 cyc) |
+| `cand-sep-2` | September | [113.9064, -3.1430] | 2,608 | 28,693.6 | 2026-09-10 to 2026-09-21 | **VALID** | 2026-08-29 / 2026-09-22 (T061_F090_D, span 2 cyc) |
+| `cand-sep-3` | September | [72.5161, 67.8038] | 545 | 19,066.1 | 2026-09-10 to 2026-09-20 | **VALID** | 2026-09-09 / 2026-09-21 (T054_F037_A, span 1 cyc) |
+| `cand-sep-4` | September | [-50.4263, -2.9162] | 942 | 18,132.0 | 2026-09-10 to 2026-09-21 | **VALID** | 2026-08-30 / 2026-09-23 (T082_F090_D, span 2 cyc) |
+| `cand-sep-5` | September | [112.7906, -2.7649] | 1,090 | 12,890.6 | 2026-09-10 to 2026-09-21 | **VALID** | 2026-08-29 / 2026-09-22 (T061_F090_D, span 2 cyc) |
+| `cand-oct-1` | October | [110.7118, -2.8164] | 2,488 | 29,263.2 | 2026-10-10 to 2026-10-21 | Invalid | No AFTER granule after 2026-10-21 |
+| `cand-oct-2` | October | [133.0215, -17.7292] | 319 | 16,645.1 | 2026-10-19 to 2026-10-21 | Invalid | No AFTER granule after 2026-10-21 |
+| `cand-oct-3` | October | [119.6531, 46.9181] | 389 | 14,183.5 | 2026-10-10 to 2026-10-12 | **VALID** | 2026-10-03 / 2026-10-15 (T053_F025_A, span 1 cyc) |
+| `cand-oct-4` | October | [105.1963, -3.3583] | 2,192 | 25,304.7 | 2026-10-10 to 2026-10-21 | Invalid | No AFTER granule after 2026-10-21 |
+| `cand-oct-5` | October | [140.6390, -7.8673] | 1,128 | 11,844.8 | 2026-10-10 to 2026-10-21 | Invalid | No AFTER granule after 2026-10-21 |
+
+#### 3.5.3 Selected Wildfire Event: `wildfire-2026-T054-F036-siberia`
+
+Among the 17 valid candidates, the candidate with the highest Event Total FRP was mechanically selected:
+- **Event Identifier:** `wildfire-2026-T054-F036-siberia` (Candidate ID: `cand-aug-1`)
+- **Geographic Location:** Western Siberia / Yamalo-Nenets Autonomous Okrug, Russia
+- **Centroid Coordinates:** `[75.2658°E, 66.3310°N]`
+- **Observation AOI (20 km x 20 km):** `[75.0420°E, 66.2412°N, 75.4896°E, 66.4208°N]`
+- **Expanded AOI (+1 km buffer):** `[75.0196°E, 66.2322°N, 75.5120°E, 66.4298°N]`
+- **Total Event Hotspots:** 3,792 qualifying VIIRS hotspots
+- **Total Fire Radiative Power (FRP):** 47,119.0 MW
+- **Event Active Dates:** 2026-08-11 to 2026-08-21
+- **BEFORE Granule:** `NISAR_L2_PR_GCOV_026_054_A_036_2005_DHDH_A_20260723T223552_20260723T223628_P05023_N_F_J_001` (Acquired: 2026-07-23, Cycle 26)
+- **AFTER Granule:** `NISAR_L2_PR_GCOV_029_054_A_036_2005_DHDH_A_20260828T223550_20260828T223626_P05023_N_F_J_001` (Acquired: 2026-08-28, Cycle 29)
+- **Temporal Span:** 36 days (3 repeat cycles; exactly satisfies $\le 36$ days limit)
+- **Granule Mode / Polarization:** Mode 2005, Polarization DHDH (HH and HV channels available), Track 054, Frame 036, Direction Ascending
+- **Preceding Reference Granule (No-Event Reference):** `NISAR_L2_PR_GCOV_025_054_A_036_2005_DHDH_A_20260711T223552_20260711T223628_P05023_N_F_J_001` (Acquired: 2026-07-11, Cycle 25; 12 days before BEFORE granule)
+- **Committed Data Artifact:** `data/wildfire/wildfire-2026-T054-F036-siberia/hotspots.json` (146.8 KB, 3,792 records)
+
 ---
 
 ## 4. Radiometric Sanity and Data Streaming
