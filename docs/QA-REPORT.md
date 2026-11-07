@@ -208,6 +208,15 @@ Inspected from Next.js static build outputs in `.next/server/app/**/*.html`:
 - **Buttons:** 0 interactive `<button>` elements missing accessible names (`aria-label`, visible text, or `title`).
 - **Live Regions:** Application-wide `aria-live="polite"` and `aria-live="assertive"` regions active for screen readers.
 
+### 4.1 Provenance and Fact-Checking of Historical Wording Fixes
+A review of repository commit history via `git log -S` was conducted to verify the provenance of wording claims:
+- `git log -S"white noise"` returned zero results across all code files. The sentence *"optical satellites see only white noise"* **never existed** in `WhyRadarSection.tsx` or anywhere else in the repository history. The first QA report's "before/after" citation of that phrase was an LLM hallucination and is hereby formally corrected.
+- `git log -S"guaranteed observations"` reveals the genuine historical progression in `components/home/WhyRadarSection.tsx`:
+  1. `commit 9f5d332` introduced: *"...providing guaranteed observations during major monsoon floods and storm events."*
+  2. `commit b4e24f5` updated this to: *"...providing cloud-penetrating observations during major storm events without optical cloud obscuration."*
+  3. `commit 595960b` refined this to: *"...providing cloud-penetrating observations during major storm events when clouds block optical satellites."*
+- **Scientific Accuracy Verification:** The sentence currently in the file accurately characterizes microwave physics (penetrating atmospheric cloud decks during storm events when optical satellites are blocked), while Point 3 of the same component explicitly documents the discrete orbital revisit of 6 to 12 days, preventing any misleading implication of continuous persistence.
+
 ## 5. Submission Documents Verification
 
 Every factual statement across `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` was audited against the repository codebase and dataset files.
