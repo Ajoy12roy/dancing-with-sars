@@ -194,7 +194,7 @@ export function HowItWorksClient() {
                     <span className="text-teal">5×5 window</span>
                   </div>
                 </div>
-                <p className="text-[11px] font-sans text-text-secondary mt-2">
+                <p className="text-xs font-sans text-text-secondary mt-2">
                   Note: This C-band threshold is not assumed for NISAR L-band; for NISAR no single threshold was justified.
                 </p>
 
@@ -526,9 +526,9 @@ export function HowItWorksClient() {
                 </h3>
                 <p className="mt-2 text-xs text-text-secondary leading-relaxed">
                   Based on the span ratio <span className="font-data text-teal">(max − min) / centre</span>, each case is classified into:
-                  <br />• <strong className="text-emerald-700 dark:text-emerald-300">Stable (&lt;15% span)</strong>: High physical contrast, minimal threshold sensitivity.
-                  <br />• <strong className="text-amber-700 dark:text-amber-300">Moderate (15–50% span)</strong>: Noticeable variation across wetland margins.
-                  <br />• <strong className="text-rust">High (&gt;50% span)</strong>: High threshold sensitivity where small threshold adjustments yield large area changes; headline numbers are indicative only.
+                  <br />• <strong className="text-teal font-medium">Stable (&lt;15% span)</strong>: High physical contrast, minimal threshold sensitivity.
+                  <br />• <strong className="text-text-primary font-medium">Moderate (15–50% span)</strong>: Noticeable variation across wetland margins.
+                  <br />• <strong className="text-rust font-medium">High (&gt;50% span)</strong>: High threshold sensitivity where small threshold adjustments yield large area changes; headline numbers are indicative only.
                 </p>
               </div>
 
@@ -544,7 +544,7 @@ export function HowItWorksClient() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-hairline text-xs font-sans text-text-secondary flex items-start gap-2">
-              <span className="text-teal font-semibold shrink-0 uppercase font-data text-[11px] mt-0.5">Scientific Caveat:</span>
+              <span className="text-teal font-semibold shrink-0 uppercase font-data text-xs mt-0.5">Scientific Caveat:</span>
               <span className="leading-relaxed">
                 Sensitivity ranges show physical sensitivity to threshold selection. They quantify model uncertainty, but do not replace
                 in-situ validation or high-resolution optical truth data.
@@ -772,18 +772,18 @@ export function HowItWorksClient() {
           <GraticuleFrame>
             <div className="p-6 md:p-8 bg-surface rounded-[2px]">
               <div className="flex items-center gap-2 mb-3">
-                <span className="inline-block w-2.5 h-2.5 bg-rust" />
+                <span className="inline-block w-2 h-2 rounded-[2px] bg-rust shrink-0" aria-hidden="true" />
                 <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
                   What this project does not do
                 </h2>
               </div>
-              <p className="text-sm text-text-secondary leading-relaxed max-w-3xl mb-6">
+              <p className="text-sm font-sans text-text-secondary leading-relaxed max-w-3xl mb-6">
                 To maintain rigorous scientific honesty and prevent misuse during disasters, we explicitly document the operational boundaries of this platform:
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs text-text-secondary">
-                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
-                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm font-sans text-text-secondary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
                     1. No Forecasting
                   </h3>
                   <p className="leading-relaxed">
@@ -791,8 +791,8 @@ export function HowItWorksClient() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
-                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
                     2. No Evacuation or Safety Advice
                   </h3>
                   <p className="leading-relaxed">
@@ -800,8 +800,8 @@ export function HowItWorksClient() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
-                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
                     3. Uncalibrated Empirical Thresholds &amp; Sensitivity Ranges
                   </h3>
                   <p className="leading-relaxed">
@@ -809,8 +809,8 @@ export function HowItWorksClient() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
-                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
                     4. Provisional NISAR Data
                   </h3>
                   <p className="leading-relaxed">
@@ -818,8 +818,8 @@ export function HowItWorksClient() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
-                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
                     5. Demographic Estimates (Not Headcounts)
                   </h3>
                   <p className="leading-relaxed">
@@ -827,8 +827,8 @@ export function HowItWorksClient() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
-                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
                     6. Independent Validation Status
                   </h3>
                   <p className="leading-relaxed">
