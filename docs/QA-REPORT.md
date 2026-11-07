@@ -152,6 +152,20 @@ The real static asset paths and API routes were derived directly from the codeba
 | `/api/images?aoi=sylhet&type=before` | GET | **200 OK** | `Content-Type: image/png`, 451,892 B, valid PNG magic bytes. |
 | `/api/images?aoi=sylhet&type=change-map` | GET | **200 OK** | `Content-Type: image/png`, 26,633 B, valid PNG magic bytes. |
 
+#### 3.4.1 Sensitivity Classification Clarification & Error Correction
+An earlier report narrative erroneously stated that `/api/change-detection?aoi=sylhet` returned `classification: "stable"`.
+- **Finding:** The error was purely in the report text. The `/api/change-detection` endpoint does NOT return a `classification` field; it returns the raw `sensitivity` object (`data/sensitivity/sylhet.json`) containing `minAreaKm2: 30.85`, `maxAreaKm2: 44.01`, and `centre: -16.0` (`areaKm2: 37.19`).
+- **Mathematical Classification:** In `lib/sensitivity.ts`, sensitivity classification is computed dynamically via `getSensitivityClass(sensitivity)` using `spanRatio = (maxAreaKm2 - minAreaKm2) / centreArea`. For Sylhet, $(44.01 - 30.85) / 37.19 = 13.16 / 37.19 = 0.3539$.
+- **Class Thresholds:**
+  - `stable`: $\text{spanRatio} < 0.15$
+  - `moderate`: $0.15 \le \text{spanRatio} \le 0.50$
+  - `high`: $\text{spanRatio} > 0.50$
+- **Result:** Sylhet is correctly categorized as **`moderate`**, displaying the badge `"Moderately threshold-sensitive"` in `components/visualization/SensitivityBadge.tsx`.
+- **10-Case Verification:** All 10 ready cases pass consistent classification checks across both Python (`python-service/test_sensitivity.py`) and JavaScript (`tools/test-sensitivity.mjs`):
+  - **Stable ($< 0.15$):** `sindh-pakistan-2022` (0.0678), `tanguar` (0.0687), `hakaluki-haor` (0.1021), `padma-naria` (0.1177)
+  - **Moderate ($0.15 - 0.50$):** `jamuna` (0.2229), `sylhet` (0.3539)
+  - **High ($> 0.50$):** `feni-2024` (1.0282), `rio-grande-do-sul-2024` (0.8494), `amazon` (7.4032), `cox-bazar-kutupalong-2017` (6.1818)
+
 ### 3.5 Web Pages (All 200 OK)
 | Page Route | Method | Status | Size | Content-Type |
 | :--- | :---: | :---: | :---: | :--- |
