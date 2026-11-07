@@ -54,3 +54,23 @@ Total consistency checks passed: 22
 
 ALL DATA CONSISTENCY AND ATTRIBUTION CHECKS PASSED WITH ZERO MISMATCHES!
 ```
+
+---
+
+## 2. Attribution and License Checklist
+
+| Item | Visible Location (Page & Element) | Text / Citation | Status |
+| :--- | :--- | :--- | :--- |
+| **Copernicus Sentinel-1 Attribution** | - `components/layout/Footer.tsx` (Legal bar)<br>- `app/data-sources/page.tsx` (Sentinel-1 card)<br>- `components/home/DataSourcesSection.tsx`<br>- `README.md` (Attribution) | *"Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine."* | **VERIFIED** |
+| **Google Earth Engine Mention** | - `components/layout/Footer.tsx`<br>- `app/data-sources/page.tsx` (Gateway & links)<br>- `components/home/DataSourcesSection.tsx`<br>- `README.md` (Data Sources) | *"processed with Google Earth Engine"* / `GEE: COPERNICUS/S1_GRD` | **VERIFIED** |
+| **NISAR/ASF DAAC Credit & PROVISIONAL Label** | - `components/explore/NisarCard.tsx` (Header badges, subtitle, limitations)<br>- `components/layout/Footer.tsx` (Link & legal bar)<br>- `app/data-sources/page.tsx` (NISAR card & portal link)<br>- `components/home/DataSourcesSection.tsx`<br>- `README.md` (Sections 1, 6, Attribution) | *"NASA-ISRO NISAR L-band (PROVISIONAL)"*, *"CRID: P05023"*, *"Single geometry (Ascending T141 F014)"*, *"NISAR data: NASA/ISRO, distributed by ASF DAAC."* | **VERIFIED** |
+| **WorldPop Citation & License (CC BY 4.0)** | - `components/explore/SylhetExposureCard.tsx` (Header badge & Section f)<br>- `app/data-sources/page.tsx` (WorldPop card)<br>- `components/layout/Footer.tsx` (Legal bar)<br>- `components/home/DataSourcesSection.tsx`<br>- `README.md` (Exposure section & Attribution) | *"Population Source: WorldPop (2020) under CC BY 4.0. Citation: WorldPop (www.worldpop.org) and CIESIN, Columbia University (2018)... DOI: 10.5258/SOTON/WP00660"* | **VERIFIED** |
+| **JRC/ESA Datasets (if used)** | - `app/data-sources/page.tsx` (Comparator candidates table)<br>- `docs/VALIDATION.md` (Section 4 comparator table) | *"JRC Global Surface Water occurrence / recurrence layer (European Commission Joint Research Centre); candidate comparator, not ground truth."* | **VERIFIED** |
+| **OpenStreetMap & Leaflet Attribution** | - `components/visualization/MapComponent.tsx` (TileLayer attribution & Leaflet control)<br>- `components/home/DataSourcesSection.tsx`<br>- `README.md` (Attribution) | *"&copy; OpenStreetMap contributors"* / Leaflet control attribution | **VERIFIED** |
+| **Font Licenses (Self-Hosted)** | - `app/fonts/LICENSE.txt`<br>- `README.md` (Attribution) | SIL Open Font License, Version 1.1 (OFL-1.1) covering IBM Plex Mono, Public Sans, and Source Serif 4 | **ADDED** (was missing dedicated file in `app/fonts/`) |
+| **"Not Endorsed by NASA" Statement** | - `components/layout/Footer.tsx` (Bottom bar)<br>- `README.md` (Disclaimer) | *"Independent hackathon project, not endorsed by NASA."* / *"Not endorsed by NASA, ISRO, ESA, or any space agency."* | **VERIFIED** |
+| **Repository LICENSE & README License Line** | - `LICENSE` (Root repository file)<br>- `README.md` (License & Attribution section) | MIT License (Team Nova Strike's 2026), full MIT legal text in root `LICENSE` file | **VERIFIED** |
+
+### Additions Made:
+1. Created `app/fonts/LICENSE.txt` containing official SIL Open Font License 1.1 terms and upstream attributions for IBM Plex Mono, Public Sans, and Source Serif 4.
+2. Updated `README.md` License & Attribution section to explicitly link the SIL OFL 1.1 font license, WorldPop CC BY 4.0, NISAR ASF DAAC credit, and OpenStreetMap copyright.
