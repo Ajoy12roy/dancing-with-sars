@@ -99,13 +99,13 @@ export function SylhetExposureCard({ initialData }: SylhetExposureCardProps) {
       <div className="space-y-2 border-b border-hairline pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
               Prototype, not validated
             </span>
-            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
               Sentinel-1 C-band, 2022
             </span>
-            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
               WorldPop 2020 (CC BY 4.0)
             </span>
           </div>
@@ -165,23 +165,39 @@ export function SylhetExposureCard({ initialData }: SylhetExposureCardProps) {
         </div>
       </div>
 
-      {/* ── c. How to Read This & Limitations Block ── */}
+      {/* ── c. Core Limitations & How to Read This (Visible by Default) ── */}
       <div className="space-y-3">
-        <div className="border border-hairline bg-surface-2 p-3.5 rounded-[2px] text-xs font-sans text-ink leading-relaxed">
-          <span className="font-mono font-semibold uppercase tracking-wider text-text-secondary mr-2">
-            How to read this:
-          </span>
-          Population counts from a 2020 population model are spread over the radar-mapped new-water area. The range reflects only the choice of radar threshold.
+        <div className="border border-hairline bg-surface-2 p-3.5 rounded-[2px] text-xs font-sans text-ink space-y-2">
+          <div className="font-mono font-semibold uppercase tracking-wider text-text-secondary">
+            Core Limitations (Visible by Default)
+          </div>
+          <ul className="list-disc pl-5 space-y-1.5 text-ink leading-relaxed">
+            <li>
+              <strong className="text-ink">Estimate, not casualty count:</strong> This figure estimates how many people live inside the mapped water extent based on residential density—it is <span className="font-semibold text-rust">NOT a count of displaced, affected, or injured people</span>.
+            </li>
+            <li>
+              <strong className="text-ink">2-year temporal mismatch:</strong> The population raster (WorldPop 2020) is from 2020; the flood analyzed occurred in 2022. Population will have grown or moved in those two years.
+            </li>
+            <li>
+              <strong className="text-ink">Uniform cell distribution:</strong> The method assumes population is spread evenly inside each ~100 m grid cell (areal redistribution without local land-cover weighting).
+            </li>
+            <li>
+              <strong className="text-ink">Radar threshold dependence:</strong> The result depends directly on the radar threshold: the default −16.0 dB indicates about 74,000 people, but across the sweep (−18.0 dB to −14.0 dB) the estimate spans 57,000 to 94,000 people.
+            </li>
+          </ul>
+          <div className="pt-2 border-t border-hairline font-mono text-xs text-rust font-medium uppercase tracking-wider">
+            Notice: Not for relief routing or casualty estimates.
+          </div>
         </div>
 
         <details className="border border-hairline bg-surface p-3.5 rounded-[2px] text-xs font-sans text-text-secondary group">
           <summary className="font-mono font-medium text-ink cursor-pointer hover:text-teal select-none flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5 text-text-secondary group-hover:text-teal" aria-hidden="true" />
-              Methodology constraints and limitations
+              Technical pipeline details and references
             </span>
-            <span className="text-text-caption font-sans text-[11px] group-open:hidden">Show details</span>
-            <span className="text-text-caption font-sans text-[11px] hidden group-open:inline">Hide details</span>
+            <span className="text-text-secondary font-sans text-xs group-open:hidden">Show details</span>
+            <span className="text-text-secondary font-sans text-xs hidden group-open:inline">Hide details</span>
           </summary>
           <div className="mt-3 pt-3 border-t border-hairline space-y-2 text-ink">
             <ul className="list-disc pl-5 space-y-1.5">
@@ -191,9 +207,6 @@ export function SylhetExposureCard({ initialData }: SylhetExposureCardProps) {
                 </li>
               ))}
             </ul>
-            <p className="mt-2.5 font-medium text-rust/90 border-t border-hairline pt-2">
-              Not for relief routing or casualty estimates.
-            </p>
           </div>
         </details>
       </div>
@@ -242,7 +255,7 @@ export function SylhetExposureCard({ initialData }: SylhetExposureCardProps) {
               </tbody>
             </table>
           </div>
-          <p className="text-[11px] font-sans text-text-caption italic">
+          <p className="text-xs font-sans text-text-secondary italic">
             * Note: precision is not accuracy. Exact values reflect raw cell counts weighted by areal fractions.
           </p>
         </div>

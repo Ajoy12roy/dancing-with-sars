@@ -820,11 +820,25 @@ export function HowItWorksClient() {
 
                 <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
                   <h3 className="font-headline font-semibold text-base text-text-primary">
-                    5. Demographic Estimates (Not Headcounts)
+                    5. Demographic Estimates (Four Core Limitations)
                   </h3>
                   <p className="leading-relaxed">
-                    Exposure numbers are estimates, not counts of displaced or injured individuals. The pipeline reprojects the 20 m Sentinel-1 C-band flood inundation mask to the ~100 m WorldPop 2020 unconstrained population count grid (bgd_ppp_2020.tif), computes the average flood fraction per grid cell, and sums cell population multiplied by flood fraction across the area without any auxiliary land-cover layer.
+                    Demographic exposure numbers are modelled estimates, not counts of displaced, affected, or injured people:
                   </p>
+                  <ul className="list-disc pl-5 space-y-1.5 text-sm text-text-secondary leading-relaxed">
+                    <li>
+                      <strong className="text-text-primary">Estimate of residents in water extent:</strong> The figure estimates how many people live inside the mapped flood extent based on residential density—it is NOT a count of displaced, affected, or injured people.
+                    </li>
+                    <li>
+                      <strong className="text-text-primary">Two-year temporal mismatch:</strong> The population raster (WorldPop 2020) is from 2020, while the analyzed flood occurred in 2022. Local populations will have grown or moved in those two years.
+                    </li>
+                    <li>
+                      <strong className="text-text-primary">Uniform cell distribution:</strong> The method assumes population is spread evenly inside each ~100 m grid cell (areal redistribution without local land-cover weighting).
+                    </li>
+                    <li>
+                      <strong className="text-text-primary">Radar threshold dependence:</strong> The result depends directly on the backscatter threshold: the default −16.0 dB yields about 74,000 people, but across the sweep (−18.0 dB to −14.0 dB) the estimate spans 57,000 to 94,000 people.
+                    </li>
+                  </ul>
                 </div>
 
                 <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
