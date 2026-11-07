@@ -802,10 +802,10 @@ export function HowItWorksClient() {
 
                 <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
                   <h3 className="font-headline font-semibold text-sm text-text-primary">
-                    3. Uncalibrated Thresholds &amp; Sensitivity Ranges
+                    3. Uncalibrated Empirical Thresholds &amp; Sensitivity Ranges
                   </h3>
                   <p className="leading-relaxed">
-                    Its thresholds are not calibrated against ground truth, and results are always presented alongside a systematic sensitivity perturbation range rather than a single definitive truth.
+                    Headline metrics use fixed default thresholds (-16.0 dB for VV water inundation and surface water, -22.0 dB for VH water, -3.0 dB for forest canopy loss, and a 5-pixel buffer for river erosion) presented alongside tested perturbation ranges (±2 dB or ±2 px). They are empirical baselines, not calibrated ground truth.
                   </p>
                 </div>
 
@@ -823,7 +823,7 @@ export function HowItWorksClient() {
                     5. Demographic Estimates (Not Headcounts)
                   </h3>
                   <p className="leading-relaxed">
-                    Exposure figures are estimates from population and land-cover rasters and not counts of affected people; they reflect modelled dasymetric redistribution across mapped water extents.
+                    Exposure numbers are estimates, not counts of displaced or injured individuals. The pipeline reprojects the 20 m Sentinel-1 C-band flood inundation mask to the ~100 m WorldPop 2020 unconstrained population count grid (bgd_ppp_2020.tif), computes the average flood fraction per grid cell, and sums cell population multiplied by flood fraction across the area without any auxiliary land-cover layer.
                   </p>
                 </div>
 
@@ -832,7 +832,7 @@ export function HowItWorksClient() {
                     6. Independent Validation Status
                   </h3>
                   <p className="leading-relaxed">
-                    No result has been validated against an independent map unless the page explicitly says so and links a verified comparator dataset.
+                    Surface classifications reflect radar backscatter relative to a threshold and have not been compared with ground observations. No result is claimed as validated unless explicitly cross-referenced with a published reference dataset.
                   </p>
                 </div>
               </div>
