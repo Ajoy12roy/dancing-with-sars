@@ -230,8 +230,8 @@ Every factual statement across `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` wa
 | Excluded date 2026-08-22: Radiometric outlier (\|m_d - M\| = 40.00 dB > 2.62 dB; mean_corr = 0.279 < 0.362; cause not established) | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:537` | **VERIFIED** |
 | NISAR bimodality failure: valley ratio 0.7027 > 0.60, threshold not reliably determinable | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:160` | **VERIFIED** |
 | Sylhet flooded area: 37.19 km² (17.05% of 218.10 km² AOI) at -16.0 dB default threshold | `data/exposure/sylhet.json`, `python-service/process_change.py:175` | **VERIFIED** |
-| Sylhet demographic exposure: 74,321 (~74,000) estimated people in mapped extent | `data/exposure/sylhet.json:54` (`estimatedPeopleInExtent: 74321`) | **VERIFIED** |
-| Sylhet exposure sensitivity range: 57,094 (~57,000) at -18 dB to 94,143 (~94,000) at -14 dB | `data/exposure/sylhet.json:57-64` | **VERIFIED** |
+| Sylhet demographic exposure: 74,413 (~74,000) estimated people in mapped extent | `data/exposure/sylhet.json:45` (`estimatedPeopleInExtent: 74413`) | **VERIFIED** |
+| Sylhet exposure sensitivity range: 57,480 (~57,000) at -18 dB to 93,745 (~94,000) at -14 dB | `data/exposure/sylhet.json:33,57` | **VERIFIED** |
 | Sylhet area sensitivity range: 30.85 km² at -18 dB to 44.01 km² at -14 dB | `data/exposure/sylhet.json:58,63`, `data/cases.json:17` | **VERIFIED** |
 | Chiku Voice Guide: Native browser Web Speech API, offline deterministic generation | `components/chiku/ChikuGuide.tsx`, `lib/chiku-script.ts` | **VERIFIED** |
 | Button labels: "Before / After", "Voice on" / "Voice off", "Explain this view", "Test voice" | `components/explore/SwipeComparison.tsx`, `components/chiku/ChikuGuide.tsx` | **VERIFIED** |
