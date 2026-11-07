@@ -74,3 +74,42 @@ ALL DATA CONSISTENCY AND ATTRIBUTION CHECKS PASSED WITH ZERO MISMATCHES!
 ### Additions Made:
 1. Created `app/fonts/LICENSE.txt` containing official SIL Open Font License 1.1 terms and upstream attributions for IBM Plex Mono, Public Sans, and Source Serif 4.
 2. Updated `README.md` License & Attribution section to explicitly link the SIL OFL 1.1 font license, WorldPop CC BY 4.0, NISAR ASF DAAC credit, and OpenStreetMap copyright.
+
+---
+
+## 3. Clean-Clone Smoke Test Results
+
+Tested in an isolated clean clone outside the repository (`temp-smoke-test`) with **zero environment variables**, **no `.env` file**, and **no API keys**.
+Server was launched via `npx next start -p 3042` and probed with HTTP requests.
+
+### 3.1 Web Pages (All 200 OK)
+| Page Route | Method | Status | Size | Content-Type | Verdict |
+| :--- | :---: | :---: | :---: | :--- | :---: |
+| `/` | GET | **200** | 75,105 B | `text/html; charset=utf-8` | **PASS** |
+| `/explore` | GET | **200** | 39,703 B | `text/html; charset=utf-8` | **PASS** |
+| `/how-it-works` | GET | **200** | 74,223 B | `text/html; charset=utf-8` | **PASS** |
+| `/data-sources` | GET | **200** | 205,931 B | `text/html; charset=utf-8` | **PASS** |
+| `/terms` | GET | **200** | 43,804 B | `text/html; charset=utf-8` | **PASS** |
+| `/privacy` | GET | **200** | 43,740 B | `text/html; charset=utf-8` | **PASS** |
+| `/about` | GET | **200** | 42,026 B | `text/html; charset=utf-8` | **PASS** |
+
+### 3.2 Real API Routes (All 200 OK)
+| Endpoint & Arguments | Method | Status | Size | Content-Type | Payload Validation |
+| :--- | :---: | :---: | :---: | :--- | :--- |
+| `/api/change-detection?aoi=sylhet` | GET | **200** | 2,045 B | `application/json` | **PASS** (floodedAreaKm2: 37.19, percentChanged: 17.05) |
+| `/api/exposure/sylhet` | GET | **200** | 2,853 B | `application/json` | **PASS** (aoiTotalPopulation: 1,044,343, default exposed: 74,413) |
+| `/api/nisar/timeseries` | GET | **200** | 11,198 B | `application/json` | **PASS** (CRID: P05023, windowAreaKm2: 104.86, 10 records) |
+| `/api/ai-insight` | POST | **200** | 769 B | `application/json` | **PASS** (Deterministic fallback without key; reliability notes included) |
+| `/api/images?aoi=sylhet&type=change-map` | GET | **200** | 26,633 B | `image/png` | **PASS** (Valid PNG binary) |
+| `/api/images?aoi=sylhet&type=before` | GET | **200** | 451,892 B | `image/png` | **PASS** (Valid PNG binary) |
+| `/api/images?aoi=sylhet&type=after` | GET | **200** | 470,139 B | `image/png` | **PASS** (Valid PNG binary) |
+
+### 3.3 Static Preview Assets (All 200 OK)
+| Asset Path | Method | Status | Size | Content-Type | Verdict |
+| :--- | :---: | :---: | :---: | :--- | :---: |
+| `/nisar/hakaluki-haor/2026-06-23_HH_preview.png` | GET | **200** | 183,940 B | `image/png` | **PASS** |
+| `/nisar/hakaluki-haor/2026-08-10_HH_preview.png` | GET | **200** | 183,248 B | `image/png` | **PASS** |
+| `/nisar/hakaluki-haor/2026-10-09_HH_preview.png` | GET | **200** | 184,028 B | `image/png` | **PASS** |
+| `/nisar/hakaluki-haor/2026-10-21_HH_preview.png` | GET | **200** | 188,243 B | `image/png` | **PASS** |
+
+**Zero 500 errors recorded.** Server shut down cleanly and temporary clone folder removed.
