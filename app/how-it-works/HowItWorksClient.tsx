@@ -194,7 +194,7 @@ export function HowItWorksClient() {
                     <span className="text-teal">5×5 window</span>
                   </div>
                 </div>
-                <p className="text-[11px] font-sans text-text-secondary mt-2">
+                <p className="text-xs font-sans text-text-secondary mt-2">
                   Note: This C-band threshold is not assumed for NISAR L-band; for NISAR no single threshold was justified.
                 </p>
 
@@ -526,9 +526,9 @@ export function HowItWorksClient() {
                 </h3>
                 <p className="mt-2 text-xs text-text-secondary leading-relaxed">
                   Based on the span ratio <span className="font-data text-teal">(max − min) / centre</span>, each case is classified into:
-                  <br />• <strong className="text-emerald-700 dark:text-emerald-300">Stable (&lt;15% span)</strong>: High physical contrast, minimal threshold sensitivity.
-                  <br />• <strong className="text-amber-700 dark:text-amber-300">Moderate (15–50% span)</strong>: Noticeable variation across wetland margins.
-                  <br />• <strong className="text-rust">High (&gt;50% span)</strong>: High threshold sensitivity where small threshold adjustments yield large area changes; headline numbers are indicative only.
+                  <br />• <strong className="text-teal font-medium">Stable (&lt;15% span)</strong>: High physical contrast, minimal threshold sensitivity.
+                  <br />• <strong className="text-text-primary font-medium">Moderate (15–50% span)</strong>: Noticeable variation across wetland margins.
+                  <br />• <strong className="text-rust font-medium">High (&gt;50% span)</strong>: High threshold sensitivity where small threshold adjustments yield large area changes; headline numbers are indicative only.
                 </p>
               </div>
 
@@ -544,7 +544,7 @@ export function HowItWorksClient() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-hairline text-xs font-sans text-text-secondary flex items-start gap-2">
-              <span className="text-teal font-semibold shrink-0 uppercase font-data text-[11px] mt-0.5">Scientific Caveat:</span>
+              <span className="text-teal font-semibold shrink-0 uppercase font-data text-xs mt-0.5">Scientific Caveat:</span>
               <span className="leading-relaxed">
                 Sensitivity ranges show physical sensitivity to threshold selection. They quantify model uncertainty, but do not replace
                 in-situ validation or high-resolution optical truth data.
@@ -760,6 +760,93 @@ export function HowItWorksClient() {
                   </h3>
                   <p className="leading-relaxed">
                     AI-assisted developer tools were utilized during the project development lifecycle for code authoring, testing, and interface design assistance. All scientific algorithms and data outputs were independently reviewed and verified.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </GraticuleFrame>
+        </section>
+
+        {/* What this project does not do */}
+        <section id="what-we-do-not-do" className="scroll-mt-8">
+          <GraticuleFrame>
+            <div className="p-6 md:p-8 bg-surface rounded-[2px]">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-block w-2 h-2 rounded-[2px] bg-rust shrink-0" aria-hidden="true" />
+                <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+                  What this project does not do
+                </h2>
+              </div>
+              <p className="text-sm font-sans text-text-secondary leading-relaxed max-w-3xl mb-6">
+                To maintain rigorous scientific honesty and prevent misuse during disasters, we explicitly document the operational boundaries of this platform:
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm font-sans text-text-secondary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    1. No Forecasting
+                  </h3>
+                  <p className="leading-relaxed">
+                    It does not forecast floods, fires, or river erosion. The platform observes surface changes between historical satellite passes and does not make future predictions.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    2. No Evacuation or Safety Advice
+                  </h3>
+                  <p className="leading-relaxed">
+                    It does not give evacuation, relief, or safety advice. Results are retrospective environmental indicators and must not be used for tactical emergency dispatch or casualty estimation.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    3. Uncalibrated Empirical Thresholds &amp; Sensitivity Ranges
+                  </h3>
+                  <p className="leading-relaxed">
+                    Headline metrics use fixed default thresholds (-16.0 dB for VV water inundation and surface water, -22.0 dB for VH water, and -3.0 dB for forest canopy loss) combined with a 5-pixel median filter and small-patch filtering (&lt; 20 pixels), presented alongside tested perturbation ranges (±2 dB). They are empirical baselines, not calibrated ground truth.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    4. Provisional NISAR Data
+                  </h3>
+                  <p className="leading-relaxed">
+                    The NISAR results use PROVISIONAL data that will be reprocessed by the science data system, and currently cover a single geometry and part of the study area (NW 32.4% window).
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    5. Demographic Estimates (Four Core Limitations)
+                  </h3>
+                  <p className="leading-relaxed">
+                    Demographic exposure numbers are modelled estimates, not counts of displaced, affected, or injured people:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1.5 text-sm text-text-secondary leading-relaxed">
+                    <li>
+                      <strong className="text-text-primary">Estimate of residents in water extent:</strong> The figure estimates how many people live inside the mapped flood extent based on residential density—it is NOT a count of displaced, affected, or injured people.
+                    </li>
+                    <li>
+                      <strong className="text-text-primary">Two-year temporal mismatch:</strong> The population raster (WorldPop 2020) is from 2020, while the analyzed flood occurred in 2022. Local populations will have grown or moved in those two years.
+                    </li>
+                    <li>
+                      <strong className="text-text-primary">Uniform cell distribution:</strong> The method assumes population is spread evenly inside each ~100 m grid cell (areal redistribution without local land-cover weighting).
+                    </li>
+                    <li>
+                      <strong className="text-text-primary">Radar threshold dependence:</strong> The result depends directly on the backscatter threshold: the default −16.0 dB yields about 74,000 people, but across the sweep (−18.0 dB to −14.0 dB) the estimate spans 57,000 to 94,000 people.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    6. Independent Validation Status
+                  </h3>
+                  <p className="leading-relaxed">
+                    Surface classifications reflect radar backscatter relative to a threshold and have not been compared with ground observations. No result is claimed as validated unless explicitly cross-referenced with a published reference dataset.
                   </p>
                 </div>
               </div>

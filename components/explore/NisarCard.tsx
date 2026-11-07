@@ -110,17 +110,20 @@ export function NisarCard({ initialData }: NisarCardProps) {
       <div className="space-y-2 border-b border-hairline pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-ink rounded-[2px]">
               NASA NISAR L-band
             </span>
-            <span className="font-mono text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 border border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-rust rounded-[2px]">
               {dataMaturity}
             </span>
-            <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
               CRID: {crid}
             </span>
-            <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+            <span className="font-mono text-xs font-medium tracking-wider uppercase px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
               Pol: {polarization}
+            </span>
+            <span className="font-mono text-xs font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+              Single geometry (Ascending T141 F014)
             </span>
           </div>
 

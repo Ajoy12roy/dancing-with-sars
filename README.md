@@ -376,5 +376,10 @@ TerraPulse features an interactive character guide, **Chiku**, mounted across ke
 ## License & Attribution
 
 - **Software License**: Distributed under the [MIT License](LICENSE). Copyright © 2026 Team Nova Strike's.
-- **Data Attribution**: Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
-- **Disclaimer**: Independent hackathon project developed for the NASA International Space Apps Challenge. Not endorsed by NASA, ESA, or any space agency.
+- **Data Attribution**:
+  - Contains modified Copernicus Sentinel data (2026), processed with Google Earth Engine.
+  - NISAR data: NASA/ISRO, distributed by Alaska Satellite Facility (ASF) DAAC.
+  - Population exposure data: WorldPop (2020), Global High Resolution Population Denominators Project, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  - Basemap data: &copy; [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+  - Self-hosted web fonts (IBM Plex Mono, Public Sans, Source Serif 4): Licensed under the [SIL Open Font License 1.1](app/fonts/LICENSE.txt).
+- **Disclaimer**: Independent hackathon project developed for the NASA International Space Apps Challenge. Not endorsed by NASA, ISRO, ESA, or any space agency.

@@ -53,7 +53,7 @@ export function WhyRadarSection() {
                 Technical details
               </summary>
               <div className="pt-1.5 border-t border-hairline/60 text-text-secondary">
-                Synthetic Aperture Radar (SAR) transmits microwave pulses (wavelengths ~5.6&nbsp;cm for C-band, ~24&nbsp;cm for L-band) that penetrate thick cloud decks, providing guaranteed observations during major storm events.
+                Synthetic Aperture Radar (SAR) transmits microwave pulses (wavelengths ~5.6&nbsp;cm for C-band, ~24&nbsp;cm for L-band) that penetrate thick cloud decks, providing cloud-penetrating observations during major storm events when clouds block optical satellites.
               </div>
             </details>
           </div>

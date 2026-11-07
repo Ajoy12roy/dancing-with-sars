@@ -35,3 +35,22 @@
 ## 3. Comparison with Earlier Prototype (Day 8b Verification)
 
 The earlier prototype differed by about 2.3% (72,703 vs 74,413 exposed people); the cause is not established.
+
+---
+
+## 4. Exposure Analytics Methodology & Four Core Limitations (Plain Words)
+
+The Sylhet exposure estimates combine the 20 m Sentinel-1 C-band flood inundation mask with the ~100 m WorldPop 2020 residential population raster (`bgd_ppp_2020.tif`). Any interpretation of these numbers must account for four fundamental constraints:
+
+1. **Estimate of Residents in Extent, NOT a Casualty or Displacement Count:**
+   The figure represents the estimated number of residents whose living area overlaps with the mapped new-water extent. It is **NOT** a count of drowned, injured, displaced, or sheltered individuals, and must never be used for relief routing or emergency casualty counts.
+
+2. **Two-Year Temporal Mismatch (2020 Population vs 2022 Flood):**
+   The population raster is baseline data from **2020**, while the severe monsoon flood occurred in **June 2022**. In the two intervening years, the local population will have grown, experienced seasonal labor migration, or relocated.
+
+3. **Uniform Distribution Assumption (~100 m Grid Cells):**
+   The method calculates the fraction of flood water in each ~100 m raster cell and multiplies it by that cell's total population. This assumes people are evenly spread inside each 100 m cell (areal redistribution without local land-cover weighting or building footprint masks).
+
+4. **Strong Dependence on Radar Backscatter Threshold:**
+   Because water mapping depends on the chosen backscatter cutoff, the demographic exposure estimate is threshold-sensitive. At the default −16.0 dB threshold, the estimate is **74,413 people** (7.1% of the AOI population). Across the tested ±2.0 dB perturbation sweep (−18.0 dB to −14.0 dB), the estimate spans **57,480 to 93,745 people** (5.5% to 9.0% share). Both the headline figure and its full sensitivity range must always be presented together.
+

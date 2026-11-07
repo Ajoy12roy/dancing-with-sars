@@ -848,6 +848,9 @@ export default function ExplorePage() {
     <Suspense
       fallback={
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse space-y-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+            Explore SAR Observations
+          </h1>
           <div className="h-8 bg-surface-2 border border-hairline w-64 rounded-[2px]" />
           <div className="h-96 bg-surface-2 border border-hairline w-full rounded-[2px]" />
         </div>
