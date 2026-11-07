@@ -805,7 +805,7 @@ export function HowItWorksClient() {
                     3. Uncalibrated Empirical Thresholds &amp; Sensitivity Ranges
                   </h3>
                   <p className="leading-relaxed">
-                    Headline metrics use fixed default thresholds (-16.0 dB for VV water inundation and surface water, -22.0 dB for VH water, -3.0 dB for forest canopy loss, and a 5-pixel buffer for river erosion) presented alongside tested perturbation ranges (±2 dB or ±2 px). They are empirical baselines, not calibrated ground truth.
+                    Headline metrics use fixed default thresholds (-16.0 dB for VV water inundation and surface water, -22.0 dB for VH water, and -3.0 dB for forest canopy loss) combined with a 5-pixel median filter and small-patch filtering (&lt; 20 pixels), presented alongside tested perturbation ranges (±2 dB). They are empirical baselines, not calibrated ground truth.
                   </p>
                 </div>
 
