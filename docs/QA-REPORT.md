@@ -143,7 +143,7 @@ The real static asset paths and API routes were derived directly from the codeba
 | `/nisar/hakaluki-haor/index.json` | **200 OK** | `application/json` | N/A (JSON dataset descriptor) | 2,701 B | 2,701 B | **EXACT** |
 
 *Provenance Note on Preview File Sizes:*
-Git history (`git log --stat -- public/nisar/hakaluki-haor/*.png`) confirms these four PNGs were committed once in `commit 93fe1f0a6397bb5dabb419f6d775b28805c3998d` ("feat: nisar data delivery for ui") with exact sizes 183,940 B, 183,248 B, 184,028 B, and 188,243 B, matching `index.json`. They have never been regenerated or re-compressed. A previous chat response mistakenly reported 134,809 / 138,401 / 139,417 / 136,897 bytes; the table above reflects the true, verified byte lengths on disk. All 4 files pass 8-byte PNG magic signature checks (`89 50 4E 47 0D 0A 1A 0A`) and align with the 4 dates displayed in `NisarCard.tsx`.
+Git history (`git log --stat -- public/nisar/hakaluki-haor/*.png`) confirms these four PNGs were committed once in `commit 93fe1f0a6397bb5dabb419f6d775b28805c3998d` ("feat: nisar data delivery for ui") with exact sizes 183,940 B, 183,248 B, 184,028 B, and 188,243 B, matching `public/nisar/hakaluki-haor/index.json`. They have never been regenerated or re-compressed. A previous chat response mistakenly reported 134,809 / 138,401 / 139,417 / 136,897 bytes; the table above reflects the true, verified byte lengths on disk. All 4 files pass 8-byte PNG magic signature checks (`89 50 4E 47 0D 0A 1A 0A`) and align with the 4 dates displayed in `components/explore/NisarCard.tsx`.
 
 ### 3.4 Data Routes Tested with Real Arguments
 | Endpoint & Arguments | Method | Status | Key Values Checked & Verified |
@@ -210,7 +210,7 @@ Inspected from Next.js static build outputs in `.next/server/app/**/*.html`:
 
 ### 4.1 Provenance and Fact-Checking of Historical Wording Fixes
 A review of repository commit history via `git log -S` was conducted to verify the provenance of wording claims:
-- `git log -S"white noise"` returned zero results across all code files. The sentence *"optical satellites see only white noise"* **never existed** in `WhyRadarSection.tsx` or anywhere else in the repository history. The first QA report's "before/after" citation of that phrase was an LLM hallucination and is hereby formally corrected.
+- `git log -S"white noise"` returned zero results across all code files. The sentence *"optical satellites see only white noise"* **never existed** in `components/home/WhyRadarSection.tsx` or anywhere else in the repository history. The first QA report's "before/after" citation of that phrase was an LLM hallucination and is hereby formally corrected.
 - `git log -S"guaranteed observations"` reveals the genuine historical progression in `components/home/WhyRadarSection.tsx`:
   1. `commit 9f5d332` introduced: *"...providing guaranteed observations during major monsoon floods and storm events."*
   2. `commit b4e24f5` updated this to: *"...providing cloud-penetrating observations during major storm events without optical cloud obscuration."*
@@ -230,8 +230,8 @@ Every factual statement across `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` wa
 | Repository License: MIT License | Root `LICENSE`, `package.json:17` | **VERIFIED** |
 | Sentinel-1 C-band frequency: 5.405 GHz, ~5.6 cm wavelength | `components/home/WhyRadarSection.tsx:82`, `docs/VALIDATION.md:14` | **VERIFIED** |
 | NISAR L-band frequency: 1.25 GHz, ~24 cm wavelength | `docs/NISAR-processing.md:31`, `components/home/WhyRadarSection.tsx:84` | **VERIFIED** |
-| 10 precomputed global hazard benchmarks | `data/cases.json` (sylhet, tanguar, valencia, rio-grande, lake-mead, beira, brumadinho, amazon, jamuna, greenland = 10 cases) | **VERIFIED** |
-| 4 core environmental modes: Flood, Riverbank Erosion, Deforestation, Surface Water | `data/cases.json`, `python-service/process_change.py:44-50`, `components/explore/ModeSelector.tsx` | **VERIFIED** |
+| 10 precomputed global hazard benchmarks | `data/case-studies/seed.json` (sylhet, tanguar, valencia, rio-grande, lake-mead, beira, brumadinho, amazon, jamuna, greenland = 10 cases) | **VERIFIED** |
+| 4 core environmental modes: Flood, Riverbank Erosion, Deforestation, Surface Water | `data/case-studies/seed.json`, `python-service/process_change.py:44-50`, `app/explore/page.tsx` | **VERIFIED** |
 | NISAR Product: Level-2 geocoded backscatter (GCOV) | `data/nisar/hakaluki-haor/timeseries.json`, `docs/NISAR-processing.md:25` | **VERIFIED** |
 | NISAR Data Maturity: PROVISIONAL | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:117` | **VERIFIED** |
 | NISAR CRID: P05023, Mode: 4005 | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:120` | **VERIFIED** |
@@ -244,14 +244,14 @@ Every factual statement across `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` wa
 | Sylhet flooded area: 37.19 km² (17.05% of 218.10 km² AOI) at -16.0 dB default threshold | `data/exposure/sylhet.json`, `python-service/process_change.py:175` | **VERIFIED** |
 | Sylhet demographic exposure: 74,413 (~74,000) estimated people in mapped extent | `data/exposure/sylhet.json:45` (`estimatedPeopleInExtent: 74413`) | **VERIFIED** |
 | Sylhet exposure sensitivity range: 57,480 (~57,000) at -18 dB to 93,745 (~94,000) at -14 dB | `data/exposure/sylhet.json:33,57` | **VERIFIED** |
-| Sylhet area sensitivity range: 30.85 km² at -18 dB to 44.01 km² at -14 dB | `data/exposure/sylhet.json:58,63`, `data/cases.json:17` | **VERIFIED** |
+| Sylhet area sensitivity range: 30.85 km² at -18 dB to 44.01 km² at -14 dB | `data/exposure/sylhet.json:58,63`, `data/case-studies/seed.json` | **VERIFIED** |
 | Chiku Voice Guide: Native browser Web Speech API, offline deterministic generation | `components/chiku/ChikuGuide.tsx`, `lib/chiku-script.ts` | **VERIFIED** |
-| Button labels: "Before / After", "Voice on" / "Voice off", "Explain this view", "Test voice" | `components/explore/SwipeComparison.tsx`, `components/chiku/ChikuGuide.tsx` | **VERIFIED** |
+| Button labels: "Before / After", "Voice on" / "Voice off", "Explain this view", "Test voice" | `components/visualization/BeforeAfterViewer.tsx`, `components/chiku/ChikuGuide.tsx` | **VERIFIED** |
 | Chiku line: "This is a fixed default setting, not a value proven to be the best." | `lib/chiku-script.ts:223`, `tools/test-chiku-script.mjs:295` | **VERIFIED** |
 | Baseline change detection script: `python-service/process_change.py` | `python-service/process_change.py` | **VERIFIED** |
-| Sylhet exposure generation scripts: `scripts/exposure/make_sylhet_exposure.py` & `calculate_exposure.py` | `scripts/exposure/make_sylhet_exposure.py`, `calculate_exposure.py` | **VERIFIED** |
+| Sylhet exposure generation scripts: `scripts/exposure/make_sylhet_exposure.py` & `scripts/exposure/calculate_exposure.py` | `scripts/exposure/make_sylhet_exposure.py`, `scripts/exposure/calculate_exposure.py` | **VERIFIED** |
 | NISAR preview script: `scripts/nisar/make_previews.py` | `scripts/nisar/make_previews.py` | **VERIFIED** |
-| Wildfire research scripts: `scripts/wildfire/*.py` (fetch_nisar_windows_r2, firms_client, etc.) | `scripts/wildfire/` | **VERIFIED** |
+| Wildfire research scripts: `scripts/wildfire/` (fetch_nisar_windows_r2, firms_client, etc.) | `scripts/wildfire/` | **VERIFIED** |
 
 ### 5.2 External URL Verification Table
 
@@ -259,21 +259,21 @@ Tested via outbound HTTP requests:
 
 | Target URL | Referenced Location | HTTP Status | Response Header / Message | Verdict |
 | :--- | :--- | :---: | :--- | :---: |
-| `https://github.com/Ajoy12roy/dancing-with-sars` | `SUBMISSION.md:7`, `README.md` | 200 | OK | **VERIFIED** |
-| `https://github.com/Ajoy12roy/dancing-with-sars.git` | `SUBMISSION.md:75` | 200 | OK (Git Remote) | **VERIFIED** |
-| `https://github.com/Ajoy12roy/dancing-with-sars/blob/main/LICENSE` | `SUBMISSION.md:6` | 200 | OK | **VERIFIED** |
-| `https://dancing-with-sars.vercel.app` | `SUBMISSION.md:8` | 200 | OK | **VERIFIED** |
-| `https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD` | `SUBMISSION.md:44` | 200 | OK | **VERIFIED** |
-| `https://earthengine.google.com/` | `SUBMISSION.md:47` | 200 | OK | **VERIFIED** |
-| `https://nisar-docs.asf.alaska.edu/gcov/` | `SUBMISSION.md:45` | 200 | OK | **VERIFIED** |
-| `https://asf.alaska.edu/` | `SUBMISSION.md:48` | 200 | OK | **VERIFIED** |
-| `https://hub.worldpop.org/geodata/summary?id=28451` | `SUBMISSION.md:46` | 200 | OK | **VERIFIED** |
-| `https://www.openstreetmap.org/copyright` | `SUBMISSION.md:49` | 200 | OK | **VERIFIED** |
-| `https://podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1` | `SUBMISSION.md:50` | 200 | OK (Replaced unreachable DNS alias) | **VERIFIED** |
-| `https://global-surface-water.appspot.com/` | `SUBMISSION.md:51` | 200 | OK | **VERIFIED** |
-| `https://cegisbd.com/` | `SUBMISSION.md:52` | 200 | OK | **VERIFIED** |
-| `http://terrabrasilis.dpi.inpe.br/` | `SUBMISSION.md:53` | 200 | OK | **VERIFIED** |
-| `https://firms.modaps.eosdis.nasa.gov/` | `SUBMISSION.md:54` | 200 | OK | **VERIFIED** |
+| `https://github.com/Ajoy12roy/dancing-with-sars` | `docs/SUBMISSION.md:7`, `README.md` | 200 | OK | **VERIFIED** |
+| `https://github.com/Ajoy12roy/dancing-with-sars.git` | `docs/SUBMISSION.md:75` | 200 | OK (Git Remote) | **VERIFIED** |
+| `https://github.com/Ajoy12roy/dancing-with-sars/blob/main/LICENSE` | `docs/SUBMISSION.md:6` | 200 | OK | **VERIFIED** |
+| `https://dancing-with-sars.vercel.app` | `docs/SUBMISSION.md:8` | 200 | OK | **VERIFIED** |
+| `https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD` | `docs/SUBMISSION.md:44` | 200 | OK | **VERIFIED** |
+| `https://earthengine.google.com/` | `docs/SUBMISSION.md:47` | 200 | OK | **VERIFIED** |
+| `https://nisar-docs.asf.alaska.edu/gcov/` | `docs/SUBMISSION.md:45` | 200 | OK | **VERIFIED** |
+| `https://asf.alaska.edu/` | `docs/SUBMISSION.md:48` | 200 | OK | **VERIFIED** |
+| `https://hub.worldpop.org/geodata/summary?id=28451` | `docs/SUBMISSION.md:46` | 200 | OK | **VERIFIED** |
+| `https://www.openstreetmap.org/copyright` | `docs/SUBMISSION.md:49` | 200 | OK | **VERIFIED** |
+| `https://podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1` | `docs/SUBMISSION.md:50` | 200 | OK (Replaced unreachable DNS alias) | **VERIFIED** |
+| `https://global-surface-water.appspot.com/` | `docs/SUBMISSION.md:51` | 200 | OK | **VERIFIED** |
+| `https://cegisbd.com/` | `docs/SUBMISSION.md:52` | 200 | OK | **VERIFIED** |
+| `http://terrabrasilis.dpi.inpe.br/` | `docs/SUBMISSION.md:53` | 200 | OK | **VERIFIED** |
+| `https://firms.modaps.eosdis.nasa.gov/` | `docs/SUBMISSION.md:54` | 200 | OK | **VERIFIED** |
 
 ### 5.3 Scientific Honesty and Limitation Confirmations
 
