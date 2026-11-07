@@ -766,6 +766,79 @@ export function HowItWorksClient() {
             </div>
           </GraticuleFrame>
         </section>
+
+        {/* What this project does not do */}
+        <section id="what-we-do-not-do" className="scroll-mt-8">
+          <GraticuleFrame>
+            <div className="p-6 md:p-8 bg-surface rounded-[2px]">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-block w-2.5 h-2.5 bg-rust" />
+                <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+                  What this project does not do
+                </h2>
+              </div>
+              <p className="text-sm text-text-secondary leading-relaxed max-w-3xl mb-6">
+                To maintain rigorous scientific honesty and prevent misuse during disasters, we explicitly document the operational boundaries of this platform:
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs text-text-secondary">
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    1. No Forecasting
+                  </h3>
+                  <p className="leading-relaxed">
+                    It does not forecast floods, fires, or river erosion. The platform observes surface changes between historical satellite passes and does not make future predictions.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    2. No Evacuation or Safety Advice
+                  </h3>
+                  <p className="leading-relaxed">
+                    It does not give evacuation, relief, or safety advice. Results are retrospective environmental indicators and must not be used for tactical emergency dispatch or casualty estimation.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    3. Uncalibrated Thresholds &amp; Sensitivity Ranges
+                  </h3>
+                  <p className="leading-relaxed">
+                    Its thresholds are not calibrated against ground truth, and results are always presented alongside a systematic sensitivity perturbation range rather than a single definitive truth.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    4. Provisional NISAR Data
+                  </h3>
+                  <p className="leading-relaxed">
+                    The NISAR results use PROVISIONAL data that will be reprocessed by the science data system, and currently cover a single geometry and part of the study area (NW 32.4% window).
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    5. Demographic Estimates (Not Headcounts)
+                  </h3>
+                  <p className="leading-relaxed">
+                    Exposure figures are estimates from population and land-cover rasters and not counts of affected people; they reflect modelled dasymetric redistribution across mapped water extents.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-surface-2 border border-hairline rounded-[2px] space-y-1.5">
+                  <h3 className="font-headline font-semibold text-sm text-text-primary">
+                    6. Independent Validation Status
+                  </h3>
+                  <p className="leading-relaxed">
+                    No result has been validated against an independent map unless the page explicitly says so and links a verified comparator dataset.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </GraticuleFrame>
+        </section>
       </div>
     </div>
   );
