@@ -1,0 +1,125 @@
+{
+  "event_id": "wildfire-2026-T054-F036-siberia",
+  "status": "NOT PROCEEDING: NISAR_L2_PR_GCOV_026_054_A_036_2005_DHDH_A_20260723T223552_20260723T223628_P05023_N_F_J_001 failed radiometric sanity",
+  "sanity_results": [
+    {
+      "title": "NISAR_L2_PR_GCOV_023_054_A_036_2005_DHDH_A_20260617T223554_20260617T223630_P05023_N_F_J_001",
+      "date": "2026-06-17",
+      "cycle": 23,
+      "median_db": -11.254,
+      "median_others_db": -11.366,
+      "mad_others_db": 0.348,
+      "threshold_db": 1.548,
+      "diff_db": 0.112,
+      "is_outlier": false,
+      "role": "SANITY"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_024_054_A_036_2005_DHDH_A_20260629T223553_20260629T223629_P05023_N_F_J_001",
+      "date": "2026-06-29",
+      "cycle": 24,
+      "median_db": -11.355,
+      "median_others_db": -11.366,
+      "mad_others_db": 0.348,
+      "threshold_db": 1.548,
+      "diff_db": 0.011,
+      "is_outlier": false,
+      "role": "SANITY"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_025_054_A_036_2005_DHDH_A_20260711T223552_20260711T223628_P05023_N_F_J_001",
+      "date": "2026-07-11",
+      "cycle": 25,
+      "median_db": -12.05,
+      "median_others_db": -11.355,
+      "mad_others_db": 0.101,
+      "threshold_db": 0.448,
+      "diff_db": 0.695,
+      "is_outlier": true,
+      "role": "SANITY"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_026_054_A_036_2005_DHDH_A_20260723T223552_20260723T223628_P05023_N_F_J_001",
+      "date": "2026-07-23",
+      "cycle": 26,
+      "median_db": -11.833,
+      "median_others_db": -11.355,
+      "mad_others_db": 0.101,
+      "threshold_db": 0.448,
+      "diff_db": 0.478,
+      "is_outlier": true,
+      "role": "BEFORE"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_029_054_A_036_2005_DHDH_A_20260828T223550_20260828T223626_P05023_N_F_J_001",
+      "date": "2026-08-28",
+      "cycle": 29,
+      "median_db": -11.366,
+      "median_others_db": -11.355,
+      "mad_others_db": 0.337,
+      "threshold_db": 1.497,
+      "diff_db": 0.011,
+      "is_outlier": false,
+      "role": "AFTER"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_030_054_A_036_2005_DHDH_A_20260909T223550_20260909T223626_P05023_N_F_J_001",
+      "date": "2026-09-09",
+      "cycle": 30,
+      "median_db": -11.018,
+      "median_others_db": -11.366,
+      "mad_others_db": 0.112,
+      "threshold_db": 0.498,
+      "diff_db": 0.348,
+      "is_outlier": false,
+      "role": "SANITY"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_031_054_A_036_2005_DHDH_A_20260921T223550_20260921T223626_P05023_N_F_J_001",
+      "date": "2026-09-21",
+      "cycle": 31,
+      "median_db": -11.257,
+      "median_others_db": -11.366,
+      "mad_others_db": 0.348,
+      "threshold_db": 1.548,
+      "diff_db": 0.109,
+      "is_outlier": false,
+      "role": "SANITY"
+    },
+    {
+      "title": "NISAR_L2_PR_GCOV_032_054_A_036_2005_DHDH_A_20261003T223550_20261003T223626_P05023_N_F_J_001",
+      "date": "2026-10-03",
+      "cycle": 32,
+      "median_db": -13.35,
+      "median_others_db": -11.355,
+      "mad_others_db": 0.101,
+      "threshold_db": 0.448,
+      "diff_db": 1.995,
+      "is_outlier": true,
+      "role": "SANITY"
+    }
+  ],
+  "counters": {
+    "cmr_requests": 1,
+    "nisar_stream_requests": 8,
+    "nisar_streamed_bytes": 12835234
+  },
+  "track": "054",
+  "frame": "036",
+  "direction": "A",
+  "bandwidth_mode": "2005",
+  "polarization": "DHDH",
+  "crid": "P05023",
+  "data_maturity": "PROVISIONAL",
+  "centroid": [
+    75.2658,
+    66.331
+  ],
+  "aoi_bbox": [
+    75.042,
+    66.2412,
+    75.4896,
+    66.4208
+  ],
+  "rasters": {}
+}
