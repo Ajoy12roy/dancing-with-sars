@@ -58,7 +58,7 @@
 2. **Sylhet Exposure Card:**
    - Displays full **WorldPop 2020** citation and **CC BY 4.0** license badge and link.
    - States explicitly: *"Prototype, not validated"*.
-   - Headline number shows default estimate with stated sensitivity range: **about 74,000 (range 15,000 to 93,000)**.
+   - Headline number shows default estimate with stated sensitivity range: **about 74,000 (range 57,000 to 94,000)**.
    - Explicit disclaimer: *"Not for relief routing or casualty estimates"*.
 
 3. **Chiku Script (`lib/chiku-script.ts`):**

@@ -41,7 +41,7 @@ export function DataSourcesSection() {
       <div className="border border-hairline p-6 bg-surface rounded-[2px]">
 
         <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-3xl">
-          All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and NASA-ISRO NISAR L-band GCOV (NISAR_L2_GCOV_PROVISIONAL_V1), PROVISIONAL, from ASF DAAC, analyzed in our <Link href="/explore#nisar" className="text-teal hover:underline font-medium">NISAR L-band card</Link>. Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
+          All observation scenes are sourced from public, open-access Earth observation constellations. Synthetic Aperture Radar data is captured by the Copernicus Sentinel-1 C-band constellation (European Space Agency / European Commission) and NASA-ISRO NISAR L-band GCOV (NISAR_L2_GCOV_PROVISIONAL_V1), PROVISIONAL, from ASF DAAC, analyzed in our <Link href="/explore#nisar" className="text-teal hover:underline font-medium">NISAR L-band card</Link>. Population exposure estimates incorporate WorldPop 2020 open demographic data (CC BY 4.0). Basemap overlays incorporate OpenStreetMap open data (&copy; OpenStreetMap contributors).
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-data">
