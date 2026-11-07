@@ -113,3 +113,51 @@ Server was launched via `npx next start -p 3042` and probed with HTTP requests.
 | `/nisar/hakaluki-haor/2026-10-21_HH_preview.png` | GET | **200** | 188,243 B | `image/png` | **PASS** |
 
 **Zero 500 errors recorded.** Server shut down cleanly and temporary clone folder removed.
+
+---
+
+## 4. Static Accessibility and Metadata Check
+
+Inspected from Next.js static build outputs in `.next/server/app/**/*.html`:
+
+| Page | `<html lang>` | `<title>` | `<h1>` Count | Landmarks (`header`, `nav`, `main`, `footer`) | Skip Link | `<img>` Without `alt` | Buttons Without Name | `aria-live` Regions |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **`/` (index)** | `en` | `TerraPulse — SAR Change Detection` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/explore`** | `en` | `Explore SAR Change Detection — TerraPulse` | 0 (client Suspense fallback; `<h1>` hydrates client-side) | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/how-it-works`** | `en` | `How It Works — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/data-sources`** | `en` | `Data Sources & Methodology — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/terms`** | `en` | `Terms of Use — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/privacy`** | `en` | `Privacy Policy — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/about`** | `en` | `About — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`404` (`_not-found`)** | `en` | `TerraPulse — SAR Change Detection` (root fallback) | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+
+### Key Findings:
+- **`lang="en"`:** Present on all 8 HTML files.
+- **Titles:** All 7 primary navigable pages have unique, descriptive titles.
+- **Headings:** Exactly one `<h1>` present statically on 7 of 8 pages; `/explore` defines its `<h1>` inside a `Suspense` boundary rendered upon client-side hydration.
+- **Landmarks:** Every page contains `<header>`, `<nav>`, `<main id="main-content">`, and `<footer>`.
+- **Skip Links:** Functional `#main-content` skip link present on every page.
+- **Images:** Zero `<img>` elements missing `alt` attributes.
+- **Buttons:** Zero interactive `<button>` elements missing accessible names (`aria-label`, visible text, or `title`).
+- **Live Regions:** Application-wide `aria-live="polite"` and `aria-live="assertive"` regions active for screen readers.
+
+---
+
+## 5. Manual Verification Requirements (Real Browser)
+
+Due to sandbox and headless test runner limitations, the following must be verified manually by a human in a real graphical browser (NOT VERIFIED automatically):
+
+1. **Keyboard-Only Walkthrough:**
+   - Press `Tab` upon landing on `/` to verify skip link focuses and navigates directly to `#main-content`.
+   - Tab through the header navigation, explore selector, threshold slider, and Chiku voice toggle to ensure visible `:focus-visible` ring outlines (teal accent).
+2. **Screen Reader Verification:**
+   - Test with NVDA (Windows) or VoiceOver (macOS).
+   - Verify that Chiku's speech bubble is ignored by screen readers (`aria-hidden="true"`) while status announcements are vocalized cleanly through the live region without double-speaking.
+3. **Lighthouse Accessibility Audit:**
+   - Run Chrome DevTools Lighthouse audit on:
+     - `http://localhost:3000/` (target: 100/100)
+     - `http://localhost:3000/explore` (target: 95+/100)
+     - `http://localhost:3000/how-it-works` (target: 100/100)
+     - `http://localhost:3000/data-sources` (target: 100/100)
+4. **Physical Device Speech Synthesis:**
+   - Click "Test voice" in Chiku panel and verify that speech synthesizer plays audio on host sound device.
