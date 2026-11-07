@@ -122,6 +122,9 @@ export function NisarCard({ initialData }: NisarCardProps) {
             <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
               Pol: {polarization}
             </span>
+            <span className="font-mono text-[11px] font-medium px-2 py-0.5 border border-hairline bg-surface-2 text-text-secondary rounded-[2px]">
+              Single geometry (Ascending T141 F014)
+            </span>
           </div>
 
           <button
