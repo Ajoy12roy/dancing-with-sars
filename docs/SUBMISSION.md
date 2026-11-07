@@ -47,11 +47,11 @@ TerraPulse demonstrates how satellite radar can democratize environmental monito
 | **Google Earth Engine (GEE)** | Google Cloud Platform | **USED** | [earthengine.google.com](https://earthengine.google.com/) |
 | **Alaska Satellite Facility (ASF) DAAC** | NASA Earthdata Distributed Active Archive Center | **USED** | [asf.alaska.edu](https://asf.alaska.edu/) |
 | **OpenStreetMap** | OpenStreetMap Foundation | **USED** | [openstreetmap.org/copyright](https://www.openstreetmap.org/copyright) |
-| **NASA OPERA (DSWx-S1)** | NASA Jet Propulsion Laboratory / ASF DAAC | **REFERENCED** | [opera-docs.asf.alaska.edu](https://opera-docs.asf.alaska.edu/) |
+| **NASA OPERA (DSWx-S1)** | NASA Jet Propulsion Laboratory / PO.DAAC / ASF DAAC | **REFERENCED** | [podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1](https://podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1) |
 | **JRC Global Surface Water** | European Commission Joint Research Centre | **REFERENCED** | [global-surface-water.appspot.com](https://global-surface-water.appspot.com/) |
 | **CEGIS River Morphology Reports** | Center for Environmental & Geographic Information Services | **REFERENCED** | [cegisbd.com](https://cegisbd.com/) |
 | **INPE PRODES Deforestation** | Instituto Nacional de Pesquisas Espaciais (Brazil) | **REFERENCED** | [terrabrasilis.dpi.inpe.br](http://terrabrasilis.dpi.inpe.br/) |
-| **NASA FIRMS** | NASA Earth Science Data and Information System (ESDIS) | **FUTURE WORK** | [firms.modaps.eosdis.nasa.gov](https://firms.modaps.eosdis.nasa.gov/) |
+| **NASA FIRMS** | NASA Earth Science Data and Information System (ESDIS) | **RESEARCH** | [firms.modaps.eosdis.nasa.gov](https://firms.modaps.eosdis.nasa.gov/) (Wildfire research pipeline built; pre-registered radiometric sanity rule stopped run; no wildfire claims made) |
 
 ---
 
@@ -60,9 +60,10 @@ TerraPulse demonstrates how satellite radar can democratize environmental monito
 1. **No Forecasting:** It does not forecast floods, fires, or river erosion. The platform observes surface changes between historical satellite passes and does not make predictive forecasts.
 2. **No Evacuation or Safety Advice:** It does not give evacuation, relief, or tactical safety advice. Retrospective satellite indicators must never replace authoritative disaster directives.
 3. **Uncalibrated Empirical Thresholds:** Thresholds are not calibrated against ground truth; headline results are systematically presented with sensitivity ranges.
-4. **Provisional NISAR Data:** NISAR results utilize PROVISIONAL Level-2 GCOV data that will be reprocessed by the science data system, covering a single geometry (Ascending Track 141 Frame 014) and 32.4% of the Hakaluki case bounding box.
-5. **Demographic Estimates (Not Counts):** Exposure numbers are areal dasymetric model estimates based on WorldPop 2020 rasters, not counts of injured, displaced, or sheltered individuals.
-6. **No Unverified Ground Truth Claims:** No result is claimed as ground-truth validated unless explicitly cross-referenced with a published validation file.
+4. **Provisional NISAR Data:** NISAR results utilize PROVISIONAL Level-2 GCOV data that will be reprocessed by the science data system, covering a single geometry (Ascending Track 141 Frame 014) and partial coverage of the Hakaluki case bounding box (104.86 km², 32.4%).
+5. **Demographic Estimates (Not Census Counts):** Exposure numbers are model estimates based on reprojecting binary SAR flood masks to WorldPop 2020 gridded population rasters (summing population × flood fraction per cell), not census counts of injured, displaced, or sheltered individuals.
+6. **No Ground Truth Validation:** No result is validated against ground truth; the platform provides empirical radar change detections and sensitivity distributions, not verified ground truth.
+7. **Wildfire Pipeline Result:** An event-first wildfire research pipeline was built combining NASA FIRMS thermal hotspots and NISAR L-band backscatter; however, pre-registered radiometric sanity checks halted the run due to processing artifacts, so no wildfire claims or products are made.
 
 ---
 
@@ -91,15 +92,15 @@ Open `http://localhost:3000` in your web browser. All precomputed cases, NISAR c
 
 ## 6. How to Reproduce Scientific Computations
 
-### 6.1 NISAR Time Series Extraction
-- **Script:** `scripts/nisar/stream_window_timeseries.py`
-- **Required Environment Variable:** `EARTHDATA_TOKEN` (NASA Earthdata Login Bearer token)
-- **Execution:** Streams 1024×1024 pixel windows via HTTP range requests directly from ASF DAAC Cloud Storage without downloading full granules.
+### 6.1 NISAR Time Series Extraction & Previews
+- **Scripts:** `scripts/nisar/make_previews.py` (generates preview PNGs from sampled GeoTIFFs), `scripts/wildfire/fetch_nisar_windows_r2.py` / `scripts/nisar/download_granule.py` (streaming range requests via Bearer token).
+- **Architecture:** Documented in `docs/NISAR-processing.md`; streams 1024×1024 pixel windows via HTTP range requests directly from ASF DAAC Cloud Storage without downloading full granules.
+- **Required Environment Variable:** `EARTHDATA_TOKEN` (NASA Earthdata Login Bearer token; only required for online streaming from ASF DAAC).
 
 ### 6.2 Sylhet Population Exposure Model
-- **Script:** `scripts/exposure/compute_sylhet_exposure.py`
-- **Required Environment Variable:** None (reads local raster files via GDAL/Rasterio)
-- **Execution:** Intersects raster cell centers with flood inundation masks across threshold steps (-18.0 dB to -14.0 dB) conserving demographic counts.
+- **Script:** `scripts/exposure/make_sylhet_exposure.py` (invoking `scripts/exposure/calculate_exposure.py`).
+- **Required Environment Variable:** None (reads local raster files via GDAL/Rasterio).
+- **Execution:** Reprojects binary SAR flood masks to the ~100 m WorldPop 2020 grid using average resampling and computes population count inside extent across threshold steps (-18.0 dB to -14.0 dB).
 
 ### 6.3 Baseline Radar Change Detection
 - **Script:** `python-service/process_change.py`

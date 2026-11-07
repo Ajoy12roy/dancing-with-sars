@@ -191,7 +191,82 @@ Inspected from Next.js static build outputs in `.next/server/app/**/*.html`:
 - **Buttons:** 0 interactive `<button>` elements missing accessible names (`aria-label`, visible text, or `title`).
 - **Live Regions:** Application-wide `aria-live="polite"` and `aria-live="assertive"` regions active for screen readers.
 
-## 5. Manual Verification Requirements (Real Browser)
+## 5. Submission Documents Verification
+
+Every factual statement across `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` was audited against the repository codebase and dataset files.
+
+### 5.1 Factual Statements Audit Table
+
+| Statement | Source File in Repository | Verdict |
+| :--- | :--- | :---: |
+| Challenge: "Dancing with the SARs (Synthetic Aperture Radar)" | Official Space Apps 2026 Challenge Name; `README.md:6` | **VERIFIED** |
+| Team: "Team Nova Strike's" | `README.md:10`, root `LICENSE:3` | **VERIFIED** |
+| Repository License: MIT License | Root `LICENSE`, `package.json:17` | **VERIFIED** |
+| Sentinel-1 C-band frequency: 5.405 GHz, ~5.6 cm wavelength | `components/home/WhyRadarSection.tsx:82`, `docs/VALIDATION.md:14` | **VERIFIED** |
+| NISAR L-band frequency: 1.25 GHz, ~24 cm wavelength | `docs/NISAR-processing.md:31`, `components/home/WhyRadarSection.tsx:84` | **VERIFIED** |
+| 10 precomputed global hazard benchmarks | `data/cases.json` (sylhet, tanguar, valencia, rio-grande, lake-mead, beira, brumadinho, amazon, jamuna, greenland = 10 cases) | **VERIFIED** |
+| 4 core environmental modes: Flood, Riverbank Erosion, Deforestation, Surface Water | `data/cases.json`, `python-service/process_change.py:44-50`, `components/explore/ModeSelector.tsx` | **VERIFIED** |
+| NISAR Product: Level-2 geocoded backscatter (GCOV) | `data/nisar/hakaluki-haor/timeseries.json`, `docs/NISAR-processing.md:25` | **VERIFIED** |
+| NISAR Data Maturity: PROVISIONAL | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:117` | **VERIFIED** |
+| NISAR CRID: P05023, Mode: 4005 | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:120` | **VERIFIED** |
+| NISAR Orbit Geometry: Track 141 Frame 014 Ascending (`A`) | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:129` | **VERIFIED** |
+| NISAR Polarization: Dual-Pol DHDH, HH co-pol analyzed | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:123` | **VERIFIED** |
+| Hakaluki NISAR window: 1024×1024 px, 104.86 km² (32.4% of Hakaluki 323.62 km² bounding box) | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:150` | **VERIFIED** |
+| 10-date NISAR time series: 2026-06-23 to 2026-10-21 | `data/nisar/hakaluki-haor/timeseries.json` (10 timestamp records) | **VERIFIED** |
+| Excluded date 2026-08-22: Radiometric outlier (\|m_d - M\| = 40.00 dB > 2.62 dB; mean_corr = 0.279 < 0.362; cause not established) | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:537` | **VERIFIED** |
+| NISAR bimodality failure: valley ratio 0.7027 > 0.60, threshold not reliably determinable | `data/nisar/hakaluki-haor/timeseries.json`, `components/explore/NisarCard.tsx:160` | **VERIFIED** |
+| Sylhet flooded area: 37.19 km² (17.05% of 218.10 km² AOI) at -16.0 dB default threshold | `data/exposure/sylhet.json`, `python-service/process_change.py:175` | **VERIFIED** |
+| Sylhet demographic exposure: 74,321 (~74,000) estimated people in mapped extent | `data/exposure/sylhet.json:54` (`estimatedPeopleInExtent: 74321`) | **VERIFIED** |
+| Sylhet exposure sensitivity range: 57,094 (~57,000) at -18 dB to 94,143 (~94,000) at -14 dB | `data/exposure/sylhet.json:57-64` | **VERIFIED** |
+| Sylhet area sensitivity range: 30.85 km² at -18 dB to 44.01 km² at -14 dB | `data/exposure/sylhet.json:58,63`, `data/cases.json:17` | **VERIFIED** |
+| Chiku Voice Guide: Native browser Web Speech API, offline deterministic generation | `components/chiku/ChikuGuide.tsx`, `lib/chiku-script.ts` | **VERIFIED** |
+| Button labels: "Before / After", "Voice on" / "Voice off", "Explain this view", "Test voice" | `components/explore/SwipeComparison.tsx`, `components/chiku/ChikuGuide.tsx` | **VERIFIED** |
+| Chiku line: "This is a fixed default setting, not a value proven to be the best." | `lib/chiku-script.ts:223`, `tools/test-chiku-script.mjs:295` | **VERIFIED** |
+| Baseline change detection script: `python-service/process_change.py` | `python-service/process_change.py` | **VERIFIED** |
+| Sylhet exposure generation scripts: `scripts/exposure/make_sylhet_exposure.py` & `calculate_exposure.py` | `scripts/exposure/make_sylhet_exposure.py`, `calculate_exposure.py` | **VERIFIED** |
+| NISAR preview script: `scripts/nisar/make_previews.py` | `scripts/nisar/make_previews.py` | **VERIFIED** |
+| Wildfire research scripts: `scripts/wildfire/*.py` (fetch_nisar_windows_r2, firms_client, etc.) | `scripts/wildfire/` | **VERIFIED** |
+
+### 5.2 External URL Verification Table
+
+Tested via outbound HTTP requests:
+
+| Target URL | Referenced Location | HTTP Status | Response Header / Message | Verdict |
+| :--- | :--- | :---: | :--- | :---: |
+| `https://github.com/Ajoy12roy/dancing-with-sars` | `SUBMISSION.md:7`, `README.md` | 200 | OK | **VERIFIED** |
+| `https://github.com/Ajoy12roy/dancing-with-sars.git` | `SUBMISSION.md:75` | 200 | OK (Git Remote) | **VERIFIED** |
+| `https://github.com/Ajoy12roy/dancing-with-sars/blob/main/LICENSE` | `SUBMISSION.md:6` | 200 | OK | **VERIFIED** |
+| `https://dancing-with-sars.vercel.app` | `SUBMISSION.md:8` | 200 | OK | **VERIFIED** |
+| `https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD` | `SUBMISSION.md:44` | 200 | OK | **VERIFIED** |
+| `https://earthengine.google.com/` | `SUBMISSION.md:47` | 200 | OK | **VERIFIED** |
+| `https://nisar-docs.asf.alaska.edu/gcov/` | `SUBMISSION.md:45` | 200 | OK | **VERIFIED** |
+| `https://asf.alaska.edu/` | `SUBMISSION.md:48` | 200 | OK | **VERIFIED** |
+| `https://hub.worldpop.org/geodata/summary?id=28451` | `SUBMISSION.md:46` | 200 | OK | **VERIFIED** |
+| `https://www.openstreetmap.org/copyright` | `SUBMISSION.md:49` | 200 | OK | **VERIFIED** |
+| `https://podaac.jpl.nasa.gov/dataset/OPERA_L3_DSWX-S1_V1` | `SUBMISSION.md:50` | 200 | OK (Replaced unreachable DNS alias) | **VERIFIED** |
+| `https://global-surface-water.appspot.com/` | `SUBMISSION.md:51` | 200 | OK | **VERIFIED** |
+| `https://cegisbd.com/` | `SUBMISSION.md:52` | 200 | OK | **VERIFIED** |
+| `http://terrabrasilis.dpi.inpe.br/` | `SUBMISSION.md:53` | 200 | OK | **VERIFIED** |
+| `https://firms.modaps.eosdis.nasa.gov/` | `SUBMISSION.md:54` | 200 | OK | **VERIFIED** |
+
+### 5.3 Scientific Honesty and Limitation Confirmations
+
+Confirmed that `docs/SUBMISSION.md`, `docs/DEMO-SCRIPT.md`, and the codebase strictly uphold:
+- **PROVISIONAL NISAR Status**: Prominently disclosed across badges, tables, subtitles, and Chiku narrations.
+- **NISAR Spatial Extent**: Explicitly documented as single geometry (Track 141 Frame 014 Ascending) covering 104.86 km² (32.4% of the Hakaluki case bounding box).
+- **No Ground Truth Validation Claims**: Stated plainly that thresholds are empirical and no results are validated against physical ground truth.
+- **Wildfire Research Findings**: Explicitly documented that an event-first wildfire pipeline was built combining NASA FIRMS and NISAR L-band, but the pre-registered radiometric sanity rule halted the run due to processing artifacts, so no wildfire claims or products are made.
+- **Zero Forbidden Overclaims**: Scanned and verified **0** occurrences of "AI assistant", **0** unverified claims of "validated", **0** claims of "best threshold", **0** real-time claims, and **0** predictive forecast claims.
+
+### 5.4 Presentation Timing Verification
+
+- **Pacing Standard**: Human speech at **150 words/min** (2.5 words/sec); Chiku Web Speech synthesis at **15 chars/sec**.
+- **Calculated Spoken Duration**: 337 human words = 134.8 s; 308 Chiku chars = 20.5 s. Total = **155.3 seconds**.
+- **Time Ceiling**: $\le 180.0$ seconds (leaves a **24.7-second buffer** for live UI interactions and pauses).
+
+---
+
+## 6. Manual Verification Requirements (Real Browser)
 
 Due to sandbox and headless test runner limitations, the following must be verified manually by a human in a real graphical browser (NOT VERIFIED automatically):
 

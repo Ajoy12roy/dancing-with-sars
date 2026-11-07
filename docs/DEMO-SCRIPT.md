@@ -67,6 +67,21 @@
   > *"Finally, we believe scientific integrity is as vital as code. Our 'What this project does not do' section makes our boundaries unambiguous: we do not forecast floods, we do not give evacuation advice, and our results are honest indicators, not ground-truth validated claims.*  
   > *TerraPulse is fully open source under the MIT License, ready for disaster researchers and communities worldwide. Thank you."*
 
+### 2.1 Duration and Timing Verification (3-Minute Presentation)
+
+Calculated at standard presentation pace (**150 words per minute** for human speech = 2.5 words/sec; **15 characters per second** for browser Web Speech synthesis):
+
+| Segment | Spoken Words | Human Speech (s) | Chiku Characters | Chiku Speech (s) | Total Time (s) | Budget Limit (s) | Margin / Buffer |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **[0:00 - 0:35] Introduction & The Radar Advantage** | 54 words | 21.6 s | 0 | 0.0 s | **21.6 s** | 35 s | +13.4 s |
+| **[0:35 - 1:20] Real Change Detection & Demographic Exposure** | 99 words | 39.6 s | 0 | 0.0 s | **39.6 s** | 45 s | +5.4 s |
+| **[1:20 - 2:05] NASA-ISRO NISAR L-Band Analysis** | 87 words | 34.8 s | 0 | 0.0 s | **34.8 s** | 45 s | +10.2 s |
+| **[2:05 - 2:40] "Chiku" Accessible Voice Guide** | 36 words | 14.4 s | 308 chars | 20.5 s | **34.9 s** | 35 s | +0.1 s |
+| **[2:40 - 3:00] Scientific Honesty & Conclusion** | 61 words | 24.4 s | 0 | 0.0 s | **24.4 s** | 30 s | +5.6 s |
+| **Total 3-Minute Presentation** | **337 words** | **134.8 s** | **308 chars** | **20.5 s** | **155.3 s** | **180.0 s** | **+24.7 s buffer** |
+
+> **Verdict:** The total spoken and synthetic speech content takes **155.3 seconds**, comfortably below the 180-second hard ceiling, leaving 24.7 seconds of natural pause buffer for UI transitions and slide changes.
+
 ---
 
 ## 3. 60-Second Lightning Demo Script
@@ -74,7 +89,7 @@
 - **[0:00 - 0:15] Hook & Purpose:**
   - **Action:** Open `/explore?case=sylhet`. Drag the before/after slider once.
   - **Spoken Words:**
-    > *"When severe storms hit, clouds block optical cameras. TerraPulse uses radar satellites that see through darkness and storms to detect surface disasters in real time without optical interference."*
+    > *"When severe storms hit, clouds block optical cameras. TerraPulse uses radar satellites that see through darkness and storms to detect surface disasters between satellite passes without optical or cloud interference."*
 - **[0:15 - 0:35] Core Innovation (Sentinel-1 + NISAR + WorldPop):**
   - **Action:** Scroll to Sylhet Exposure card, then NISAR card.
   - **Spoken Words:**
