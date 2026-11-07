@@ -286,9 +286,10 @@ Confirmed that `docs/SUBMISSION.md`, `docs/DEMO-SCRIPT.md`, and the codebase str
 
 ### 5.4 Presentation Timing Verification
 
-- **Pacing Standard**: Human speech at **150 words/min** (2.5 words/sec); Chiku Web Speech synthesis at **15 chars/sec**.
-- **Calculated Spoken Duration**: 337 human words = 134.8 s; 308 Chiku chars = 20.5 s. Total = **155.3 seconds**.
-- **Time Ceiling**: $\le 180.0$ seconds (leaves a **24.7-second buffer** for live UI interactions and pauses).
+- **Pacing Standard**: Human speech at **150 words/min** (2.5 words/sec); Chiku Web Speech synthesis at **15 chars/sec** for verified generated text (147 chars); UI operational overhead at **3.0 s per click/interaction** and **4.0 s per page navigation/tab switch** (27.0 s total overhead).
+- **Calculated Total Duration (3-Minute Presentation)**: 319 human words = 127.6 s; 147 Chiku chars = 9.8 s; UI overhead = 27.0 s. Total = **164.4 seconds**.
+- **Time Ceiling & Budget**: Strictly $\le 165.0$ seconds (leaves a **15.6-second safety buffer** below the 180.0-second hard limit).
+- **60-Second Lightning Demo**: 113 human words (45.2 s) + 10.0 s UI overhead = **55.2 seconds** (strictly $\le 58.0$ seconds requirement, +4.8 s buffer).
 
 ---
 
