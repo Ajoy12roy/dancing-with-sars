@@ -142,6 +142,9 @@ The real static asset paths and API routes were derived directly from the codeba
 | `/nisar/hakaluki-haor/2026-10-21_HH_preview.png` | **200 OK** | `image/png` | **MATCH (VALID)** | 188,243 B | 188,243 B | **EXACT** |
 | `/nisar/hakaluki-haor/index.json` | **200 OK** | `application/json` | N/A (JSON dataset descriptor) | 2,701 B | 2,701 B | **EXACT** |
 
+*Provenance Note on Preview File Sizes:*
+Git history (`git log --stat -- public/nisar/hakaluki-haor/*.png`) confirms these four PNGs were committed once in `commit 93fe1f0a6397bb5dabb419f6d775b28805c3998d` ("feat: nisar data delivery for ui") with exact sizes 183,940 B, 183,248 B, 184,028 B, and 188,243 B, matching `index.json`. They have never been regenerated or re-compressed. A previous chat response mistakenly reported 134,809 / 138,401 / 139,417 / 136,897 bytes; the table above reflects the true, verified byte lengths on disk. All 4 files pass 8-byte PNG magic signature checks (`89 50 4E 47 0D 0A 1A 0A`) and align with the 4 dates displayed in `NisarCard.tsx`.
+
 ### 3.4 Data Routes Tested with Real Arguments
 | Endpoint & Arguments | Method | Status | Key Values Checked & Verified |
 | :--- | :---: | :---: | :--- |
