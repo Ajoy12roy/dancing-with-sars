@@ -153,28 +153,27 @@ The real static asset paths and API routes were derived directly from the codeba
 
 Inspected from Next.js static build outputs in `.next/server/app/**/*.html`:
 
-| Page | `<html lang>` | `<title>` | `<h1>` Count | Landmarks (`header`, `nav`, `main`, `footer`) | Skip Link | `<img>` Without `alt` | Buttons Without Name | `aria-live` Regions |
-| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **`/` (index)** | `en` | `TerraPulse — SAR Change Detection` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`/explore`** | `en` | `Explore SAR Change Detection — TerraPulse` | 0 (client Suspense fallback; `<h1>` hydrates client-side) | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`/how-it-works`** | `en` | `How It Works — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`/data-sources`** | `en` | `Data Sources & Methodology — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`/terms`** | `en` | `Terms of Use — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`/privacy`** | `en` | `Privacy Policy — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`/about`** | `en` | `About — TerraPulse` | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
-| **`404` (`_not-found`)** | `en` | `TerraPulse — SAR Change Detection` (root fallback) | 1 | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| Page Route | `<html lang>` | `<title>` | `<h1>` Count | Static `<h1>` Heading Text | Landmarks (`header`, `nav`, `main`, `footer`) | Skip Link | `<img>` Without `alt` | Buttons Without Name | `aria-live` |
+| :--- | :---: | :--- | :---: | :--- | :---: | :---: | :---: | :---: | :--- |
+| **`/` (index)** | `en` | `TerraPulse — SAR Change Detection` | **1** | `TerraPulse` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/explore`** | `en` | `Explore SAR Change Detection — TerraPulse` | **1** | `Explore SAR Observations` (hydrates to active case) | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/how-it-works`** | `en` | `How It Works — TerraPulse` | **1** | `How It Works` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/data-sources`** | `en` | `Data Sources & Methodology — TerraPulse` | **1** | `Data Sources & Methodology` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/terms`** | `en` | `Terms of Use — TerraPulse` | **1** | `Terms of Use` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/privacy`** | `en` | `Privacy Policy — TerraPulse` | **1** | `Privacy Policy` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`/about`** | `en` | `About — TerraPulse` | **1** | `About the Project` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
+| **`404` (`_not-found`)** | `en` | `TerraPulse — SAR Change Detection` | **1** | `404` | All Present (4/4) | Present (`#main-content`) | 0 | 0 | `polite`, `assertive` |
 
 ### Key Findings:
-- **`lang="en"`:** Present on all 8 HTML files.
-- **Titles:** All 7 primary navigable pages have unique, descriptive titles.
-- **Headings:** Exactly one `<h1>` present statically on 7 of 8 pages; `/explore` defines its `<h1>` inside a `Suspense` boundary rendered upon client-side hydration.
-- **Landmarks:** Every page contains `<header>`, `<nav>`, `<main id="main-content">`, and `<footer>`.
-- **Skip Links:** Functional `#main-content` skip link present on every page.
-- **Images:** Zero `<img>` elements missing `alt` attributes.
-- **Buttons:** Zero interactive `<button>` elements missing accessible names (`aria-label`, visible text, or `title`).
+- **`lang="en"`:** Verified on all 8 prerendered HTML files.
+- **Titles:** All 7 primary user-navigable routes feature distinct, content-specific page titles.
+- **Headings:** **Exactly one `<h1>` per page across all 8 prerendered files.** Following QA remediation, `/explore` defines its fallback static `<h1>` (`Explore SAR Observations`) within its prerendered skeleton, which hydrates smoothly into the active case title upon client-side state initialization.
+- **Heading Hierarchy:** No skipped heading levels (single `<h1>` -> `<h2>` -> `<h3>` / `<strong>`).
+- **Landmarks:** Every page contains semantic `<header>`, `<nav>`, `<main id="main-content">`, and `<footer>` elements.
+- **Skip Links:** Functional `#main-content` skip link present on every layout.
+- **Images:** 0 `<img>` elements missing descriptive `alt` attributes.
+- **Buttons:** 0 interactive `<button>` elements missing accessible names (`aria-label`, visible text, or `title`).
 - **Live Regions:** Application-wide `aria-live="polite"` and `aria-live="assertive"` regions active for screen readers.
-
----
 
 ## 5. Manual Verification Requirements (Real Browser)
 
