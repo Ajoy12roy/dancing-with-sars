@@ -71,9 +71,25 @@ ALL DATA CONSISTENCY AND ATTRIBUTION CHECKS PASSED WITH ZERO MISMATCHES!
 | **"Not Endorsed by NASA" Statement** | - `components/layout/Footer.tsx` (Bottom bar)<br>- `README.md` (Disclaimer) | *"Independent hackathon project, not endorsed by NASA."* / *"Not endorsed by NASA, ISRO, ESA, or any space agency."* | **VERIFIED** |
 | **Repository LICENSE & README License Line** | - `LICENSE` (Root repository file)<br>- `README.md` (License & Attribution section) | MIT License (Team Nova Strike's 2026), full MIT legal text in root `LICENSE` file | **VERIFIED** |
 
-### Additions Made:
+### Additions Made & Upstream Font License Audit:
 1. Created `app/fonts/LICENSE.txt` containing official SIL Open Font License 1.1 terms and upstream attributions for IBM Plex Mono, Public Sans, and Source Serif 4.
-2. Updated `README.md` License & Attribution section to explicitly link the SIL OFL 1.1 font license, WorldPop CC BY 4.0, NISAR ASF DAAC credit, and OpenStreetMap copyright.
+2. Verified upstream license files and copyright lines for all 3 self-hosted fonts against official repositories:
+   - **IBM Plex Mono**:
+     - *Upstream Source URL*: `https://github.com/IBM/plex` (file: `LICENSE.txt`)
+     - *Copyright Notice*: `Copyright © 2017 IBM Corp. with Reserved Font Name "Plex".`
+     - *Reserved Font Name*: `"Plex"` (corrected from `"Plex Mono"`).
+     - *Status*: **VERIFIED**
+   - **Public Sans**:
+     - *Upstream Source URL*: `https://github.com/uswds/public-sans` (file: `OFL.txt`)
+     - *Copyright Notice*: `Copyright 2015 The Public Sans Project Authors (https://github.com/uswds/public-sans)`
+     - *Reserved Font Name*: None claimed in upstream license file (corrected from unverified `Copyright 2015-2023 United States Government`).
+     - *Status*: **VERIFIED**
+   - **Source Serif 4**:
+     - *Upstream Source URL*: `https://github.com/adobe-fonts/source-serif` (file: `LICENSE.md`)
+     - *Copyright Notice*: `Copyright 2014-2021 Adobe Systems Incorporated (http://www.adobe.com/), with Reserved Font Name 'Source'.`
+     - *Reserved Font Name*: `'Source'`.
+     - *Status*: **VERIFIED**
+3. Updated `README.md` License & Attribution section to explicitly link the SIL OFL 1.1 font license, WorldPop CC BY 4.0, NISAR ASF DAAC credit, and OpenStreetMap copyright.
 
 ---
 

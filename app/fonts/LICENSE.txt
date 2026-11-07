@@ -1,15 +1,14 @@
 This application self-hosts three open-source font families in app/fonts/ under the SIL Open Font License, Version 1.1 (OFL-1.1):
 
 1. IBM Plex Mono
-   Copyright 2017 IBM Corp. with Reserved Font Name "Plex Mono"
+   Copyright © 2017 IBM Corp. with Reserved Font Name "Plex".
    Upstream: https://github.com/IBM/plex
    License: SIL Open Font License, Version 1.1
 
 2. Public Sans
-   Public Sans is designed and maintained by the United States Web Design System (USWDS), Technology Transformation Services, General Services Administration.
-   Copyright 2015-2023 United States Government
+   Copyright 2015 The Public Sans Project Authors (https://github.com/uswds/public-sans)
    Upstream: https://github.com/uswds/public-sans
-   License: SIL Open Font License, Version 1.1
+   License: SIL Open Font License, Version 1.1 (No Reserved Font Name claimed)
 
 3. Source Serif 4
    Copyright 2014-2021 Adobe Systems Incorporated (http://www.adobe.com/), with Reserved Font Name 'Source'.
