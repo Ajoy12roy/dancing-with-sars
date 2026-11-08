@@ -105,7 +105,7 @@ const PRESET_AOIS: PresetAoi[] = [
     id: 'sylhet',
     name: 'Sylhet Division, Bangladesh (Flood Inundation)',
     description: 'Surma River Basin, 2022 catastrophic monsoon flood (Benchmark case)',
-    bbox: { west: 91.8, south: 24.85, east: 91.95, north: 24.98 },
+    bbox: { west: 91.79992, south: 24.84992, east: 91.95012, north: 24.98017 },
     dateA: { start: '2022-05-01', end: '2022-05-10' },
     dateB: { start: '2022-06-20', end: '2022-06-21' },
     recommendedPass: 'DESCENDING',
@@ -115,36 +115,36 @@ const PRESET_AOIS: PresetAoi[] = [
     id: 'tanguar',
     name: 'Tanguar Haor, Bangladesh (Wetland Dynamics)',
     description: 'Sunamganj freshwater wetland seasonal hydrological fluctuations',
-    bbox: { west: 91.02, south: 25.1, east: 91.17, north: 25.21 },
-    dateA: { start: '2023-01-10', end: '2023-01-20' },
-    dateB: { start: '2023-07-05', end: '2023-07-15' },
+    bbox: { west: 90.97976, south: 25.04979, east: 91.2002, north: 25.22011 },
+    dateA: { start: '2023-02-01', end: '2023-02-28' },
+    dateB: { start: '2023-08-01', end: '2023-08-31' },
     recommendedPass: 'DESCENDING',
   },
   {
     id: 'jamuna',
     name: 'Jamuna River, Bangladesh (Braided Sandbars)',
     description: 'Sirajganj multi-thread braided channel and char morphology shifts',
-    bbox: { west: 89.65, south: 24.5, east: 89.85, north: 24.68 },
-    dateA: { start: '2021-02-01', end: '2021-02-15' },
-    dateB: { start: '2024-02-01', end: '2024-02-15' },
+    bbox: { west: 89.6498, south: 24.29979, east: 89.95002, north: 24.55015 },
+    dateA: { start: '2019-02-01', end: '2019-02-28' },
+    dateB: { start: '2024-02-01', end: '2024-02-28' },
     recommendedPass: 'ASCENDING',
+  },
+  {
+    id: 'amazon',
+    name: 'Amazon Rainforest, Rondônia, Brazil (Canopy Loss)',
+    description: 'Deforestation monitoring in the southwestern Amazon basin',
+    bbox: { west: -62.20007, south: -10.35003, east: -61.99992, north: -10.14988 },
+    dateA: { start: '2021-01-01', end: '2021-01-15' },
+    dateB: { start: '2023-01-01', end: '2023-01-15' },
+    recommendedPass: 'DESCENDING',
   },
   {
     id: 'padma-naria',
     name: 'Padma River / Naria, Bangladesh (Bank Erosion)',
     description: 'Shariatpur riverbank recession and severe land loss monitoring',
-    bbox: { west: 90.35, south: 23.25, east: 90.52, north: 23.4 },
-    dateA: { start: '2018-01-10', end: '2018-01-25' },
-    dateB: { start: '2019-01-10', end: '2019-01-25' },
-    recommendedPass: 'DESCENDING',
-  },
-  {
-    id: 'siberia-wildfire',
-    name: 'Western Siberia, Russia (Taiga Wildfire)',
-    description: 'Khanty-Mansi Autonomous Okrug fire scar and burn perimeter',
-    bbox: { west: 76.2, south: 61.1, east: 76.5, north: 61.3 },
-    dateA: { start: '2026-07-15', end: '2026-07-25' },
-    dateB: { start: '2026-08-10', end: '2026-08-20' },
+    bbox: { west: 90.23272, south: 23.31002, east: 90.42765, north: 23.49005 },
+    dateA: { start: '2017-01-15', end: '2017-03-15' },
+    dateB: { start: '2024-01-15', end: '2024-03-15' },
     recommendedPass: 'DESCENDING',
   },
 ];
@@ -445,6 +445,15 @@ export default function AoiMapPicker() {
       });
     }
   };
+
+  const baselineDays = Math.max(
+    1,
+    Math.round((Date.parse(dateWindowA.end) - Date.parse(dateWindowA.start)) / 86400000) + 1
+  );
+  const comparisonDays = Math.max(
+    1,
+    Math.round((Date.parse(dateWindowB.end) - Date.parse(dateWindowB.start)) / 86400000) + 1
+  );
 
   const midLat = (bbox.south + bbox.north) / 2;
   const midLon = (bbox.west + bbox.east) / 2;
@@ -1221,6 +1230,13 @@ export default function AoiMapPicker() {
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
+        </div>
+
+        {/* 3 formal script summary lines */}
+        <div className="text-xs text-text-secondary space-y-0.5 font-sans">
+          <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
+          <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
+          <p>The script prints the selected orbit group in the Console.</p>
         </div>
 
         {/* Script Code View */}

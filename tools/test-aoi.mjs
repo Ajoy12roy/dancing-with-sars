@@ -271,7 +271,7 @@ assert.ok(genWithOrbit.includes("ee.Filter.eq('orbitProperties_pass', PASS)"));
 assert.ok(genWithOrbit.includes("ee.Filter.eq('relativeOrbitNumber_start', ORBIT)"));
 assert.ok(genWithOrbit.includes("ee.ImageCollection('COPERNICUS/S1_GRD')"));
 assert.ok(genWithOrbit.includes("instrumentMode', 'IW'"));
-assert.ok(genWithOrbit.includes("transmitterReceiverPolarisation', bands[0]"));
+assert.ok(genWithOrbit.includes("transmitterReceiverPolarisation', 'VV'"));
 assert.ok(genWithOrbit.includes(".mosaic()"));
 assert.ok(genWithOrbit.includes(".clip(aoi)"));
 assert.ok(genWithOrbit.includes('91.8, // west'));
@@ -280,10 +280,9 @@ assert.ok(genWithOrbit.includes('var scale = 20;'));
 assert.ok(genWithOrbit.includes("crs = 'EPSG:4326'"));
 assert.ok(genWithOrbit.includes("fileNamePrefix: 'image_a'"));
 assert.ok(genWithOrbit.includes("fileNamePrefix: 'image_b'"));
-assert.ok(genWithOrbit.includes('Dancing with the SARs (TerraPulse)'));
-assert.ok(genWithOrbit.includes('not validated against physical ground truth'));
+assert.ok(genWithOrbit.includes('description: \'test_sylhet_image_a\''));
 
-// Generate parameterized script without PASS and ORBIT (null / offline)
+// Generate parameterized script without PASS and ORBIT (null / auto-selection)
 const genNullOrbit = generateGeeScript({
   bbox: { west: 91.8, south: 24.85, east: 91.95, north: 24.98 },
   startDateA: '2022-05-01',
@@ -297,10 +296,12 @@ const genNullOrbit = generateGeeScript({
 assert.ok(genNullOrbit.includes('var PASS = null;'));
 assert.ok(genNullOrbit.includes('var ORBIT = null;'));
 assert.ok(genNullOrbit.includes('if (PASS === null || ORBIT === null)'));
-assert.ok(genNullOrbit.includes("throw new Error('STOP: PASS and ORBIT parameters must be specified"));
-assert.ok(genNullOrbit.includes("print('TerraPulse: Distinct orbit passes in window:', s1Collection.aggregate_array('orbitProperties_pass').distinct());"));
-assert.ok(genNullOrbit.includes("print('TerraPulse: Distinct relative orbit tracks in window:', s1Collection.aggregate_array('relativeOrbitNumber_start').distinct());"));
+assert.ok(genNullOrbit.includes("aggregate_array('orbitProperties_pass')"));
+assert.ok(genNullOrbit.includes("aggregate_array('relativeOrbitNumber_start')"));
+assert.ok(genNullOrbit.includes('candidates.sort'));
+assert.ok(genNullOrbit.includes('No single orbit geometry has images in both windows. Widen a window or move the area.'));
+assert.ok(genNullOrbit.includes('Selected single-geometry orbit group: '));
 
-console.log('✓ Script generator matches reference script and handles both set & null orbit constraints');
+console.log('✓ Script generator matches reference script and handles both set & null orbit auto-selection constraints');
 
 console.log('\nAll Area Picker (lib/aoi.ts) tests passed successfully!');

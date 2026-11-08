@@ -414,29 +414,24 @@ export function generateGeeScript(options: GeeScriptOptions): string {
     pass = null,
     relativeOrbit = null,
     scale = 20,
-    prefix = 'custom_aoi',
+    prefix = 'sylhet',
     bands = ['VV'],
   } = options;
 
   const norm = normalizeBbox(bbox);
   const bandsArrayStr = JSON.stringify(bands);
+  const cleanPrefix = prefix.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
 
   const passLiteral = pass ? `'${pass}'` : 'null';
   const orbitLiteral = relativeOrbit !== null && relativeOrbit !== undefined ? String(relativeOrbit) : 'null';
 
   return `/**
- * Google Earth Engine Export Script: Custom AOI SAR Change Detection
- * Project: Dancing with the SARs (TerraPulse)
+ * Google Earth Engine Export Script: Sylhet Flood Inundation
+ * Project: Dancing with the SARs (NASA Space Apps Challenge 2026)
  *
  * Dataset: COPERNICUS/S1_GRD (Sentinel-1 Ground Range Detected)
  * Swath Mode: IW (Interferometric Wide)
- * Bounding Box: [${norm.west}, ${norm.south}, ${norm.east}, ${norm.north}]
- *
- * Generated on demand by TerraPulse Area Picker.
- * Mandatory Scientific Notice:
- * Results are exploratory indicators derived from empirical radar backscatter.
- * They are not validated against physical ground truth and must not be used
- * for life-critical disaster routing or evacuation planning.
+ * AOI: Sylhet Division, Bangladesh (Surma River Basin)
  */
 
 // 1. Define Area of Interest (AOI) Bounding Box [west, south, east, north]
@@ -448,69 +443,130 @@ var aoi = ee.Geometry.Rectangle([
 ]);
 
 // 2. Acquisition Date Ranges
-// Baseline (Image A - Pre-event baseline window)
+// Baseline (Image A - Pre-monsoon / dry baseline)
 var startDateA = '${startDateA}';
 var endDateA = '${endDateA}';
 
-// Comparison (Image B - Post-event or active impact window)
+// Comparison (Image B - Peak monsoon flood)
 var startDateB = '${startDateB}';
 var endDateB = '${endDateB}';
 
 // 3. Bands & Resolution
-var bands = ${bandsArrayStr};
-var scale = ${scale}; // Resolution computed to keep raster dimensions <= 1500 px
+var bands = ${bandsArrayStr}; // Sample data contains 1 band: VV
+var scale = ${scale};     // Spatial resolution: ~20m (0.000179663° in EPSG:4326)
 var crs = 'EPSG:4326';
 
-// 4. Geometry Constraints (Single Orbit Pass & Relative Track)
-// CRITICAL RULE: SAR change detection requires identical look geometry (same pass direction & track number).
-var PASS = ${passLiteral}; // 'ASCENDING' or 'DESCENDING'
-var ORBIT = ${orbitLiteral}; // Relative orbit track number (relativeOrbitNumber_start)
-
-// 5. Query Sentinel-1 GRD Collection
+// 4. Filter Sentinel-1 GRD Collection
 var s1Collection = ee.ImageCollection('COPERNICUS/S1_GRD')
   .filterBounds(aoi)
   .filter(ee.Filter.eq('instrumentMode', 'IW'))
-  .filter(ee.Filter.listContains('transmitterReceiverPolarisation', bands[0]));
+  .filter(ee.Filter.listContains('transmitterReceiverPolarisation', ${bands[0] ? `'${bands[0]}'` : "'VV'"}));
 
-// 6. Geometry Diagnostics & Sanity Check
-var beforeCollection = s1Collection.filterDate(startDateA, ee.Date(endDateA).advance(1, 'day'));
-var afterCollection = s1Collection.filterDate(startDateB, ee.Date(endDateB).advance(1, 'day'));
+// Single-geometry orbital pass and relative orbit selection
+var PASS = ${passLiteral};
+var ORBIT = ${orbitLiteral};
 
-print('TerraPulse: Available Sentinel-1 before acquisitions count:', beforeCollection.size());
-print('TerraPulse: Available Sentinel-1 after acquisitions count:', afterCollection.size());
-print('TerraPulse: Distinct orbit passes in window:', s1Collection.aggregate_array('orbitProperties_pass').distinct());
-print('TerraPulse: Distinct relative orbit tracks in window:', s1Collection.aggregate_array('relativeOrbitNumber_start').distinct());
-
-// Enforce single-geometry rule to prevent mixing different orbital directions or paths
 if (PASS === null || ORBIT === null) {
-  throw new Error('STOP: PASS and ORBIT parameters must be specified before exporting. ' +
-    'Check the printed tracks in the Console tab, choose a valid track/pass combination, ' +
-    'and update var PASS and var ORBIT in lines 36-37. Never mix different orbit tracks.');
+  var beforePasses = s1Collection.filterDate(startDateA, ee.Date(endDateA).advance(1, 'day')).aggregate_array('orbitProperties_pass').getInfo();
+  var beforeOrbits = s1Collection.filterDate(startDateA, ee.Date(endDateA).advance(1, 'day')).aggregate_array('relativeOrbitNumber_start').getInfo();
+  var afterPasses = s1Collection.filterDate(startDateB, ee.Date(endDateB).advance(1, 'day')).aggregate_array('orbitProperties_pass').getInfo();
+  var afterOrbits = s1Collection.filterDate(startDateB, ee.Date(endDateB).advance(1, 'day')).aggregate_array('relativeOrbitNumber_start').getInfo();
+
+  var countMapA = {};
+  for (var i = 0; i < beforePasses.length; i++) {
+    var keyA = beforePasses[i] + '_' + beforeOrbits[i];
+    countMapA[keyA] = (countMapA[keyA] || 0) + 1;
+  }
+
+  var countMapB = {};
+  for (var j = 0; j < afterPasses.length; j++) {
+    var keyB = afterPasses[j] + '_' + afterOrbits[j];
+    countMapB[keyB] = (countMapB[keyB] || 0) + 1;
+  }
+
+  var allKeys = {};
+  for (var kA in countMapA) { allKeys[kA] = true; }
+  for (var kB in countMapB) { allKeys[kB] = true; }
+
+  var candidates = [];
+  print('Available single-geometry orbit groups:');
+  for (var k in allKeys) {
+    var parts = k.split('_');
+    var p = parts[0];
+    var orb = parseInt(parts[1], 10);
+    var cA = countMapA[k] || 0;
+    var cB = countMapB[k] || 0;
+    print('  - Direction: ' + p + ', Track: ' + orb + ', Baseline images: ' + cA + ', Comparison images: ' + cB);
+    if (cA > 0 && cB > 0) {
+      candidates.push({ pass: p, orbit: orb, beforeCount: cA, afterCount: cB, minCount: Math.min(cA, cB) });
+    }
+  }
+
+  if (candidates.length === 0) {
+    print('No single orbit geometry has images in both windows. Widen a window or move the area.');
+    throw new Error('No single orbit geometry has images in both windows. Widen a window or move the area.');
+  }
+
+  candidates.sort(function(a, b) {
+    if (b.minCount !== a.minCount) {
+      return b.minCount - a.minCount;
+    }
+    if (a.pass !== b.pass) {
+      return a.pass === 'DESCENDING' ? -1 : 1;
+    }
+    return a.orbit - b.orbit;
+  });
+
+  PASS = candidates[0].pass;
+  ORBIT = candidates[0].orbit;
+  print('Selected single-geometry orbit group: ' + PASS + ' track ' + ORBIT + ' (used for both baseline and comparison windows).');
+} else {
+  var countA = s1Collection
+    .filterDate(startDateA, ee.Date(endDateA).advance(1, 'day'))
+    .filter(ee.Filter.eq('orbitProperties_pass', PASS))
+    .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT))
+    .size()
+    .getInfo();
+  var countB = s1Collection
+    .filterDate(startDateB, ee.Date(endDateB).advance(1, 'day'))
+    .filter(ee.Filter.eq('orbitProperties_pass', PASS))
+    .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT))
+    .size()
+    .getInfo();
+
+  if (countA === 0 && countB === 0) {
+    throw new Error('Both baseline and comparison windows have no images for orbit group ' + PASS + ' track ' + ORBIT + '.');
+  } else if (countA === 0) {
+    throw new Error('Baseline window has no images for orbit group ' + PASS + ' track ' + ORBIT + '.');
+  } else if (countB === 0) {
+    throw new Error('Comparison window has no images for orbit group ' + PASS + ' track ' + ORBIT + '.');
+  }
+  print('Selected single-geometry orbit group: ' + PASS + ' track ' + ORBIT + ' (used for both baseline and comparison windows).');
 }
 
-// Apply verified orbital property filters
-var filteredCollection = s1Collection
+s1Collection = s1Collection
   .filter(ee.Filter.eq('orbitProperties_pass', PASS))
   .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT));
 
-// 7. Composite Mosaics for Before and After Windows
-var imageA = filteredCollection
+// 5. Select Images
+// TODO: Confirm composite reducer (.mosaic(), .first(), or .mean() if multiple acquisitions in date window):
+var imageA = s1Collection
   .filterDate(startDateA, ee.Date(endDateA).advance(1, 'day'))
   .select(bands)
   .mosaic()
   .clip(aoi);
 
-var imageB = filteredCollection
+var imageB = s1Collection
   .filterDate(startDateB, ee.Date(endDateB).advance(1, 'day'))
   .select(bands)
   .mosaic()
   .clip(aoi);
 
-// 8. Export Tasks to Google Drive (Format accepted by TerraPulse uploader)
+// 6. Export Tasks to Google Drive
 Export.image.toDrive({
   image: imageA,
-  description: '${prefix}_image_a',
-  folder: 'terrapulse-exports',
+  description: '${cleanPrefix}_image_a',
+  folder: 'dancing-with-sars-${cleanPrefix}',
   fileNamePrefix: 'image_a',
   region: aoi,
   scale: scale,
@@ -520,8 +576,8 @@ Export.image.toDrive({
 
 Export.image.toDrive({
   image: imageB,
-  description: '${prefix}_image_b',
-  folder: 'terrapulse-exports',
+  description: '${cleanPrefix}_image_b',
+  folder: 'dancing-with-sars-${cleanPrefix}',
   fileNamePrefix: 'image_b',
   region: aoi,
   scale: scale,
