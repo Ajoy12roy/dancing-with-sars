@@ -160,6 +160,30 @@ A count-conserving demographic exposure overlay combining Sentinel-1 radar chang
 
 ---
 
+## Area Picker & Earth Engine Script Generator (Optional Custom Workflow)
+
+To enable users to analyze custom geographic areas beyond the 10 precomputed benchmarks, TerraPulse provides an optional interactive workflow on [`/explore`](http://localhost:3000/explore):
+
+1. **Interactive AOI Selection**:
+   - Leaflet map view with click-to-recenter and bounding box visualization.
+   - Constrained to 2–30 km side lengths and a maximum area of $900\text{ km}^2$ to guarantee that exported rasters remain within the memory and performance envelopes of the local processing engine.
+   - Fully keyboard-accessible numeric coordinate inputs (North, South, East, West) with $\pm 0.01^\circ$ precision nudge buttons, $10\%$ directional shifts, and proportional scale controls.
+2. **Instant Offline Presets & Geocoding**:
+   - Five one-click presets (Sylhet Flood, Tanguar Haor, Jamuna River, Padma-Naria Bank Erosion, and Western Siberia Wildfire) pre-fill valid coordinates, dates, and orbit tracks for immediate testing with zero network connectivity.
+   - Search bar backed by OpenStreetMap Nominatim (`/api/geocode`) with rate limiting ($\le 1\text{ req/sec}$) and explicit attribution (`© OpenStreetMap contributors`).
+3. **Satellite Pass Finder (ASF Search API)**:
+   - Queries Alaska Satellite Facility DAAC archives via `/api/asf-search` for Sentinel-1 GRD IW and NISAR L-band granules covering both before and after windows.
+   - Groups acquisitions by orbital flight direction (`ASCENDING` / `DESCENDING`) and relative orbit track number, highlighting valid geometry pairs that prevent false positive changes caused by differing look angles.
+4. **Parameterized Earth Engine Script Generator**:
+   - Generates a ready-to-run Google Earth Engine (GEE) JavaScript export script matching [`scripts/gee/export_sylhet.js`](scripts/gee/export_sylhet.js).
+   - Dynamically calculates the optimal spatial resolution (multiple of 10 m keeping raster dimensions $\le 1500\text{ px}$) to prevent memory exhaustion and keep raw GeoTIFF sizes near 10–20 MB (well under the 60 MB uploader ceiling).
+   - Enforces single-geometry rules (`PASS` and `ORBIT`), clips to the exact AOI polygon, and exports co-registered `image_a` and `image_b` GeoTIFFs to Google Drive.
+5. **Boundaries & Future Work**:
+   - *Boundaries*: Earth Engine execution requires the user's own Google Earth Engine account; exported GeoTIFFs must be downloaded from Google Drive and uploaded into TerraPulse for local change detection.
+   - *Future Work*: Direct Earth Engine API OAuth integration for automated server-side export orchestration, and Cloud-Optimized GeoTIFF (COG) streaming via STAC catalogs.
+
+---
+
 ## AI Usage Disclosure
 
 TerraPulse maintains complete transparency regarding the use of Artificial Intelligence:

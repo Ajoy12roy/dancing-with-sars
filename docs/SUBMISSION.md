@@ -110,6 +110,18 @@ Open `http://localhost:3000` in your web browser. All precomputed cases, NISAR c
   ```
   Expected output: Flooded Area 37.19 km² (17.05%).
 
+### 6.4 Area Picker & Earth Engine Script Generator
+- **Location:** Interactive drawer on `/explore` above the file drop zones.
+- **Implementation:** Core math in `lib/aoi.ts`, interactive React component in `components/explore/AoiMapPicker.tsx`, and Next.js backend proxy routes in `app/api/asf-search/route.ts` and `app/api/geocode/route.ts`.
+- **Capabilities:**
+  - Dynamic Area of Interest (AOI) selection constrained to 2–30 km side lengths and $\le 900\text{ km}^2$.
+  - Instant offline presets for 5 benchmark regions (Sylhet, Tanguar, Jamuna, Padma-Naria, Western Siberia).
+  - Rate-limited geocoding via OpenStreetMap Nominatim with full attribution.
+  - Multi-window acquisition query via Alaska Satellite Facility (ASF) DAAC Search API (`/api/asf-search`).
+  - Automatic orbit track grouping (`ASCENDING` / `DESCENDING`) isolating valid single-geometry pairs across before and after windows.
+  - Parameterized Google Earth Engine export script generator matching `scripts/gee/export_sylhet.js` with automated spatial scaling keeping raster dimensions $\le 1500\text{ px}$.
+- **Honest Boundaries:** Export execution requires a personal Google Earth Engine account; downloaded GeoTIFF pairs are subsequently analyzed by TerraPulse's processing pipeline.
+
 ---
 
 ## 7. Team & License
