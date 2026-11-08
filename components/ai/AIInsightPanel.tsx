@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAnalysisMode, useAccessibility } from '@/context';
+import { useAnalysisMode, useAccessibility, useNetworkMode } from '@/context';
 import { generateFallbackInsight, type InsightPayload } from '@/lib/ai-insight-fallback';
 import type { ChangeData } from '@/hooks/useChangeData';
 import type { ResultMetrics, ResultCategory, ResultDates } from '@/types';
@@ -111,6 +111,7 @@ export function AIInsightPanel({
   const activeTotalArea = data?.totalAreaKm2 || propTotalArea;
 
   const { announce, emitEvent } = useAccessibility();
+  const { effectiveOffline } = useNetworkMode();
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [usedFallback, setUsedFallback] = useState<boolean>(false);
@@ -122,11 +123,6 @@ export function AIInsightPanel({
 
     const cacheKey = `${aoiId || 'none'}:${activeMode}`;
     currentKeyRef.current = cacheKey;
-
-    // 1. Cache hit: restore state from cache via Promise to avoid synchronous setState in effect
-    let requestPromise = insightCache.has(cacheKey)
-      ? Promise.resolve(insightCache.get(cacheKey)!)
-      : inFlightRequests.get(cacheKey);
 
     const isDemoAoi = isKnownCaseId(aoiId);
 
@@ -143,6 +139,23 @@ export function AIInsightPanel({
       dates: activeDates,
       warnings: activeWarnings,
     };
+
+    // 1. Cache hit or offline mode: restore state via Promise to avoid synchronous setState in effect
+    let requestPromise = insightCache.has(cacheKey)
+      ? Promise.resolve(insightCache.get(cacheKey)!)
+      : inFlightRequests.get(cacheKey);
+
+    if (!requestPromise && effectiveOffline) {
+      const fallbackText = generateFallbackInsight(localFallbackPayload);
+      const returnedNotes = getLocalFallbackNotes(aoiId, localFallbackPayload);
+      const entry: InsightCacheEntry = {
+        explanation: fallbackText,
+        usedFallback: true,
+        notes: returnedNotes.length > 0 ? returnedNotes : undefined,
+      };
+      insightCache.set(cacheKey, entry);
+      requestPromise = Promise.resolve(entry);
+    }
 
     let requestBody: Record<string, unknown>;
     if (isDemoAoi) {
@@ -299,6 +312,7 @@ export function AIInsightPanel({
     activeWarnings,
     announce,
     emitEvent,
+    effectiveOffline,
   ]);
 
   return (

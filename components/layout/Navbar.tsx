@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import TerraPulseLogo from '@/components/layout/TerraPulseLogo';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { NetworkModeToggle } from '@/components/layout/NetworkModeToggle';
 import { NAV_LINKS } from '@/constants';
 
 interface NavLinkProps {
@@ -129,13 +130,15 @@ function NavbarContent() {
               );
             })}
           </nav>
-          <div className="pl-3 lg:pl-4 border-l border-navbar-border flex items-center">
+          <div className="pl-3 lg:pl-4 border-l border-navbar-border flex items-center gap-2">
+            <NetworkModeToggle />
             <ThemeToggle className="p-2 text-[#EAF3FB] hover:text-navbar-link-hover" />
           </div>
         </div>
 
-        {/* Mobile Controls: ThemeToggle + Hamburger Toggle Button */}
+        {/* Mobile Controls: NetworkModeToggle + ThemeToggle + Hamburger Toggle Button */}
         <div className="flex md:hidden items-center gap-1">
+          <NetworkModeToggle />
           <ThemeToggle className="p-2 text-navbar-text hover:text-navbar-link-hover" />
           <button
             type="button"
@@ -195,8 +198,18 @@ function NavbarContent() {
                 </li>
               );
             })}
-            {/* Theme Toggle option inside mobile menu */}
+            {/* Network Mode option inside mobile menu */}
             <li className="pt-3 mt-2 border-t border-navbar-border flex items-center justify-between">
+              <span
+                className="text-xs uppercase tracking-wider font-semibold text-footer-text-secondary"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Network
+              </span>
+              <NetworkModeToggle showLabel className="px-3 py-1.5 border border-navbar-border" />
+            </li>
+            {/* Theme Toggle option inside mobile menu */}
+            <li className="pt-2 flex items-center justify-between">
               <span
                 className="text-xs uppercase tracking-wider font-semibold text-footer-text-secondary"
                 style={{ fontFamily: 'var(--font-body)' }}

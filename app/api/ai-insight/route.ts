@@ -342,12 +342,14 @@ export async function POST(request: NextRequest) {
   }
 
   const topKeys = Object.keys(body);
+  const requestedFallback = Boolean(body.fallback || body.offline);
+  const filteredKeys = topKeys.filter((k) => k !== 'fallback' && k !== 'offline');
 
   // Check which shape the request is
-  const isShapeA = topKeys.length === 2 && topKeys.includes('aoi') && topKeys.includes('mode');
+  const isShapeA = filteredKeys.length === 2 && filteredKeys.includes('aoi') && filteredKeys.includes('mode');
   const isShapeB =
-    (topKeys.length === 1 && topKeys[0] === 'metrics') ||
-    (topKeys.length === 2 && topKeys.includes('metrics') && topKeys.includes('mode'));
+    (filteredKeys.length === 1 && filteredKeys[0] === 'metrics') ||
+    (filteredKeys.length === 2 && filteredKeys.includes('metrics') && filteredKeys.includes('mode'));
 
   if (!isShapeA && !isShapeB) {
     return NextResponse.json(
@@ -511,6 +513,16 @@ export async function POST(request: NextRequest) {
   const activeAoiId = isShapeA ? (body.aoi as string).replace(/[^a-zA-Z0-9_-]/g, '') : null;
   const reliabilityNotes = buildReliabilityNotes(activeAoiId, payload);
   const notesField = reliabilityNotes.length > 0 ? reliabilityNotes : undefined;
+
+  // If requested fallback/offline flag is set, return deterministic fallback immediately
+  if (requestedFallback) {
+    const fallbackText = generateFallbackInsight(payload);
+    return NextResponse.json({
+      explanation: fallbackText,
+      fallback: true,
+      notes: notesField,
+    });
+  }
 
   // 2. Per-IP Rate Limiting (10 requests per 10 minutes)
   const clientIp = getClientIp(request);

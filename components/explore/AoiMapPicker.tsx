@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { useNetworkMode } from '@/context';
 
 import {
   BoundingBox,
@@ -351,6 +352,8 @@ const PRESET_AOIS: PresetAoi[] = [
 ];
 
 export default function AoiMapPicker() {
+  const { effectiveOffline } = useNetworkMode();
+
   // ── AOI Bounding Box State ──
   const [bbox, setBbox] = useState<BoundingBox>({
     west: 91.8,
@@ -809,25 +812,34 @@ export default function AoiMapPicker() {
             <input
               id="geocode-input"
               type="text"
+              disabled={effectiveOffline}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="e.g. Sylhet, Sunamganj, Sirajganj, Naria, Khanty-Mansiysk..."
-              className="w-full bg-surface-2 border border-hairline rounded-[2px] py-1.5 pl-8 pr-3 text-xs text-ink placeholder:text-text-secondary focus:outline-none focus:border-accent"
+              placeholder={
+                effectiveOffline
+                  ? 'Search requires a network connection.'
+                  : 'e.g. Sylhet, Sunamganj, Sirajganj, Naria, Khanty-Mansiysk...'
+              }
+              className="w-full bg-surface-2 border border-hairline rounded-[2px] py-1.5 pl-8 pr-3 text-xs text-ink placeholder:text-text-secondary focus:outline-none focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-text-secondary pointer-events-none" />
           </div>
           <button
             type="submit"
-            disabled={searchLoading || searchQuery.trim().length < 2}
+            disabled={effectiveOffline || searchLoading || searchQuery.trim().length < 2}
             className="px-4 py-1.5 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {searchLoading ? 'Searching...' : 'Search'}
           </button>
         </form>
 
-        {searchError && (
+        {effectiveOffline ? (
+          <p className="text-xs text-text-secondary mt-1 font-sans">
+            Search requires a network connection. Use the preset cases below or enter coordinates manually.
+          </p>
+        ) : searchError ? (
           <p className="text-xs text-rust mt-1 font-sans">{searchError}</p>
-        )}
+        ) : null}
 
         {searchResults.length > 0 && (
           <div className="border border-hairline rounded-[2px] bg-surface-2 mt-2 divide-y divide-hairline">
@@ -889,6 +901,12 @@ export default function AoiMapPicker() {
               <div className="bg-surface/95 border border-hairline px-3 py-1.5 rounded-[2px] text-xs font-sans text-ink shadow-md transition-opacity duration-300">
                 Use Ctrl + scroll to zoom the map.
               </div>
+            </div>
+          )}
+
+          {effectiveOffline && (
+            <div className="absolute bottom-10 left-2 z-[400] bg-surface/90 border border-hairline px-2 py-1 text-[11px] text-text-secondary font-sans pointer-events-none">
+              Street map requires a network connection.
             </div>
           )}
 
@@ -1430,13 +1448,26 @@ export default function AoiMapPicker() {
 
           <button
             type="button"
-            disabled={asfLoading || !validation.valid || !dateValidation.valid}
+            disabled={effectiveOffline || asfLoading || !validation.valid || !dateValidation.valid}
             onClick={handleFindAcquisitions}
             className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
           >
             {asfLoading ? 'Searching ASF archives...' : `Find ${asfMode === 's1' ? 'Sentinel-1' : 'NISAR'} passes via ASF`}
           </button>
         </div>
+
+        {/* Offline notice when network mode is offline */}
+        {effectiveOffline && (
+          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
+            <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-ink">Offline mode notice</p>
+              <p className="mt-0.5">
+                Search requires a network connection. Use the preset cases below or enter coordinates manually.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Offline / Error Notifications */}
         {asfOfflineNotice && (
