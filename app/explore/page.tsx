@@ -416,23 +416,30 @@ function ExploreContent() {
 
                 {/* Server Status indicator (when in Upload mode and API URL configured) */}
                 {activeTab === 'upload' && apiUrl && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-data">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-sans">
                     {serverStatus === 'ready' && (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
-                        <span className="text-teal font-medium">Server ready</span>
+                        <span className="text-teal font-medium">Processing service ready</span>
                       </>
                     )}
                     {serverStatus === 'waking' && (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
-                        <span className="text-text-secondary">Server waking up</span>
+                        <span className="text-text-secondary">The processing service is starting. This can take up to one minute.</span>
                       </>
                     )}
                     {serverStatus === 'offline' && (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                        <span className="text-rust">Server offline</span>
+                        <span className="text-text-secondary">The processing service is not reachable. The precomputed case studies remain available.</span>
+                        <button
+                          type="button"
+                          onClick={() => pingHealth()}
+                          className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
+                        >
+                          Retry
+                        </button>
                       </>
                     )}
                     {serverStatus === 'idle' && (
