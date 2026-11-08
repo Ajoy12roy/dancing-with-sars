@@ -765,10 +765,10 @@ export default function AoiMapPicker() {
       <div>
         <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
           <Layers className="w-4 h-4 text-accent" />
-          Area Picker & Earth Engine Script Generator
+          Area of interest
         </h3>
         <p className="text-xs text-text-secondary mt-1 font-sans">
-          Interactively select an Area of Interest ({MIN_SIDE_KM}–{MAX_SIDE_KM} km side length, max {MAX_AREA_KM2} km²),
+          Select an area of interest ({MIN_SIDE_KM}–{MAX_SIDE_KM} km side length, maximum {MAX_AREA_KM2} km²),
           query matching Sentinel-1 or NISAR orbital passes via the Alaska Satellite Facility (ASF),
           and export co-registered radar GeoTIFF pairs using Google Earth Engine.
         </p>
@@ -777,7 +777,7 @@ export default function AoiMapPicker() {
       {/* ── Preset Case Studies (100% Offline Capable) ── */}
       <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-2">
         <label htmlFor="preset-aoi-select" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider block">
-          Preset Benchmark Case Studies (Instant Offline Fill)
+          Preset benchmark cases
         </label>
         <div className="flex flex-wrap gap-2">
           {PRESET_AOIS.map((preset) => (
@@ -798,7 +798,7 @@ export default function AoiMapPicker() {
       <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-2">
         <div className="flex items-center justify-between">
           <label htmlFor="geocode-input" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider">
-            Search Location (Submit on Enter or Search)
+            Search location
           </label>
           <span className="text-[10px] text-text-secondary">
             Data © OpenStreetMap contributors
@@ -1216,23 +1216,23 @@ export default function AoiMapPicker() {
           {/* Area Dimensions & Export Scale Card */}
           <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2 text-xs font-data">
             <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-              <span className="text-text-secondary font-sans">Geodesic Dimensions:</span>
+              <span className="text-text-secondary font-sans">Geodesic dimensions:</span>
               <span className="font-medium text-ink">
                 {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
               </span>
             </div>
 
             <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-              <span className="text-text-secondary font-sans">Optimal GEE Scale:</span>
+              <span className="text-text-secondary font-sans">Optimal export scale:</span>
               <span className="font-medium text-teal">
-                {scaleInfo.scale}m resolution ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px)
+                {scaleInfo.scale} m resolution ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px)
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-text-secondary font-sans">Estimated Raw GeoTIFF:</span>
+              <span className="text-text-secondary font-sans">Estimated uncompressed GeoTIFF:</span>
               <span className="text-text-secondary">
-                ~{scaleInfo.uncompressedMb} MB uncompressed (well under 60 MB limit)
+                ~{scaleInfo.uncompressedMb} MB
               </span>
             </div>
 
@@ -1245,7 +1245,7 @@ export default function AoiMapPicker() {
             ) : (
               <div className="pt-1 flex items-center gap-1.5 text-teal font-sans text-[11px]">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                <span>Area meets all 2–30 km side and 900 km² boundary rules</span>
+                <span>Area meets all {MIN_SIDE_KM}–{MAX_SIDE_KM} km side and {MAX_AREA_KM2} km² boundary rules</span>
               </div>
             )}
           </div>
@@ -1255,10 +1255,10 @@ export default function AoiMapPicker() {
       {/* ── Date Windows & Acquisition Finder ── */}
       <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider font-sans flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-accent" />
-            Acquisition Date Windows
-          </h4>
+          <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-accent" />
+            Satellite pass finder
+          </h3>
 
           <button
             type="button"
@@ -1295,84 +1295,90 @@ export default function AoiMapPicker() {
                 onClick={handleApplyEventSuggestion}
                 className="px-3 py-1 bg-accent text-text-on-accent font-semibold rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer"
               >
-                Apply Suggestion
+                Apply suggestion
               </button>
             </div>
           </div>
         )}
 
         {/* Date Inputs Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          {/* Baseline Window (A) */}
-          <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2">
-            <span className="font-semibold text-ink font-sans block">
-              Baseline Window (Image A — Pre-Event)
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label htmlFor="date-window-a-start" className="text-text-secondary block mb-1">
-                  Start Date
-                </label>
-                <input
-                  id="date-window-a-start"
-                  type="date"
-                  value={dateWindowA.start}
-                  onChange={(e) =>
-                    setDateWindowA((prev) => ({ ...prev, start: e.target.value }))
-                  }
-                  className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                />
-              </div>
-              <div>
-                <label htmlFor="date-window-a-end" className="text-text-secondary block mb-1">
-                  End Date
-                </label>
-                <input
-                  id="date-window-a-end"
-                  type="date"
-                  value={dateWindowA.end}
-                  onChange={(e) =>
-                    setDateWindowA((prev) => ({ ...prev, end: e.target.value }))
-                  }
-                  className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                />
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider font-sans">
+            Acquisition date windows
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* Baseline Window (A) */}
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2">
+              <span className="font-semibold text-ink font-sans block">
+                Baseline window (Image A, pre-event)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="date-window-a-start" className="text-text-secondary block mb-1">
+                    Start date
+                  </label>
+                  <input
+                    id="date-window-a-start"
+                    type="date"
+                    value={dateWindowA.start}
+                    onChange={(e) =>
+                      setDateWindowA((prev) => ({ ...prev, start: e.target.value }))
+                    }
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="date-window-a-end" className="text-text-secondary block mb-1">
+                    End date
+                  </label>
+                  <input
+                    id="date-window-a-end"
+                    type="date"
+                    value={dateWindowA.end}
+                    onChange={(e) =>
+                      setDateWindowA((prev) => ({ ...prev, end: e.target.value }))
+                    }
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Comparison Window (B) */}
-          <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2">
-            <span className="font-semibold text-ink font-sans block">
-              Comparison Window (Image B — Post-Event / Inundation)
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label htmlFor="date-window-b-start" className="text-text-secondary block mb-1">
-                  Start Date
-                </label>
-                <input
-                  id="date-window-b-start"
-                  type="date"
-                  value={dateWindowB.start}
-                  onChange={(e) =>
-                    setDateWindowB((prev) => ({ ...prev, start: e.target.value }))
-                  }
-                  className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                />
-              </div>
-              <div>
-                <label htmlFor="date-window-b-end" className="text-text-secondary block mb-1">
-                  End Date
-                </label>
-                <input
-                  id="date-window-b-end"
-                  type="date"
-                  value={dateWindowB.end}
-                  onChange={(e) =>
-                    setDateWindowB((prev) => ({ ...prev, end: e.target.value }))
-                  }
-                  className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                />
+            {/* Comparison Window (B) */}
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2">
+              <span className="font-semibold text-ink font-sans block">
+                Comparison window (Image B, post-event)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="date-window-b-start" className="text-text-secondary block mb-1">
+                    Start date
+                  </label>
+                  <input
+                    id="date-window-b-start"
+                    type="date"
+                    value={dateWindowB.start}
+                    onChange={(e) =>
+                      setDateWindowB((prev) => ({ ...prev, start: e.target.value }))
+                    }
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="date-window-b-end" className="text-text-secondary block mb-1">
+                    End date
+                  </label>
+                  <input
+                    id="date-window-b-end"
+                    type="date"
+                    value={dateWindowB.end}
+                    onChange={(e) =>
+                      setDateWindowB((prev) => ({ ...prev, end: e.target.value }))
+                    }
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1406,7 +1412,7 @@ export default function AoiMapPicker() {
                     : 'text-text-secondary hover:text-ink'
                 }`}
               >
-                Sentinel-1 C-Band
+                Sentinel-1 C-band
               </button>
               <button
                 type="button"
@@ -1417,7 +1423,7 @@ export default function AoiMapPicker() {
                     : 'text-text-secondary hover:text-ink'
                 }`}
               >
-                NISAR L-Band
+                NISAR L-band
               </button>
             </div>
           </div>
@@ -1428,7 +1434,7 @@ export default function AoiMapPicker() {
             onClick={handleFindAcquisitions}
             className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
           >
-            {asfLoading ? 'Searching ASF Archives...' : `Find ${asfMode === 's1' ? 'Sentinel-1' : 'NISAR'} Passes via ASF`}
+            {asfLoading ? 'Searching ASF archives...' : `Find ${asfMode === 's1' ? 'Sentinel-1' : 'NISAR'} passes via ASF`}
           </button>
         </div>
 
@@ -1437,7 +1443,7 @@ export default function AoiMapPicker() {
           <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
             <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-ink">Offline Mode / Remote API Note</p>
+              <p className="font-semibold text-ink">Offline mode notice</p>
               <p className="mt-0.5">{asfOfflineNotice}</p>
             </div>
           </div>
@@ -1455,10 +1461,10 @@ export default function AoiMapPicker() {
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-ink">
-                Found {asfTotalCount} Sentinel-1 acquisition(s) across {asfGroups.length} distinct orbit track(s):
+                Found {asfTotalCount} Sentinel-1 acquisition(s) across {asfGroups.length} orbit track(s):
               </span>
               <span className="text-[11px] text-text-secondary">
-                Select an orbit track below to set GEE export filter
+                Select an orbit track below to set Earth Engine export filter
               </span>
             </div>
 
@@ -1467,11 +1473,11 @@ export default function AoiMapPicker() {
                 <thead>
                   <tr className="bg-surface-2 border-b border-hairline text-text-secondary">
                     <th className="py-2 px-3 w-8">Select</th>
-                    <th className="py-2 px-3">Flight Direction</th>
-                    <th className="py-2 px-3 font-data">Relative Orbit Track</th>
-                    <th className="py-2 px-3 font-data">Before Window</th>
-                    <th className="py-2 px-3 font-data">After Window</th>
-                    <th className="py-2 px-3">Usability Status</th>
+                    <th className="py-2 px-3">Flight direction</th>
+                    <th className="py-2 px-3 font-data">Relative orbit track</th>
+                    <th className="py-2 px-3 font-data">Before window</th>
+                    <th className="py-2 px-3 font-data">After window</th>
+                    <th className="py-2 px-3">Usability status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-hairline bg-surface font-sans">
@@ -1521,7 +1527,7 @@ export default function AoiMapPicker() {
                         <td className="py-2 px-3">
                           {grp.usable ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-[11px] font-semibold">
-                              <Check className="w-3 h-3" /> Ready: both windows
+                              <Check className="w-3 h-3" /> Ready in both windows
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-[11px]">
@@ -1538,7 +1544,7 @@ export default function AoiMapPicker() {
 
             <div className="flex items-center justify-between text-xs pt-1">
               <span className="text-text-secondary">
-                Active Selection: {selectedTrackPass ? `${selectedTrackPass.pass} Track ${selectedTrackPass.orbit}` : 'None (Manual filter)'}
+                Active selection: {selectedTrackPass ? `${selectedTrackPass.pass} Track ${selectedTrackPass.orbit}` : 'None (auto-selection)'}
               </span>
               {selectedTrackPass && (
                 <button
@@ -1566,7 +1572,7 @@ export default function AoiMapPicker() {
                 rel="noopener noreferrer"
                 className="text-accent hover:underline text-xs flex items-center gap-1"
               >
-                Explore on ASF Vertex <ExternalLink className="w-3 h-3" />
+                Open ASF Vertex <ExternalLink className="w-3 h-3" />
               </a>
             </div>
 
@@ -1574,8 +1580,8 @@ export default function AoiMapPicker() {
               <table className="w-full text-xs text-left border-collapse font-data">
                 <thead>
                   <tr className="bg-surface-2 border-b border-hairline text-text-secondary font-sans">
-                    <th className="py-1.5 px-3">Scene Name</th>
-                    <th className="py-1.5 px-3">Start Time</th>
+                    <th className="py-1.5 px-3">Scene name</th>
+                    <th className="py-1.5 px-3">Start time</th>
                     <th className="py-1.5 px-3">Direction</th>
                     <th className="py-1.5 px-3">Track</th>
                   </tr>
@@ -1600,9 +1606,9 @@ export default function AoiMapPicker() {
       <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider font-sans">
-              Google Earth Engine (GEE) Export Script
-            </h4>
+            <h3 className="text-base font-bold font-headline text-ink">
+              Earth Engine export script
+            </h3>
             <p className="text-xs text-text-secondary font-sans mt-0.5">
               Exports co-registered Sentinel-1 GRD IW VV GeoTIFFs to Google Drive using single-track look geometry.
             </p>
@@ -1617,12 +1623,12 @@ export default function AoiMapPicker() {
               {scriptCopied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-teal" />
-                  <span className="text-teal">Copied to Clipboard!</span>
+                  <span className="text-teal">Copied to clipboard</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  <span>Copy Script</span>
+                  <span>Copy script</span>
                 </>
               )}
             </button>
@@ -1652,7 +1658,7 @@ export default function AoiMapPicker() {
             readOnly
             value={geeScript}
             rows={14}
-            className="w-full bg-[#111827] text-[#e5e7eb] font-mono text-[11px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
+            className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
           />
         </div>
 
@@ -1660,7 +1666,7 @@ export default function AoiMapPicker() {
         <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 text-xs space-y-1 text-text-secondary font-sans">
           <p className="font-semibold text-ink">How to run this export:</p>
           <ol className="list-decimal list-inside space-y-0.5 pl-1">
-            <li>Click <strong>Copy Script</strong> above and open the <a href="https://code.earthengine.google.com/" target="_blank" rel="noopener noreferrer" className="text-accent underline">Earth Engine Code Editor</a>.</li>
+            <li>Click <strong>Copy script</strong> above and open the <a href="https://code.earthengine.google.com/" target="_blank" rel="noopener noreferrer" className="text-accent underline">Earth Engine Code Editor</a>.</li>
             <li>Paste into the editor and click <strong>Run</strong> at the top.</li>
             <li>In the <strong>Tasks</strong> tab on the right, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code>.</li>
             <li>When export completes, download both files from your Google Drive folder and drop them into the upload boxes below.</li>

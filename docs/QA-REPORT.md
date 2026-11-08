@@ -311,3 +311,66 @@ Due to sandbox and headless test runner limitations, the following must be verif
      - `http://localhost:3000/data-sources` (target: 100/100)
 4. **Physical Device Speech Synthesis:**
    - Click "Test voice" in Chiku panel and verify that speech synthesizer plays audio on host sound device.
+
+---
+
+## 7. Area Picker UI Strings
+
+All user-interface strings in `components/explore/AoiMapPicker.tsx` were audited and aligned with the TerraPulse design system. All emoji and exclamation marks were removed. Section headings follow sentence case and a strict `<h3>` / `<h4>` hierarchy with no skipped levels:
+
+### 7.1 Section Headings (Hierarchy Verified)
+- `Area of interest` (`<h3>` section)
+- `Geographic coordinates and dimensions` (`<h4>` subsection)
+- `Satellite pass finder` (`<h3>` section)
+- `Acquisition date windows` (`<h4>` subsection)
+- `Earth Engine export script` (`<h3>` section)
+
+### 7.2 UI Strings and Action Labels
+- **Map and Drawing Controls**:
+  - "Click map to reposition center, or select Draw rectangle to drag a box."
+  - "Drawing active: drag on map to define area. Press Escape to cancel."
+  - "Draw rectangle" / "Cancel drawing (Esc)"
+  - "Square selection"
+  - "Fit map to selection"
+  - "Use Ctrl + scroll to zoom the map."
+- **Preset Benchmarks and Search**:
+  - "Preset benchmark cases"
+  - "Search location"
+  - "Searching..." / "Search"
+- **Bounding Box and Geodesic Dimensions**:
+  - "Dimensions (3–30 km per side)"
+  - "Width (km)"
+  - "Height (km)"
+  - "North (°N)", "South (°N)", "East (°E)", "West (°E)"
+  - "Shift 10%:" ("N", "S", "E", "W")
+  - "Scale:" ("+10%", "-10%")
+  - "Geodesic dimensions:"
+  - "Optimal export scale:"
+  - "Estimated uncompressed GeoTIFF:"
+  - "Area meets all 3–30 km side and 900 km² boundary rules"
+- **Acquisition Date Windows and Event Helper**:
+  - "Suggest windows around event date" / "Hide event helper"
+  - "Enter an event date (e.g. peak flood or storm landfall) to automatically configure 12-day pre-event baseline and 12-day post-event comparison windows:"
+  - "Apply suggestion"
+  - "Baseline window (Image A, pre-event)"
+  - "Comparison window (Image B, post-event)"
+  - "Start date", "End date"
+- **Satellite Search and Archive Queries**:
+  - "Dataset:" ("Sentinel-1 C-band", "NISAR L-band")
+  - "Find Sentinel-1 passes via ASF" / "Find NISAR passes via ASF"
+  - "Searching ASF archives..."
+  - "Offline mode notice"
+  - "Select", "Flight direction", "Relative orbit track", "Before window", "After window", "Usability status"
+  - "Ready in both windows", "Incomplete (missing window)"
+  - "Active selection:", "None (auto-selection)"
+  - "Clear orbit constraint"
+  - "Scene name", "Start time", "Direction", "Track"
+  - "Open ASF Vertex"
+- **Script Generator and Export Guidance**:
+  - "Exports co-registered Sentinel-1 GRD IW VV GeoTIFFs to Google Drive using single-track look geometry."
+  - "Copy script", "Copied to clipboard"
+  - "Open Earth Engine Code Editor"
+  - "Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days."
+  - "Selected spatial resolution: {scale} m ({pixelsX} × {pixelsY} px, ~{uncompressedMb} MB uncompressed)."
+  - "The script prints the selected orbit group in the Console."
+  - "How to run this export:"
