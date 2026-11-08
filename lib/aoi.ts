@@ -420,7 +420,6 @@ export function generateGeeScript(options: GeeScriptOptions): string {
 
   const norm = normalizeBbox(bbox);
   const bandsArrayStr = JSON.stringify(bands);
-  const hasOrbitConstraint = Boolean(pass && relativeOrbit);
 
   const passLiteral = pass ? `'${pass}'` : 'null';
   const orbitLiteral = relativeOrbit !== null && relativeOrbit !== undefined ? String(relativeOrbit) : 'null';

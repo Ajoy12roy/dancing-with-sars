@@ -90,6 +90,14 @@ console.log('Running Area Picker (lib/aoi.ts) Test Suite...\n');
 
 // ── 1. Geodesic area and distance math at latitude 0 and 24 ──
 console.log('Test 1: Geodesic area and distance math...');
+assert.equal(MIN_SIDE_KM, 2);
+assert.equal(MAX_SIDE_KM, 30);
+assert.equal(MAX_AREA_KM2, 900);
+
+const cBox = bboxFromCorners([92, 25], [91, 24]);
+assert.deepEqual(cBox, { west: 91, south: 24, east: 92, north: 25 });
+const normBox = normalizeBbox({ west: 10, south: 20, east: 5, north: 15 });
+assert.deepEqual(normBox, { west: 5, south: 15, east: 10, north: 20 });
 // 1 deg latitude difference should be approx 111.2 km (authalic Earth radius)
 const equatorBox = { west: 0, south: 0, east: 1, north: 1 };
 const dimsEquator = computeBboxDimensions(equatorBox);
