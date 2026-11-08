@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
 import BeforeAfterViewer from '@/components/visualization/BeforeAfterViewer';
@@ -25,6 +26,15 @@ import {
 } from '@/lib/case-studies';
 import { getSensitivityForCase } from '@/lib/sensitivity';
 import type { AreaOfInterest, AnalysisMode } from '@/types';
+
+const AoiMapPicker = dynamic(() => import('@/components/explore/AoiMapPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full p-6 text-center text-xs font-data text-text-secondary border border-hairline bg-surface-2 rounded-[2px]">
+      Loading Area Picker & Map...
+    </div>
+  ),
+});
 
 function parseModeParam(param: string | null): AnalysisMode | null {
   if (!param) return null;
@@ -482,6 +492,22 @@ function ExploreContent() {
                   View Precomputed Case Studies
                 </button>
               </div>
+
+              {/* Optional Area Picker & Earth Engine Export Script Generator */}
+              <details className="border border-hairline rounded-[2px] bg-surface-2 group mt-4">
+                <summary className="p-4 cursor-pointer font-medium text-sm text-ink hover:text-accent flex items-center justify-between select-none">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">Optional:</span>
+                    <span>Pick an area, find satellite passes, and generate Earth Engine export script</span>
+                  </span>
+                  <span className="text-xs text-text-secondary group-open:rotate-180 transition-transform">
+                    ▼
+                  </span>
+                </summary>
+                <div className="p-4 border-t border-hairline bg-surface">
+                  <AoiMapPicker />
+                </div>
+              </details>
             </div>
           )}
 
@@ -571,6 +597,22 @@ function ExploreContent() {
                   />
                 </div>
               </div>
+
+              {/* Optional Area Picker & Earth Engine Export Script Generator */}
+              <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+                <summary className="p-4 cursor-pointer font-medium text-sm text-ink hover:text-accent flex items-center justify-between select-none">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">Optional:</span>
+                    <span>Pick an area, find satellite passes, and generate Earth Engine export script</span>
+                  </span>
+                  <span className="text-xs text-text-secondary group-open:rotate-180 transition-transform">
+                    ▼
+                  </span>
+                </summary>
+                <div className="p-4 border-t border-hairline bg-surface">
+                  <AoiMapPicker />
+                </div>
+              </details>
 
               {/* File Drop Zones */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
