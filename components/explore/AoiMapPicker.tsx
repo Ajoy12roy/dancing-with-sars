@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -75,17 +75,218 @@ function MapController({
   return null;
 }
 
-// Map Click Handler to reposition AOI center
+// Map Click Handler to reposition AOI center (active when not in drawing mode)
 function MapClickHandler({
   onCenterChange,
+  enabled,
 }: {
   onCenterChange: (lat: number, lon: number) => void;
+  enabled: boolean;
 }) {
   useMapEvents({
     click(e) {
-      onCenterChange(e.latlng.lat, e.latlng.lng);
+      if (enabled) {
+        onCenterChange(e.latlng.lat, e.latlng.lng);
+      }
     },
   });
+  return null;
+}
+
+interface MapDrawControllerProps {
+  isDrawingMode: boolean;
+  isDragging: boolean;
+  squareSelection: boolean;
+  onDrawStart: () => void;
+  onDrawUpdate: (bbox: BoundingBox) => void;
+  onDrawEnd: () => void;
+  onCancel: () => void;
+  onShowWheelHint: () => void;
+}
+
+function MapDrawController({
+  isDrawingMode,
+  isDragging,
+  squareSelection,
+  onDrawStart,
+  onDrawUpdate,
+  onDrawEnd,
+  onCancel,
+  onShowWheelHint,
+}: MapDrawControllerProps) {
+  const map = useMap();
+  const startLatLngRef = useRef<L.LatLng | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  // Wheel event handling (Ctrl + scroll zoom, or temporary hint)
+  useEffect(() => {
+    if (!map) return;
+    const container = map.getContainer();
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          map.zoomIn(1);
+        } else if (e.deltaY > 0) {
+          map.zoomOut(1);
+        }
+      } else {
+        onShowWheelHint();
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [map, onShowWheelHint]);
+
+  // Pointer event handling for rectangle drawing
+  useEffect(() => {
+    if (!map) return;
+    const container = map.getContainer();
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!isDrawingMode) return;
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch {
+        // Fallback if pointer capture is unsupported
+      }
+
+      map.dragging.disable();
+      map.doubleClickZoom.disable();
+
+      const latlng = map.mouseEventToLatLng(e as unknown as MouseEvent);
+      startLatLngRef.current = latlng;
+      onDrawStart();
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDrawingMode || !isDragging || !startLatLngRef.current) return;
+
+      const currentLatLng = map.mouseEventToLatLng(e as unknown as MouseEvent);
+      const start = startLatLngRef.current;
+
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+
+      rafRef.current = requestAnimationFrame(() => {
+        let newBbox: BoundingBox;
+        if (squareSelection) {
+          const lat1 = start.lat;
+          const lat2 = currentLatLng.lat;
+          const lon1 = start.lng;
+          const lon2 = currentLatLng.lng;
+          const midLat = (lat1 + lat2) / 2;
+          const rad = Math.PI / 180;
+          const deltaLatKm = Math.abs(lat2 - lat1) * 111.195;
+          const deltaLonKm = Math.abs(lon2 - lon1) * 111.195 * Math.cos(midLat * rad);
+          const sideKm = Math.min(MAX_SIDE_KM, Math.max(MIN_SIDE_KM, Math.max(deltaLatKm, deltaLonKm)));
+
+          const signLat = lat2 >= lat1 ? 1 : -1;
+          const signLon = lon2 >= lon1 ? 1 : -1;
+          const degLat = sideKm / 111.195;
+          const degLon = sideKm / (111.195 * (Math.cos(midLat * rad) || 1));
+
+          newBbox = {
+            south: Math.min(lat1, lat1 + signLat * degLat),
+            north: Math.max(lat1, lat1 + signLat * degLat),
+            west: Math.min(lon1, lon1 + signLon * degLon),
+            east: Math.max(lon1, lon1 + signLon * degLon),
+          };
+        } else {
+          newBbox = {
+            south: Math.min(start.lat, currentLatLng.lat),
+            north: Math.max(start.lat, currentLatLng.lat),
+            west: Math.min(start.lng, currentLatLng.lng),
+            east: Math.max(start.lng, currentLatLng.lng),
+          };
+        }
+        onDrawUpdate(newBbox);
+      });
+    };
+
+    const finishDraw = (e?: PointerEvent) => {
+      if (e) {
+        try {
+          if (container.hasPointerCapture(e.pointerId)) {
+            container.releasePointerCapture(e.pointerId);
+          }
+        } catch {
+          // Ignored
+        }
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      startLatLngRef.current = null;
+      try {
+        map.dragging.enable();
+        map.doubleClickZoom.enable();
+      } catch {
+        // Ignored
+      }
+      onDrawEnd();
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (!isDrawingMode || !isDragging) return;
+      finishDraw(e);
+    };
+
+    const handlePointerCancel = (e: PointerEvent) => {
+      if (!isDrawingMode || !isDragging) return;
+      finishDraw(e);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDrawingMode) {
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+        startLatLngRef.current = null;
+        try {
+          map.dragging.enable();
+          map.doubleClickZoom.enable();
+        } catch {
+          // Ignored
+        }
+        onCancel();
+      }
+    };
+
+    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointerup', handlePointerUp);
+    container.addEventListener('pointercancel', handlePointerCancel);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerup', handlePointerUp);
+      container.removeEventListener('pointercancel', handlePointerCancel);
+      window.removeEventListener('keydown', handleKeyDown);
+
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      try {
+        map.dragging.enable();
+        map.doubleClickZoom.enable();
+      } catch {
+        // Ignored
+      }
+    };
+  }, [map, isDrawingMode, isDragging, squareSelection, onDrawStart, onDrawUpdate, onDrawEnd, onCancel]);
+
   return null;
 }
 
@@ -160,6 +361,49 @@ export default function AoiMapPicker() {
 
   // Recenter counter to force MapController to re-fit bounds
   const [recenterCount, setRecenterCount] = useState<number>(1);
+
+  // ── Drawing and Pointer State ──
+  const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [squareSelection, setSquareSelection] = useState<boolean>(true);
+  const [showWheelHint, setShowWheelHint] = useState<boolean>(false);
+  const wheelHintTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (wheelHintTimerRef.current) {
+        clearTimeout(wheelHintTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleShowWheelHint = useCallback(() => {
+    setShowWheelHint(true);
+    if (wheelHintTimerRef.current) {
+      clearTimeout(wheelHintTimerRef.current);
+    }
+    wheelHintTimerRef.current = setTimeout(() => {
+      setShowWheelHint(false);
+    }, 1500);
+  }, []);
+
+  const handleDrawStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleDrawUpdate = useCallback((newBbox: BoundingBox) => {
+    setBbox(normalizeBbox(newBbox));
+  }, []);
+
+  const handleDrawEnd = useCallback(() => {
+    setIsDragging(false);
+    setIsDrawingMode(false);
+  }, []);
+
+  const handleCancelDraw = useCallback(() => {
+    setIsDragging(false);
+    setIsDrawingMode(false);
+  }, []);
 
   // ── Date Window State ──
   const [dateWindowA, setDateWindowA] = useState<{ start: string; end: string }>({
@@ -242,6 +486,63 @@ export default function AoiMapPicker() {
       setBbox(updated);
     },
     [bbox]
+  );
+
+  // ── Dimension Change Handlers ──
+  const handleDimensionChange = useCallback(
+    (dim: 'width' | 'height', val: number) => {
+      if (isNaN(val)) return;
+      const clampedVal = Math.min(MAX_SIDE_KM, Math.max(MIN_SIDE_KM, val));
+      const targetWidthKm = squareSelection ? clampedVal : dim === 'width' ? clampedVal : dimensions.widthKm;
+      const targetHeightKm = squareSelection ? clampedVal : dim === 'height' ? clampedVal : dimensions.heightKm;
+
+      const midLat = (bbox.south + bbox.north) / 2;
+      const midLon = (bbox.west + bbox.east) / 2;
+      const rad = Math.PI / 180;
+
+      const halfHeightDeg = targetHeightKm / 111.195 / 2;
+      const cosLat = Math.cos(midLat * rad);
+      const halfWidthDeg = targetWidthKm / (111.195 * (cosLat || 1)) / 2;
+
+      setBbox(
+        normalizeBbox({
+          west: Number((midLon - halfWidthDeg).toFixed(5)),
+          south: Number((midLat - halfHeightDeg).toFixed(5)),
+          east: Number((midLon + halfWidthDeg).toFixed(5)),
+          north: Number((midLat + halfHeightDeg).toFixed(5)),
+        })
+      );
+    },
+    [bbox, dimensions, squareSelection]
+  );
+
+  const handleSquareToggle = useCallback(
+    (enabled: boolean) => {
+      setSquareSelection(enabled);
+      if (enabled) {
+        const side = Math.min(
+          MAX_SIDE_KM,
+          Math.max(MIN_SIDE_KM, Math.max(dimensions.widthKm, dimensions.heightKm))
+        );
+        const midLat = (bbox.south + bbox.north) / 2;
+        const midLon = (bbox.west + bbox.east) / 2;
+        const rad = Math.PI / 180;
+
+        const halfHeightDeg = side / 111.195 / 2;
+        const cosLat = Math.cos(midLat * rad);
+        const halfWidthDeg = side / (111.195 * (cosLat || 1)) / 2;
+
+        setBbox(
+          normalizeBbox({
+            west: Number((midLon - halfWidthDeg).toFixed(5)),
+            south: Number((midLat - halfHeightDeg).toFixed(5)),
+            east: Number((midLon + halfWidthDeg).toFixed(5)),
+            north: Number((midLat + halfHeightDeg).toFixed(5)),
+          })
+        );
+      }
+    },
+    [bbox, dimensions]
   );
 
   // ── Nudge Handlers ──
@@ -550,16 +851,57 @@ export default function AoiMapPicker() {
       {/* ── Interactive Map & Bounding Box Controls ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Map View */}
-        <div className="lg:col-span-7 border border-hairline rounded-[2px] overflow-hidden bg-surface-2 relative flex flex-col min-h-[360px] h-[400px]">
-          <div className="absolute top-2 left-2 z-[400] bg-surface/90 backdrop-blur-sm border border-hairline rounded-[2px] px-2 py-1 text-[11px] text-text-secondary font-sans pointer-events-none shadow-sm">
-            💡 Click anywhere on map to reposition AOI center
+        <div
+          className="lg:col-span-7 border border-hairline rounded-[2px] overflow-hidden bg-surface-2 relative flex flex-col min-h-[360px] h-[400px]"
+          style={{ touchAction: isDrawingMode ? 'none' : 'pan-y' }}
+        >
+          {/* Top Overlay Bar */}
+          <div className="absolute top-2 left-2 right-2 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <div className="bg-surface/90 backdrop-blur-sm border border-hairline rounded-[2px] px-2 py-1 text-[11px] text-text-secondary font-sans pointer-events-auto shadow-sm">
+              {isDrawingMode
+                ? 'Drawing active: drag on map to define area. Press Escape to cancel.'
+                : 'Click map to reposition center, or select Draw rectangle to drag a box.'}
+            </div>
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrawingMode((prev) => {
+                    const next = !prev;
+                    if (!next) setIsDragging(false);
+                    return next;
+                  });
+                }}
+                className={`px-2.5 py-1 text-xs font-medium rounded-[2px] border transition-colors cursor-pointer shadow-sm ${
+                  isDrawingMode
+                    ? 'bg-rust text-text-on-accent border-rust'
+                    : 'bg-surface/90 backdrop-blur-sm border-hairline text-ink hover:border-accent hover:text-accent'
+                }`}
+              >
+                {isDrawingMode ? 'Cancel drawing (Esc)' : 'Draw rectangle'}
+              </button>
+            </div>
           </div>
+
+          {/* Wheel hint toast */}
+          {showWheelHint && (
+            <div className="absolute inset-0 flex items-center justify-center z-[500] pointer-events-none">
+              <div className="bg-surface/95 border border-hairline px-3 py-1.5 rounded-[2px] text-xs font-sans text-ink shadow-md transition-opacity duration-300">
+                Use Ctrl + scroll to zoom the map.
+              </div>
+            </div>
+          )}
 
           <MapContainer
             center={[midLat, midLon]}
             zoom={10}
             scrollWheelZoom={false}
-            style={{ width: '100%', height: '100%' }}
+            touchZoom={true}
+            style={{
+              width: '100%',
+              height: '100%',
+              cursor: isDrawingMode ? 'crosshair' : 'default',
+            }}
             className="z-0"
           >
             <TileLayer
@@ -572,27 +914,52 @@ export default function AoiMapPicker() {
                 [bbox.north, bbox.east],
               ]}
               pathOptions={{
-                color: validation.valid ? '#0f766e' : '#b45309',
+                color: validation.valid ? '#00A86B' : '#C84B31',
                 weight: 2,
-                fillColor: validation.valid ? '#0f766e' : '#b45309',
-                fillOpacity: 0.18,
+                fillColor: validation.valid ? '#00A86B' : '#C84B31',
+                fillOpacity: 0.15,
+                dashArray: isDragging ? '6, 6' : undefined,
               }}
             />
             <MapController bbox={bbox} recenterTrigger={recenterCount} />
-            <MapClickHandler onCenterChange={handleMapCenterClick} />
+            <MapClickHandler
+              onCenterChange={handleMapCenterClick}
+              enabled={!isDrawingMode}
+            />
+            <MapDrawController
+              isDrawingMode={isDrawingMode}
+              isDragging={isDragging}
+              squareSelection={squareSelection}
+              onDrawStart={handleDrawStart}
+              onDrawUpdate={handleDrawUpdate}
+              onDrawEnd={handleDrawEnd}
+              onCancel={handleCancelDraw}
+              onShowWheelHint={handleShowWheelHint}
+            />
           </MapContainer>
 
           <div className="p-2 border-t border-hairline bg-surface flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="text-text-secondary">
               Center: <span className="font-data font-medium text-ink">{midLat.toFixed(4)}°N, {midLon.toFixed(4)}°E</span>
             </span>
-            <button
-              type="button"
-              onClick={() => setRecenterCount((c) => c + 1)}
-              className="text-accent hover:underline text-xs cursor-pointer"
-            >
-              Fit map to selection
-            </button>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-sans text-text-secondary select-none">
+                <input
+                  type="checkbox"
+                  checked={squareSelection}
+                  onChange={(e) => handleSquareToggle(e.target.checked)}
+                  className="accent-accent cursor-pointer"
+                />
+                <span>Square selection</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setRecenterCount((c) => c + 1)}
+                className="text-accent hover:underline text-xs cursor-pointer"
+              >
+                Fit map to selection
+              </button>
+            </div>
           </div>
         </div>
 
@@ -600,8 +967,48 @@ export default function AoiMapPicker() {
         <div className="lg:col-span-5 border border-hairline rounded-[2px] bg-surface p-4 flex flex-col justify-between space-y-4">
           <div>
             <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 font-sans">
-              Geographic Coordinates & Nudge Controls
+              Geographic Coordinates & Dimensions
             </h4>
+
+            {/* Live numeric width & height in km */}
+            <div className="mb-3 p-2.5 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-ink font-sans">Dimensions</span>
+                <span className="text-[11px] text-text-secondary font-sans">{MIN_SIDE_KM}–{MAX_SIDE_KM} km per side</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label htmlFor="dim-width-km" className="text-text-secondary font-medium block mb-1">
+                    Width (km)
+                  </label>
+                  <input
+                    id="dim-width-km"
+                    type="number"
+                    min={MIN_SIDE_KM}
+                    max={MAX_SIDE_KM}
+                    step="0.5"
+                    value={dimensions.widthKm}
+                    onChange={(e) => handleDimensionChange('width', parseFloat(e.target.value))}
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs focus:outline-none focus:border-accent"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dim-height-km" className="text-text-secondary font-medium block mb-1">
+                    Height (km)
+                  </label>
+                  <input
+                    id="dim-height-km"
+                    type="number"
+                    min={MIN_SIDE_KM}
+                    max={MAX_SIDE_KM}
+                    step="0.5"
+                    value={dimensions.heightKm}
+                    onChange={(e) => handleDimensionChange('height', parseFloat(e.target.value))}
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs focus:outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* 4 Coordinate Inputs */}
             <div className="grid grid-cols-2 gap-3 text-xs">
