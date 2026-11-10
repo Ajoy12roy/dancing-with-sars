@@ -374,3 +374,6 @@ All user-interface strings in `components/explore/AoiMapPicker.tsx` were audited
   - "Selected spatial resolution: {scale} m ({pixelsX} × {pixelsY} px, ~{uncompressedMb} MB uncompressed)."
   - "The script prints the selected orbit group in the Console."
   - "How to run this export:"
+
+Owner-reported: the generated Sylhet script ran in the Earth Engine Code Editor and exported to Google Drive; this was not verified by automated checks.
+
