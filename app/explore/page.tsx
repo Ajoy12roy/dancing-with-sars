@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
 import { shouldProbeService } from '@/lib/service-probe';
@@ -420,42 +419,35 @@ function ExploreContent() {
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-sans">
                     {!isConnectedDeployment ? (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                        <span className="text-text-secondary">Service not connected in this deployment</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
+                        <span className="text-text-secondary">Service not enabled</span>
                       </>
                     ) : serverStatus === 'ready' ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
-                        <span className="text-teal font-medium">Processing service ready</span>
+                        <span className="text-teal font-medium">Connected</span>
                       </>
-                    ) : serverStatus === 'waking' ? (
+                    ) : serverStatus === 'waking' || serverStatus === 'idle' ? (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
-                        <span className="text-text-secondary">The processing service is starting.</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-hairline animate-pulse shrink-0" />
+                        <span className="text-text-secondary">Checking</span>
                       </>
                     ) : serverStatus === 'offline' ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                        <span className="text-text-secondary">The processing service is not reachable.</span>
+                        <span className="text-text-secondary">Offline</span>
                         <button
                           type="button"
                           onClick={() => pingHealth()}
                           className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
                         >
-                          Check connection
+                          Retry
                         </button>
                       </>
                     ) : (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
-                        <span className="text-text-secondary">Not connected</span>
-                        <button
-                          type="button"
-                          onClick={() => pingHealth()}
-                          className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
-                        >
-                          Check connection
-                        </button>
+                        <span className="text-text-secondary">Checking</span>
                       </>
                     )}
                   </div>
@@ -484,44 +476,6 @@ function ExploreContent() {
               </div>
             </div>
           </div>
-
-          {/* ── Notice when Live Processing API is not connected in this deployment ── */}
-          {activeTab === 'upload' && !isConnectedDeployment && (
-            <div className="col-span-12 space-y-6">
-              <div className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-rust" />
-                  <h2 className="text-xl font-semibold font-headline text-ink">
-                    Analysis service not connected
-                  </h2>
-                </div>
-                <p className="text-text-secondary text-base font-sans leading-relaxed">
-                  The analysis service is not connected in this deployment. The precomputed cases and the area picker remain available. To analyse your own files, run the project locally (<Link href="/how-it-works#earth-engine-export" className="text-teal hover:underline font-medium">see How it works</Link>).
-                </p>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('demo')}
-                    className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
-                  >
-                    View Precomputed Case Studies
-                  </button>
-                </div>
-              </div>
-
-              {/* Area Picker & Earth Engine Export Script Generator */}
-              <AoiMapPicker
-                onSelectCaseStudy={(caseId) => {
-                  setActiveTab('demo');
-                  handleAoiSelect(caseId);
-                }}
-                selectedCaseId={selectedAoi}
-                onPresetChange={(presetId) => {
-                  handleAoiSelect(presetId);
-                }}
-              />
-            </div>
-          )}
 
           {/* ── Upload Mode Form / Progress States ── */}
           {activeTab === 'upload' && uploadError && (
@@ -555,7 +509,7 @@ function ExploreContent() {
             </div>
           )}
 
-          {activeTab === 'upload' && isConnectedDeployment && !uploadLoading && !uploadData && (
+          {activeTab === 'upload' && !uploadLoading && !uploadData && (
             <div className="col-span-12 space-y-6">
               {/* Area Picker & Earth Engine Export Script Generator (Card 1 and Card 2) */}
               <AoiMapPicker
@@ -579,6 +533,12 @@ function ExploreContent() {
                     Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
                   </p>
                 </div>
+
+                {!isConnectedDeployment && (
+                  <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-sm text-text-secondary font-sans" role="status">
+                    Live analysis of your own files is not enabled on this deployment.
+                  </div>
+                )}
 
                 {/* Analysis Configuration Bar */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
@@ -656,7 +616,7 @@ function ExploreContent() {
                       <button
                         type="button"
                         onClick={handleTryWithSampleFiles}
-                        disabled={uploadLoading || sampleLoading}
+                        disabled={!isConnectedDeployment || uploadLoading || sampleLoading}
                         className="min-h-[44px] px-4 py-2 text-sm font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
@@ -665,7 +625,7 @@ function ExploreContent() {
 
                     <button
                       type="button"
-                      disabled={!beforeFile || !afterFile || uploadLoading || sampleLoading}
+                      disabled={!isConnectedDeployment || !beforeFile || !afterFile || uploadLoading || sampleLoading}
                       onClick={handleAnalyze}
                       className="min-h-[44px] bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
                     >

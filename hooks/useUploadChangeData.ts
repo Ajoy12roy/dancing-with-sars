@@ -52,11 +52,11 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       if (!shouldProbeService(hostname, apiUrl)) {
-        setServerStatus('offline');
+        setServerStatus('idle');
         return;
       }
     } else if (!apiUrl) {
-      setServerStatus('offline');
+      setServerStatus('idle');
       return;
     }
 
