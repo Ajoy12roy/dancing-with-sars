@@ -33,7 +33,7 @@ TerraPulse demonstrates how satellite radar can democratize environmental monito
 | **Ancillary Data** | Combined Sentinel-1 flood extents with WorldPop 2020 gridded population data (CC BY 4.0) to estimate demographic exposure across 218.10 km² of Sylhet Basin. | `/explore#exposure` (Sylhet Flood Exposure Card, demographic breakdown table, SVG bar chart) |
 | **Physical Drivers as Hypotheses** | Framed backscatter changes as physically grounded hypotheses (specular reflection, double-bounce, volume scattering loss) rather than definitive ground truth. | `/how-it-works#physical-mechanisms`, `/explore#nisar` ("What this could mean" hypothesis block) |
 | **Open Source** | Fully public GitHub repository under the permissive MIT License; documented reproducible Python processing scripts, test suites, and clean-clone workflows. | Root `LICENSE`, `README.md`, `python-service/`, `scripts/` |
-| **Accessible to Broad Audience** | Built following WCAG 2.2 AA guidelines; not certified. Engineered high-contrast color tokens, keyboard focus outlines, live screen reader announcers (`aria-live`), and "Chiku"—a deterministic browser speech guide. | Header voice toggle, `components/chiku/ChikuGuide.tsx`, `/how-it-works#accessibility` |
+| **Accessible to Broad Audience** | WCAG 2.2 AA is a design target; no formal accessibility audit has been done. Engineered high-contrast color tokens, keyboard focus outlines, live screen reader announcers (`aria-live`), and "Chiku"—a deterministic browser speech guide. | Header voice toggle, `components/chiku/ChikuGuide.tsx`, `/how-it-works#accessibility` |
 
 ---
 

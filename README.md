@@ -359,7 +359,7 @@ The web application is engineered for zero-dependency offline resilience during 
 
 ## Accessibility
 
-TerraPulse was built following WCAG 2.2 AA guidelines; not certified, to ensure radar observations and hazard insights are accessible to everyone:
+WCAG 2.2 AA is a design target; no formal accessibility audit has been done.
 - **Live Screen Reader Announcer**: An app-wide announcer (`aria-live="polite"` and `aria-live="assertive"`) vocalizes critical state transitions—such as case study selection, analysis progress and completion, upload validation errors, and AI interpretation updates—without requiring visual monitoring.
 - **Keyboard Navigation & High-Contrast Outlines**: Every interactive element, tab, case chip, and slider is reachable via Tab/Shift+Tab and activatable with Space/Enter. Focus indicators use high-contrast solid outlines (`outline: 2px solid var(--color-accent)`) rather than diffuse shadows, complying with DESIGN_SYSTEM.md tokens. A "Skip to main content" link is the first focusable element on every page.
 - **Operable Comparison Slider**: The before/after split slider is fully operable by keyboard (`role="slider"`, ArrowLeft/ArrowDown to decrease, ArrowRight/ArrowUp to increase, Home for 0%, End for 100%).
