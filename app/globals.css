@@ -74,7 +74,7 @@
   --font-data: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
 
   /* Font Sizes */
-  --text-xs: 0.75rem;
+  --text-xs: 0.875rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
@@ -318,7 +318,7 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 1rem;
-  line-height: 1.65;
+  line-height: 1.6;
   min-height: 100vh;
 }
 
