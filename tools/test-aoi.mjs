@@ -84,6 +84,8 @@ const {
   MAX_SIDE_KM,
   MAX_AREA_KM2,
   SEASONAL_WARNING_TEXT,
+  PRESET_AOIS,
+  presetForCase,
 } = aoiModule;
 
 console.log('Running Area Picker (lib/aoi.ts) Test Suite...\n');
@@ -303,5 +305,55 @@ assert.ok(genNullOrbit.includes('No single orbit geometry has images in both win
 assert.ok(genNullOrbit.includes('Selected single-geometry orbit group: '));
 
 console.log('✓ Script generator matches reference script and handles both set & null orbit auto-selection constraints');
+
+// ── 6. Preset for Case Synchronization and Script Generation ──
+console.log('Test 6: Case study preset mapping and script generation...');
+assert.equal(typeof presetForCase, 'function', 'presetForCase must be exported as a function');
+
+for (const preset of PRESET_AOIS) {
+  const found = presetForCase(preset.id);
+  assert.ok(found, `presetForCase should find preset for ${preset.id}`);
+  assert.deepEqual(found.bbox, preset.bbox, `Bbox must match preset bbox for ${preset.id}`);
+  assert.deepEqual(found.dateA, preset.dateA, `dateA must match for ${preset.id}`);
+  assert.deepEqual(found.dateB, preset.dateB, `dateB must match for ${preset.id}`);
+
+  // Generate script with this preset definition
+  const script = generateGeeScript({
+    bbox: preset.bbox,
+    startDateA: preset.dateA.start,
+    endDateA: preset.dateA.end,
+    startDateB: preset.dateB.start,
+    endDateB: preset.dateB.end,
+    pass: preset.recommendedPass || null,
+    relativeOrbit: preset.recommendedOrbit || null,
+  });
+
+  // Verify the script contains the coordinates
+  assert.ok(script.includes(String(preset.bbox.west)), `Script for ${preset.id} must include west coordinate`);
+  assert.ok(script.includes(String(preset.bbox.south)), `Script for ${preset.id} must include south coordinate`);
+  assert.ok(script.includes(String(preset.bbox.east)), `Script for ${preset.id} must include east coordinate`);
+  assert.ok(script.includes(String(preset.bbox.north)), `Script for ${preset.id} must include north coordinate`);
+
+  // Verify the script contains the dates
+  assert.ok(script.includes(preset.dateA.start), `Script for ${preset.id} must include startDateA`);
+  assert.ok(script.includes(preset.dateA.end), `Script for ${preset.id} must include endDateA`);
+  assert.ok(script.includes(preset.dateB.start), `Script for ${preset.id} must include startDateB`);
+  assert.ok(script.includes(preset.dateB.end), `Script for ${preset.id} must include endDateB`);
+
+  // Verify PASS/ORBIT if specified
+  if (preset.recommendedPass) {
+    assert.ok(script.includes(`var PASS = '${preset.recommendedPass}';`), `Script for ${preset.id} must include PASS`);
+  }
+  if (preset.recommendedOrbit) {
+    assert.ok(script.includes(`var ORBIT = ${preset.recommendedOrbit};`), `Script for ${preset.id} must include ORBIT`);
+  }
+}
+
+// Case without a preset returns undefined and changes nothing
+const noPreset = presetForCase('feni-2024');
+assert.equal(noPreset, undefined, 'presetForCase must return undefined for case without preset');
+const unknownCase = presetForCase('unknown-case-id');
+assert.equal(unknownCase, undefined, 'presetForCase must return undefined for unknown case id');
+console.log('✓ Preset for case synchronization verified for all presets and unmapped cases');
 
 console.log('\nAll Area Picker (lib/aoi.ts) tests passed successfully!');

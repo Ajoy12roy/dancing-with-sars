@@ -74,6 +74,7 @@ export interface PresetAoi {
   recommendedPass?: 'ASCENDING' | 'DESCENDING';
   recommendedOrbit?: number;
   provenanceNote: string;
+  mode?: 'flood' | 'river-erosion' | 'deforestation' | 'surface-water';
 }
 
 export const SYLHET_GOLDEN_PRESET = {
@@ -105,6 +106,7 @@ export const PRESET_AOIS: PresetAoi[] = [
     recommendedPass: SYLHET_GOLDEN_PRESET.pass,
     recommendedOrbit: SYLHET_GOLDEN_PRESET.relativeOrbit,
     provenanceNote: SYLHET_GOLDEN_PRESET.provenanceNote,
+    mode: 'flood',
   },
   {
     id: 'tanguar',
@@ -116,6 +118,7 @@ export const PRESET_AOIS: PresetAoi[] = [
     recommendedPass: 'DESCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+    mode: 'surface-water',
   },
   {
     id: 'jamuna',
@@ -127,6 +130,7 @@ export const PRESET_AOIS: PresetAoi[] = [
     recommendedPass: 'ASCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (ASCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+    mode: 'river-erosion',
   },
   {
     id: 'amazon',
@@ -138,6 +142,7 @@ export const PRESET_AOIS: PresetAoi[] = [
     recommendedPass: 'DESCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+    mode: 'deforestation',
   },
   {
     id: 'padma-naria',
@@ -149,8 +154,17 @@ export const PRESET_AOIS: PresetAoi[] = [
     recommendedPass: 'DESCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the precomputed case does not restrict the orbit; results are therefore comparable but not identical.',
+    mode: 'river-erosion',
   },
 ];
+
+/**
+ * Returns the matching PresetAoi for a given case study ID, or undefined if no preset exists.
+ */
+export function presetForCase(caseId: string): PresetAoi | undefined {
+  if (!caseId) return undefined;
+  return PRESET_AOIS.find((p) => p.id === caseId);
+}
 
 export interface GeeScriptOptions {
   bbox: BoundingBox;

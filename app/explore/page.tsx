@@ -462,9 +462,6 @@ function ExploreContent() {
                   value={selectedAoi}
                   onChange={(e) => {
                     handleAoiSelect(e.target.value);
-                    if (activeTab !== 'demo') {
-                      setActiveTab('demo');
-                    }
                   }}
                   className="bg-surface border border-hairline text-ink rounded-[2px] py-1.5 px-3 text-xs font-data focus:outline-none focus:border-accent cursor-pointer flex-1 sm:flex-initial max-w-full sm:max-w-xs md:max-w-md truncate"
                 >
@@ -511,6 +508,10 @@ function ExploreContent() {
                   onSelectCaseStudy={(caseId) => {
                     setActiveTab('demo');
                     handleAoiSelect(caseId);
+                  }}
+                  selectedCaseId={selectedAoi}
+                  onPresetChange={(presetId) => {
+                    handleAoiSelect(presetId);
                   }}
                 />
               </div>
@@ -560,6 +561,10 @@ function ExploreContent() {
                   onSelectCaseStudy={(caseId) => {
                     setActiveTab('demo');
                     handleAoiSelect(caseId);
+                  }}
+                  selectedCaseId={selectedAoi}
+                  onPresetChange={(presetId) => {
+                    handleAoiSelect(presetId);
                   }}
                 />
               </div>

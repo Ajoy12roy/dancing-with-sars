@@ -44,6 +44,7 @@ import {
   MAX_AREA_KM2,
   PresetAoi,
   PRESET_AOIS,
+  presetForCase,
 } from '@/lib/aoi';
 
 // Guard Leaflet default marker icons for client environments
@@ -296,19 +297,34 @@ function MapDrawController({
 
 export interface AoiMapPickerProps {
   onSelectCaseStudy?: (caseId: string) => void;
+  selectedCaseId?: string;
+  onPresetChange?: (presetId: string) => void;
 }
 
-export default function AoiMapPicker({ onSelectCaseStudy }: AoiMapPickerProps = {}) {
+export default function AoiMapPicker({
+  onSelectCaseStudy,
+  selectedCaseId,
+  onPresetChange,
+}: AoiMapPickerProps = {}) {
   const { effectiveOffline } = useNetworkMode();
   const { announce } = useAccessibility();
 
   // ── AOI Bounding Box State ──
-  const [bbox, setBbox] = useState<BoundingBox>({
-    west: 91.8,
-    south: 24.85,
-    east: 91.95,
-    north: 24.98,
+  const [bbox, setBbox] = useState<BoundingBox>(() => {
+    if (selectedCaseId) {
+      const initialPreset = presetForCase(selectedCaseId);
+      if (initialPreset) return initialPreset.bbox;
+    }
+    return {
+      west: 91.8,
+      south: 24.85,
+      east: 91.95,
+      north: 24.98,
+    };
   });
+
+  // Notice when selected case has no preset
+  const [noPresetNotice, setNoPresetNotice] = useState<string | null>(null);
 
   // Recenter counter to force MapController to re-fit bounds
   const [recenterCount, setRecenterCount] = useState<number>(1);
@@ -546,8 +562,39 @@ export default function AoiMapPicker({ onSelectCaseStudy }: AoiMapPickerProps = 
     setBbox(clampBboxToLimits(unconstrained));
   };
 
+  // ── Synchronize with selectedCaseId prop from page (adjust state during render) ──
+  const [prevCaseId, setPrevCaseId] = useState(selectedCaseId);
+  if (selectedCaseId && selectedCaseId !== prevCaseId) {
+    setPrevCaseId(selectedCaseId);
+    const preset = presetForCase(selectedCaseId);
+    if (preset) {
+      setNoPresetNotice(null);
+      setBbox(preset.bbox);
+      setDateWindowA(preset.dateA);
+      setDateWindowB(preset.dateB);
+      if (preset.recommendedPass && preset.recommendedOrbit) {
+        setSelectedTrackPass({
+          pass: preset.recommendedPass,
+          orbit: preset.recommendedOrbit,
+        });
+      } else {
+        setSelectedTrackPass(null);
+      }
+      setAsfGroups([]);
+      setAsfNisarGranules([]);
+      setAsfError(null);
+      setAsfOfflineNotice(null);
+      setAsfTotalCount(null);
+      setRecenterCount((c) => c + 1);
+    } else {
+      setNoPresetNotice('No area preset is available for this case. Draw an area on the map.');
+    }
+  }
+
   // ── Preset Selection ──
   const handleSelectPreset = (preset: PresetAoi) => {
+    setPrevCaseId(preset.id);
+    setNoPresetNotice(null);
     setBbox(preset.bbox);
     setDateWindowA(preset.dateA);
     setDateWindowB(preset.dateB);
@@ -567,6 +614,7 @@ export default function AoiMapPicker({ onSelectCaseStudy }: AoiMapPickerProps = 
     setRecenterCount((c) => c + 1);
     const dims = computeBboxDimensions(preset.bbox);
     announce(`Loaded preset ${preset.name.split(' (')[0]}. Area: ${dims.widthKm} by ${dims.heightKm} kilometers.`);
+    onPresetChange?.(preset.id);
   };
 
   // ── Geocode Search Submit (Submit-Only, No Autocomplete) ──
@@ -735,10 +783,16 @@ export default function AoiMapPicker({ onSelectCaseStudy }: AoiMapPickerProps = 
         <label htmlFor="preset-aoi-select" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider block">
           Preset benchmark cases
         </label>
+        {noPresetNotice && (
+          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary font-sans" role="status">
+            {noPresetNotice}
+          </div>
+        )}
         <div className="space-y-2">
           {PRESET_AOIS.map((preset) => {
             const readyCase = getCaseStudyById(preset.id);
             const isReady = Boolean(readyCase && readyCase.status === 'ready');
+            const isSelected = selectedCaseId === preset.id;
 
             return (
               <div key={preset.id} className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
@@ -746,7 +800,11 @@ export default function AoiMapPicker({ onSelectCaseStudy }: AoiMapPickerProps = 
                   <button
                     type="button"
                     onClick={() => handleSelectPreset(preset)}
-                    className="px-3 py-1.5 text-xs font-medium border border-hairline bg-surface hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-accent"
+                    className={`px-3 py-1.5 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-accent ${
+                      isSelected
+                        ? 'border-accent text-accent font-semibold bg-surface'
+                        : 'border-hairline bg-surface hover:border-accent hover:text-accent'
+                    }`}
                     title={preset.description}
                   >
                     {preset.name.split(' (')[0]}
