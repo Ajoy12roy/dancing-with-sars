@@ -1239,7 +1239,7 @@ export default function AoiMapPicker({
                 className="w-full bg-surface-2 border border-hairline rounded-[2px] px-3 py-2 text-base text-ink min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
               >
                 <option value="" disabled>
-                  {currentPreset ? 'Select a preset...' : 'Custom AOI'}
+                  {currentPreset ? 'Select a preset...' : `Custom Selected Area (${midLat.toFixed(2)}°, ${midLon.toFixed(2)}°)`}
                 </option>
                 {PRESET_AOIS.map((preset) => (
                   <option key={preset.id} value={preset.id}>
