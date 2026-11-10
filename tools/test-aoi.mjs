@@ -87,6 +87,10 @@ const {
   PRESET_AOIS,
   presetForCase,
   resizeBounds,
+  addDaysISO,
+  getMidpointDateISO,
+  expandSingleDateToWindow,
+  getDefaultBeforeAfterTargets,
 } = aoiModule;
 
 console.log('Running Area Picker (lib/aoi.ts) Test Suite...\n');
@@ -199,8 +203,23 @@ assert.equal(suggested.before.start, '2022-05-04');
 const vSuggested = validateDateWindows(suggested.before, suggested.after);
 assert.equal(vSuggested.valid, true);
 
+// Date helper functions (addDaysISO, getMidpointDateISO, expandSingleDateToWindow, getDefaultBeforeAfterTargets)
+assert.equal(addDaysISO('2024-05-01', 10), '2024-05-11');
+assert.equal(addDaysISO('2024-05-01', -10), '2024-04-21');
+assert.equal(getMidpointDateISO('2024-05-01', '2024-05-25'), '2024-05-13');
+
+const win24 = expandSingleDateToWindow('2024-05-01', 12);
+assert.equal(win24.start, '2024-04-19');
+assert.equal(win24.end, '2024-05-13');
+const winDays = Math.round((Date.parse(win24.end) - Date.parse(win24.start)) / 86400000);
+assert.equal(winDays, 24);
+
+const targets = getDefaultBeforeAfterTargets();
+const gapDays = Math.round((Date.parse(targets.afterTarget) - Date.parse(targets.beforeTarget)) / 86400000);
+assert.ok(gapDays >= 120 && gapDays <= 150, `Default gap must be 120-150 days (got ${gapDays})`);
+
 assert.ok(SEASONAL_WARNING_TEXT.includes('same season'));
-console.log('✓ Date validation and event suggestion helper verified');
+console.log('✓ Date validation, event suggestion, and 4.5 month / 24-day helpers verified');
 
 // ── 4. ASF Grouping and "Usable" Rule ──
 console.log('Test 4: ASF grouping and usability rule...');

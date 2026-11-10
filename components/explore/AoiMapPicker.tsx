@@ -34,6 +34,10 @@ import {
   computeExportScale,
   validateDateWindows,
   suggestWindowsForEvent,
+  addDaysISO,
+  getMidpointDateISO,
+  expandSingleDateToWindow,
+  getDefaultBeforeAfterTargets,
   generateGeeScript,
   resizeBounds,
   HandleType,
@@ -545,12 +549,47 @@ export default function AoiMapPicker({
     }
   }, [announce]);
 
+  // ── Manual Date Override & Date Window State ──
+  const [hasUserManuallyEditedDates, setHasUserManuallyEditedDates] = useState<boolean>(false);
+
+  const [dateWindowA, setDateWindowA] = useState<{ start: string; end: string }>(() => {
+    if (selectedCaseId) {
+      const initialPreset = presetForCase(selectedCaseId);
+      if (initialPreset) return initialPreset.dateA;
+    }
+    const { beforeTarget } = getDefaultBeforeAfterTargets();
+    return expandSingleDateToWindow(beforeTarget, 12);
+  });
+  const [dateWindowB, setDateWindowB] = useState<{ start: string; end: string }>(() => {
+    if (selectedCaseId) {
+      const initialPreset = presetForCase(selectedCaseId);
+      if (initialPreset) return initialPreset.dateB;
+    }
+    const { afterTarget } = getDefaultBeforeAfterTargets();
+    return expandSingleDateToWindow(afterTarget, 12);
+  });
+
   const handleBboxChangeComplete = useCallback(() => {
+    if (!hasUserManuallyEditedDates) {
+      const matchesPreset = PRESET_AOIS.some((p) => {
+        return (
+          Math.abs(p.bbox.west - bbox.west) < 0.001 &&
+          Math.abs(p.bbox.east - bbox.east) < 0.001 &&
+          Math.abs(p.bbox.south - bbox.south) < 0.001 &&
+          Math.abs(p.bbox.north - bbox.north) < 0.001
+        );
+      });
+      if (!matchesPreset) {
+        const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
+        setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
+        setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
+      }
+    }
     announce('Area selection updated.');
     setTimeout(() => {
       setClampNotice(null);
     }, 3000);
-  }, [announce]);
+  }, [announce, bbox, hasUserManuallyEditedDates]);
 
   useEffect(() => {
     return () => {
@@ -581,23 +620,18 @@ export default function AoiMapPicker({
   const handleDrawEnd = useCallback(() => {
     setIsDragging(false);
     setIsDrawingMode(false);
+    if (!hasUserManuallyEditedDates) {
+      const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
+      setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
+      setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
+    }
     announce('Area selection updated.');
-  }, [announce]);
+  }, [announce, hasUserManuallyEditedDates]);
 
   const handleCancelDraw = useCallback(() => {
     setIsDragging(false);
     setIsDrawingMode(false);
   }, []);
-
-  // ── Date Window State ──
-  const [dateWindowA, setDateWindowA] = useState<{ start: string; end: string }>({
-    start: '2022-05-01',
-    end: '2022-05-10',
-  });
-  const [dateWindowB, setDateWindowB] = useState<{ start: string; end: string }>({
-    start: '2022-06-20',
-    end: '2022-06-21',
-  });
 
   // Event Date Helper
   const [eventDateInput, setEventDateInput] = useState<string>('2022-06-18');
@@ -811,6 +845,7 @@ export default function AoiMapPicker({
       setBbox(preset.bbox);
       setDateWindowA(preset.dateA);
       setDateWindowB(preset.dateB);
+      setHasUserManuallyEditedDates(false);
       if (preset.recommendedPass && preset.recommendedOrbit) {
         setSelectedTrackPass({
           pass: preset.recommendedPass,
@@ -840,6 +875,7 @@ export default function AoiMapPicker({
     setBbox(preset.bbox);
     setDateWindowA(preset.dateA);
     setDateWindowB(preset.dateB);
+    setHasUserManuallyEditedDates(false);
     if (preset.recommendedPass && preset.recommendedOrbit) {
       setSelectedTrackPass({
         pass: preset.recommendedPass,
@@ -914,6 +950,11 @@ export default function AoiMapPicker({
       });
     }
 
+    if (!hasUserManuallyEditedDates) {
+      const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
+      setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
+      setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
+    }
     setBbox(targetBbox);
     setSearchResults([]);
     setSearchQuery('');
@@ -926,6 +967,7 @@ export default function AoiMapPicker({
   const handleApplyEventSuggestion = () => {
     if (!eventDateInput) return;
     const suggested = suggestWindowsForEvent(eventDateInput);
+    setHasUserManuallyEditedDates(true);
     setDateWindowA(suggested.before);
     setDateWindowB(suggested.after);
     setShowEventHelper(false);
@@ -1027,6 +1069,47 @@ export default function AoiMapPicker({
     URL.revokeObjectURL(url);
     announce('Earth Engine export script downloaded.');
   }, [currentPreset, geeScript, announce]);
+
+  // ── Derived Single Dates & Gap Calculations ──
+  const singleDateBefore = useMemo(
+    () => getMidpointDateISO(dateWindowA.start, dateWindowA.end),
+    [dateWindowA.start, dateWindowA.end]
+  );
+  const singleDateAfter = useMemo(
+    () => getMidpointDateISO(dateWindowB.start, dateWindowB.end),
+    [dateWindowB.start, dateWindowB.end]
+  );
+
+  const targetGapDays = useMemo(() => {
+    const tA = Date.parse(singleDateBefore);
+    const tB = Date.parse(singleDateAfter);
+    if (isNaN(tA) || isNaN(tB)) return 0;
+    return Math.max(0, Math.round((tB - tA) / 86400000));
+  }, [singleDateBefore, singleDateAfter]);
+
+  const targetGapMonths = useMemo(() => {
+    return (targetGapDays / 30.4375).toFixed(1);
+  }, [targetGapDays]);
+
+  const handleBeforeDateChange = useCallback((val: string) => {
+    if (!val) return;
+    setHasUserManuallyEditedDates(true);
+    setDateWindowA(expandSingleDateToWindow(val, 12));
+  }, []);
+
+  const handleAfterDateChange = useCallback((val: string) => {
+    if (!val) return;
+    setHasUserManuallyEditedDates(true);
+    setDateWindowB(expandSingleDateToWindow(val, 12));
+  }, []);
+
+  const handleAutoSet4MonthGap = useCallback(() => {
+    const referenceAfter = singleDateAfter || dateWindowB.start || '2024-09-15';
+    const newBefore = addDaysISO(referenceAfter, -137);
+    setHasUserManuallyEditedDates(true);
+    setDateWindowA(expandSingleDateToWindow(newBefore, 12));
+    announce(`Auto-set baseline date to ${newBefore} (4.5 months before ${referenceAfter}).`);
+  }, [singleDateAfter, dateWindowB.start, announce]);
 
   const baselineDays = Math.max(
     1,
@@ -1544,28 +1627,39 @@ export default function AoiMapPicker({
           </div>
         )}
 
-        {/* Two Date Inputs in Two Columns */}
-        <div className="space-y-3">
+        {/* Date Selection Section: Simplified 2-Date Picker + Collapsible Advanced 4-Date Range */}
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider font-sans">
-              Acquisition date windows
+              Acquisition dates
             </h3>
 
-            <button
-              type="button"
-              onClick={() => setShowEventHelper((v) => !v)}
-              className="text-sm text-accent hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              {showEventHelper ? (
-                <>
-                  Hide event helper <ChevronUp className="w-3.5 h-3.5" />
-                </>
-              ) : (
-                <>
-                  Suggest windows around event date <ChevronDown className="w-3.5 h-3.5" />
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleAutoSet4MonthGap}
+                className="text-sm text-accent hover:underline cursor-pointer font-sans"
+                title="Automatically set Before date 4.5 months (137 days) prior to After date"
+              >
+                Auto-set 4.5 month gap
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowEventHelper((v) => !v)}
+                className="text-sm text-accent hover:underline flex items-center gap-1 cursor-pointer font-sans"
+              >
+                {showEventHelper ? (
+                  <>
+                    Hide event helper <ChevronUp className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <>
+                    Suggest windows around event date <ChevronDown className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Collapsible Event Date Suggestion Helper */}
@@ -1592,81 +1686,144 @@ export default function AoiMapPicker({
             </div>
           )}
 
+          {/* Primary 2-Date Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Baseline Window (A) */}
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
-              <span className="font-semibold text-ink text-sm font-sans block">
-                Baseline window (Image A, pre-event)
+            {/* Before Date (Baseline) */}
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
+              <label htmlFor="single-date-before" className="font-semibold text-ink text-sm font-sans block">
+                Before Date (Baseline)
+              </label>
+              <input
+                id="single-date-before"
+                type="date"
+                value={singleDateBefore}
+                onChange={(e) => handleBeforeDateChange(e.target.value)}
+                className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px] focus:outline-none focus:border-accent"
+              />
+              <span className="text-xs text-text-secondary font-sans block">
+                Pre-event or baseline observation date
               </span>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="date-window-a-start" className="text-sm font-medium text-text-secondary block mb-1">
-                    Start date
-                  </label>
-                  <input
-                    id="date-window-a-start"
-                    type="date"
-                    value={dateWindowA.start}
-                    onChange={(e) =>
-                      setDateWindowA((prev) => ({ ...prev, start: e.target.value }))
-                    }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="date-window-a-end" className="text-sm font-medium text-text-secondary block mb-1">
-                    End date
-                  </label>
-                  <input
-                    id="date-window-a-end"
-                    type="date"
-                    value={dateWindowA.end}
-                    onChange={(e) =>
-                      setDateWindowA((prev) => ({ ...prev, end: e.target.value }))
-                    }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
-                  />
-                </div>
-              </div>
             </div>
 
-            {/* Comparison Window (B) */}
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
-              <span className="font-semibold text-ink text-sm font-sans block">
-                Comparison window (Image B, post-event)
+            {/* After Date (Comparison) */}
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
+              <label htmlFor="single-date-after" className="font-semibold text-ink text-sm font-sans block">
+                After Date (Comparison)
+              </label>
+              <input
+                id="single-date-after"
+                type="date"
+                value={singleDateAfter}
+                onChange={(e) => handleAfterDateChange(e.target.value)}
+                className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px] focus:outline-none focus:border-accent"
+              />
+              <span className="text-xs text-text-secondary font-sans block">
+                Post-event or comparison observation date
               </span>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="date-window-b-start" className="text-sm font-medium text-text-secondary block mb-1">
-                    Start date
-                  </label>
-                  <input
-                    id="date-window-b-start"
-                    type="date"
-                    value={dateWindowB.start}
-                    onChange={(e) =>
-                      setDateWindowB((prev) => ({ ...prev, start: e.target.value }))
-                    }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
-                  />
+            </div>
+          </div>
+
+          {/* Helper Badge */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[2px] border border-hairline bg-surface-2 text-xs font-sans text-text-secondary">
+            <span>
+              Gap: ~{targetGapMonths} months ({targetGapDays} days) · Auto-searching ±12 days around each date for satellite passes
+            </span>
+            {hasUserManuallyEditedDates && (
+              <span className="text-xs font-mono text-accent">Custom dates active</span>
+            )}
+          </div>
+
+          {/* Collapsible 4-Date Range (Advanced) */}
+          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+            <summary className="p-3 text-xs font-semibold text-text-secondary cursor-pointer select-none hover:text-ink flex items-center justify-between">
+              <span>Custom start/end range (Advanced)</span>
+              <ChevronDown className="w-3.5 h-3.5 text-text-secondary group-open:rotate-180 transition-transform" />
+            </summary>
+            <div className="p-4 border-t border-hairline bg-surface space-y-4">
+              <p className="text-xs text-text-secondary font-sans">
+                Fine-tune the exact search start and end dates for both observation windows. Maximum duration per window is 60 days.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Advanced Window A */}
+                <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-3">
+                  <span className="font-semibold text-ink text-xs font-sans block">
+                    Baseline Window (Window A)
+                  </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="date-window-a-start" className="text-xs font-medium text-text-secondary block mb-1">
+                        Start date
+                      </label>
+                      <input
+                        id="date-window-a-start"
+                        type="date"
+                        value={dateWindowA.start}
+                        onChange={(e) => {
+                          setHasUserManuallyEditedDates(true);
+                          setDateWindowA((prev) => ({ ...prev, start: e.target.value }));
+                        }}
+                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="date-window-a-end" className="text-xs font-medium text-text-secondary block mb-1">
+                        End date
+                      </label>
+                      <input
+                        id="date-window-a-end"
+                        type="date"
+                        value={dateWindowA.end}
+                        onChange={(e) => {
+                          setHasUserManuallyEditedDates(true);
+                          setDateWindowA((prev) => ({ ...prev, end: e.target.value }));
+                        }}
+                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor="date-window-b-end" className="text-sm font-medium text-text-secondary block mb-1">
-                    End date
-                  </label>
-                  <input
-                    id="date-window-b-end"
-                    type="date"
-                    value={dateWindowB.end}
-                    onChange={(e) =>
-                      setDateWindowB((prev) => ({ ...prev, end: e.target.value }))
-                    }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
-                  />
+
+                {/* Advanced Window B */}
+                <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-3">
+                  <span className="font-semibold text-ink text-xs font-sans block">
+                    Comparison Window (Window B)
+                  </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="date-window-b-start" className="text-xs font-medium text-text-secondary block mb-1">
+                        Start date
+                      </label>
+                      <input
+                        id="date-window-b-start"
+                        type="date"
+                        value={dateWindowB.start}
+                        onChange={(e) => {
+                          setHasUserManuallyEditedDates(true);
+                          setDateWindowB((prev) => ({ ...prev, start: e.target.value }));
+                        }}
+                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="date-window-b-end" className="text-xs font-medium text-text-secondary block mb-1">
+                        End date
+                      </label>
+                      <input
+                        id="date-window-b-end"
+                        type="date"
+                        value={dateWindowB.end}
+                        onChange={(e) => {
+                          setHasUserManuallyEditedDates(true);
+                          setDateWindowB((prev) => ({ ...prev, end: e.target.value }));
+                        }}
+                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </details>
 
           {!dateValidation.valid && (
             <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">

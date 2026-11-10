@@ -361,8 +361,8 @@ const amazonScript = generateGeeScript({
 });
 assert.ok(amazonScript.includes('Amazon Rainforest Canopy Loss'), 'Amazon script title must reflect preset');
 assert.ok(amazonScript.includes('-62.20007'), 'Amazon script must contain west coordinate');
-assert.ok(amazonScript.includes('2021-01-01'), 'Amazon script must contain startDateA');
-assert.ok(amazonScript.includes('2023-01-15'), 'Amazon script must contain endDateB');
+assert.ok(amazonScript.includes(amazonPreset.dateA.start), 'Amazon script must contain startDateA');
+assert.ok(amazonScript.includes(amazonPreset.dateB.end), 'Amazon script must contain endDateB');
 
 const amazonTempPath = path.join(scratchDir, 'temp_amazon_script.js');
 fs.writeFileSync(amazonTempPath, amazonScript, 'utf8');

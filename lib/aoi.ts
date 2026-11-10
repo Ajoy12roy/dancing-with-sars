@@ -113,8 +113,8 @@ export const PRESET_AOIS: PresetAoi[] = [
     name: 'Tanguar Haor, Bangladesh (Wetland Dynamics)',
     description: 'Sunamganj freshwater wetland seasonal hydrological fluctuations',
     bbox: { west: 90.97976, south: 25.04979, east: 91.2002, north: 25.22011 },
-    dateA: { start: '2023-02-01', end: '2023-02-28' },
-    dateB: { start: '2023-08-01', end: '2023-08-31' },
+    dateA: { start: '2023-02-01', end: '2023-02-25' },
+    dateB: { start: '2023-08-07', end: '2023-08-31' },
     recommendedPass: 'DESCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
@@ -125,8 +125,8 @@ export const PRESET_AOIS: PresetAoi[] = [
     name: 'Jamuna River, Bangladesh (Braided Sandbars)',
     description: 'Sirajganj multi-thread braided channel and char morphology shifts',
     bbox: { west: 89.6498, south: 24.29979, east: 89.95002, north: 24.55015 },
-    dateA: { start: '2019-02-01', end: '2019-02-28' },
-    dateB: { start: '2024-02-01', end: '2024-02-28' },
+    dateA: { start: '2019-02-01', end: '2019-02-25' },
+    dateB: { start: '2024-02-04', end: '2024-02-28' },
     recommendedPass: 'ASCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (ASCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
@@ -137,8 +137,8 @@ export const PRESET_AOIS: PresetAoi[] = [
     name: 'Amazon Rainforest, Rondônia, Brazil (Canopy Loss)',
     description: 'Deforestation monitoring in the southwestern Amazon basin',
     bbox: { west: -62.20007, south: -10.35003, east: -61.99992, north: -10.14988 },
-    dateA: { start: '2021-01-01', end: '2021-01-15' },
-    dateB: { start: '2023-01-01', end: '2023-01-15' },
+    dateA: { start: '2022-08-20', end: '2022-09-13' },
+    dateB: { start: '2023-01-01', end: '2023-01-25' },
     recommendedPass: 'DESCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
@@ -149,8 +149,8 @@ export const PRESET_AOIS: PresetAoi[] = [
     name: 'Padma River / Naria, Bangladesh (Bank Erosion)',
     description: 'Shariatpur riverbank recession and severe land loss monitoring',
     bbox: { west: 90.23272, south: 23.31002, east: 90.42765, north: 23.49005 },
-    dateA: { start: '2017-01-15', end: '2017-03-15' },
-    dateB: { start: '2024-01-15', end: '2024-03-15' },
+    dateA: { start: '2017-01-15', end: '2017-02-08' },
+    dateB: { start: '2024-01-15', end: '2024-02-08' },
     recommendedPass: 'DESCENDING',
     provenanceNote:
       'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the precomputed case does not restrict the orbit; results are therefore comparable but not identical.',
@@ -555,6 +555,68 @@ export function validateDateWindows(
   }
 
   return { valid: true };
+}
+
+/**
+ * Adds (or subtracts) a given number of days to an ISO date string (YYYY-MM-DD)
+ * using UTC date arithmetic.
+ */
+export function addDaysISO(isoDate: string, days: number): string {
+  if (!isoDate || typeof isoDate !== 'string') return isoDate;
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return isoDate;
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return isoDate;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * Computes the midpoint date (ISO string YYYY-MM-DD) between two ISO date strings.
+ */
+export function getMidpointDateISO(startISO: string, endISO: string): string {
+  if (!startISO || !endISO) return startISO || endISO || '';
+  const p1 = startISO.split('-');
+  const p2 = endISO.split('-');
+  if (p1.length !== 3 || p2.length !== 3) return startISO;
+  const y1 = Number(p1[0]);
+  const m1 = Number(p1[1]);
+  const d1 = Number(p1[2]);
+  const y2 = Number(p2[0]);
+  const m2 = Number(p2[1]);
+  const d2 = Number(p2[2]);
+  if (isNaN(y1) || isNaN(m1) || isNaN(d1) || isNaN(y2) || isNaN(m2) || isNaN(d2)) return startISO;
+  const t1 = Date.UTC(y1, m1 - 1, d1);
+  const t2 = Date.UTC(y2, m2 - 1, d2);
+  const midTime = Math.round((t1 + t2) / 2);
+  return new Date(midTime).toISOString().slice(0, 10);
+}
+
+/**
+ * Expands a single target date to a search window with ±halfWindowDays (default 12 days, 24 days total).
+ * Guarantees at least 2 Sentinel-1 orbital passes per window, preventing "0 scene(s)" catalogue search misses.
+ */
+export function expandSingleDateToWindow(
+  targetISO: string,
+  halfWindowDays: number = 12
+): { start: string; end: string } {
+  return {
+    start: addDaysISO(targetISO, -halfWindowDays),
+    end: addDaysISO(targetISO, halfWindowDays),
+  };
+}
+
+/**
+ * Returns default Before and After target dates separated by an optimal ~4.5 months (137 days).
+ * Provides a meaningful temporal baseline separation for SAR change detection workflows.
+ */
+export function getDefaultBeforeAfterTargets(): { beforeTarget: string; afterTarget: string } {
+  const afterTarget = '2024-09-15';
+  const beforeTarget = addDaysISO(afterTarget, -137); // '2024-05-01'
+  return { beforeTarget, afterTarget };
 }
 
 /**
