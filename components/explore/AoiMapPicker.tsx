@@ -23,7 +23,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { useNetworkMode } from '@/context';
+import { useNetworkMode, useAccessibility } from '@/context';
+import { getCaseStudyById } from '@/lib/case-studies';
 
 import {
   BoundingBox,
@@ -293,8 +294,13 @@ function MapDrawController({
   return null;
 }
 
-export default function AoiMapPicker() {
+export interface AoiMapPickerProps {
+  onSelectCaseStudy?: (caseId: string) => void;
+}
+
+export default function AoiMapPicker({ onSelectCaseStudy }: AoiMapPickerProps = {}) {
   const { effectiveOffline } = useNetworkMode();
+  const { announce } = useAccessibility();
 
   // ── AOI Bounding Box State ──
   const [bbox, setBbox] = useState<BoundingBox>({
@@ -343,7 +349,8 @@ export default function AoiMapPicker() {
   const handleDrawEnd = useCallback(() => {
     setIsDragging(false);
     setIsDrawingMode(false);
-  }, []);
+    announce('Area selection updated.');
+  }, [announce]);
 
   const handleCancelDraw = useCallback(() => {
     setIsDragging(false);
@@ -558,6 +565,8 @@ export default function AoiMapPicker() {
     setAsfOfflineNotice(null);
     setAsfTotalCount(null);
     setRecenterCount((c) => c + 1);
+    const dims = computeBboxDimensions(preset.bbox);
+    announce(`Loaded preset ${preset.name.split(' (')[0]}. Area: ${dims.widthKm} by ${dims.heightKm} kilometers.`);
   };
 
   // ── Geocode Search Submit (Submit-Only, No Autocomplete) ──
@@ -616,6 +625,8 @@ export default function AoiMapPicker() {
     setSearchResults([]);
     setSearchQuery('');
     setRecenterCount((c) => c + 1);
+    const targetDims = computeBboxDimensions(targetBbox);
+    announce(`Selected location ${result.name}. Area: ${targetDims.widthKm} by ${targetDims.heightKm} kilometers.`);
   };
 
   // ── Apply Event Date Suggestion ──
@@ -706,11 +717,11 @@ export default function AoiMapPicker() {
 
   return (
     <div className="space-y-6 text-ink">
-      {/* ── Subheading & Pipeline Explanation ── */}
+      {/* ── 1. Select the area ── */}
       <div>
         <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
           <Layers className="w-4 h-4 text-accent" />
-          Area of interest
+          1. Select the area
         </h3>
         <p className="text-xs text-text-secondary mt-1 font-sans">
           Select an area of interest ({MIN_SIDE_KM}–{MAX_SIDE_KM} km side length, maximum {MAX_AREA_KM2} km²),
@@ -725,23 +736,39 @@ export default function AoiMapPicker() {
           Preset benchmark cases
         </label>
         <div className="space-y-2">
-          {PRESET_AOIS.map((preset) => (
-            <div key={preset.id} className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className="px-3 py-1.5 text-xs font-medium border border-hairline bg-surface hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-accent"
-                  title={preset.description}
-                >
-                  {preset.name.split(' (')[0]}
-                </button>
+          {PRESET_AOIS.map((preset) => {
+            const readyCase = getCaseStudyById(preset.id);
+            const isReady = Boolean(readyCase && readyCase.status === 'ready');
+
+            return (
+              <div key={preset.id} className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPreset(preset)}
+                    className="px-3 py-1.5 text-xs font-medium border border-hairline bg-surface hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-accent"
+                    title={preset.description}
+                  >
+                    {preset.name.split(' (')[0]}
+                  </button>
+
+                  {isReady && onSelectCaseStudy && readyCase && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectCaseStudy(readyCase.id)}
+                      className="px-3 py-1.5 text-xs font-medium border border-teal text-teal hover:bg-teal hover:text-text-on-accent rounded-[2px] transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-teal flex items-center gap-1.5"
+                    >
+                      <span>View precomputed analysis</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed font-sans">
+                  {preset.provenanceNote}
+                </p>
               </div>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                {preset.provenanceNote}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -799,7 +826,7 @@ export default function AoiMapPicker() {
                 className="w-full text-left px-3 py-2 text-xs hover:bg-surface text-ink transition-colors cursor-pointer flex items-center justify-between gap-2"
               >
                 <span className="truncate">{res.name}</span>
-                <span className="text-[10px] text-text-secondary shrink-0 font-data">
+                <span className="text-xs text-text-secondary shrink-0 font-data">
                   {res.lat.toFixed(2)}°, {res.lon.toFixed(2)}°
                 </span>
               </button>
@@ -809,15 +836,15 @@ export default function AoiMapPicker() {
       </div>
 
       {/* ── Interactive Map & Bounding Box Controls ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="border border-hairline rounded-[2px] overflow-hidden bg-surface-2 flex flex-col">
         {/* Map View */}
         <div
-          className="lg:col-span-7 border border-hairline rounded-[2px] overflow-hidden bg-surface-2 relative flex flex-col min-h-[360px] h-[400px]"
+          className="relative flex flex-col min-h-[380px] h-[420px]"
           style={{ touchAction: isDrawingMode ? 'none' : 'pan-y' }}
         >
           {/* Top Overlay Bar */}
           <div className="absolute top-2 left-2 right-2 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-            <div className="bg-surface/90 backdrop-blur-sm border border-hairline rounded-[2px] px-2 py-1 text-[11px] text-text-secondary font-sans pointer-events-auto shadow-sm">
+            <div className="bg-surface/90 backdrop-blur-sm border border-hairline rounded-[2px] px-2 py-1 text-xs text-text-secondary font-sans pointer-events-auto shadow-sm">
               {isDrawingMode
                 ? 'Drawing active: drag on map to define area. Press Escape to cancel.'
                 : 'Click map to reposition center, or select Draw rectangle to drag a box.'}
@@ -853,7 +880,7 @@ export default function AoiMapPicker() {
           )}
 
           {effectiveOffline && (
-            <div className="absolute bottom-10 left-2 z-[400] bg-surface/90 border border-hairline px-2 py-1 text-[11px] text-text-secondary font-sans pointer-events-none">
+            <div className="absolute bottom-10 left-2 z-[400] bg-surface/90 border border-hairline px-2 py-1 text-xs text-text-secondary font-sans pointer-events-none">
               Street map requires a network connection.
             </div>
           )}
@@ -880,9 +907,9 @@ export default function AoiMapPicker() {
                 [bbox.north, bbox.east],
               ]}
               pathOptions={{
-                color: validation.valid ? '#00A86B' : '#C84B31',
+                color: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
                 weight: 2,
-                fillColor: validation.valid ? '#00A86B' : '#C84B31',
+                fillColor: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
                 fillOpacity: 0.15,
                 dashArray: isDragging ? '6, 6' : undefined,
               }}
@@ -903,44 +930,48 @@ export default function AoiMapPicker() {
               onShowWheelHint={handleShowWheelHint}
             />
           </MapContainer>
+        </div>
 
-          <div className="p-2 border-t border-hairline bg-surface flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="text-text-secondary">
-              Center: <span className="font-data font-medium text-ink">{midLat.toFixed(4)}°N, {midLon.toFixed(4)}°E</span>
-            </span>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-sans text-text-secondary select-none">
-                <input
-                  type="checkbox"
-                  checked={squareSelection}
-                  onChange={(e) => handleSquareToggle(e.target.checked)}
-                  className="accent-accent cursor-pointer"
-                />
-                <span>Square selection</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setRecenterCount((c) => c + 1)}
-                className="text-accent hover:underline text-xs cursor-pointer"
-              >
-                Fit map to selection
-              </button>
-            </div>
+        {/* Map Toolbar */}
+        <div className="p-2.5 border-t border-hairline bg-surface flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="text-text-secondary">
+            Center: <span className="font-data font-medium text-ink">{midLat.toFixed(4)}°N, {midLon.toFixed(4)}°E</span>
+          </span>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-sans text-text-secondary select-none">
+              <input
+                type="checkbox"
+                checked={squareSelection}
+                onChange={(e) => handleSquareToggle(e.target.checked)}
+                className="accent-accent cursor-pointer"
+              />
+              <span>Square selection</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setRecenterCount((c) => c + 1)}
+              className="text-accent hover:underline text-xs cursor-pointer"
+            >
+              Fit map to selection
+            </button>
           </div>
         </div>
 
-        {/* Numeric & Nudge Controls */}
-        <div className="lg:col-span-5 border border-hairline rounded-[2px] bg-surface p-4 flex flex-col justify-between space-y-4">
-          <div>
-            <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 font-sans">
-              Geographic Coordinates & Dimensions
-            </h4>
-
+        {/* Collapsed Manual Coordinate Entry (Optional) directly below the map toolbar */}
+        <details className="border-t border-hairline bg-surface-2 group">
+          <summary
+            tabIndex={0}
+            className="p-3 text-xs font-semibold text-text-secondary font-sans cursor-pointer select-none hover:text-ink focus:outline-none focus:ring-1 focus:ring-accent flex items-center justify-between"
+          >
+            <span>Manual coordinate entry (optional)</span>
+            <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
+          </summary>
+          <div className="p-4 border-t border-hairline bg-surface space-y-4">
             {/* Live numeric width & height in km */}
-            <div className="mb-3 p-2.5 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
+            <div className="p-2.5 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-ink font-sans">Dimensions</span>
-                <span className="text-[11px] text-text-secondary font-sans">{MIN_SIDE_KM}–{MAX_SIDE_KM} km per side</span>
+                <span className="text-xs text-text-secondary font-sans">{MIN_SIDE_KM}–{MAX_SIDE_KM} km per side</span>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
@@ -977,7 +1008,7 @@ export default function AoiMapPicker() {
             </div>
 
             {/* 4 Coordinate Inputs */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
               <div>
                 <label htmlFor="coord-north" className="text-text-secondary font-medium block mb-1">
                   North (°N)
@@ -993,12 +1024,12 @@ export default function AoiMapPicker() {
                         normalizeBbox({ ...b, north: parseFloat(e.target.value) || b.north })
                       )
                     }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink"
+                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('north', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge North +0.01°"
                   >
                     +
@@ -1006,7 +1037,7 @@ export default function AoiMapPicker() {
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('north', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge North -0.01°"
                   >
                     -
@@ -1029,12 +1060,12 @@ export default function AoiMapPicker() {
                         normalizeBbox({ ...b, south: parseFloat(e.target.value) || b.south })
                       )
                     }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink"
+                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('south', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge South +0.01°"
                   >
                     +
@@ -1042,7 +1073,7 @@ export default function AoiMapPicker() {
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('south', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge South -0.01°"
                   >
                     -
@@ -1065,12 +1096,12 @@ export default function AoiMapPicker() {
                         normalizeBbox({ ...b, west: parseFloat(e.target.value) || b.west })
                       )
                     }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink"
+                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('west', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge West +0.01°"
                   >
                     +
@@ -1078,7 +1109,7 @@ export default function AoiMapPicker() {
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('west', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge West -0.01°"
                   >
                     -
@@ -1101,12 +1132,12 @@ export default function AoiMapPicker() {
                         normalizeBbox({ ...b, east: parseFloat(e.target.value) || b.east })
                       )
                     }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink"
+                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
                   />
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('east', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge East +0.01°"
                   >
                     +
@@ -1114,7 +1145,7 @@ export default function AoiMapPicker() {
                   <button
                     type="button"
                     onClick={() => handleNudgeCoordinate('east', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-[11px]"
+                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
                     title="Nudge East -0.01°"
                   >
                     -
@@ -1124,45 +1155,45 @@ export default function AoiMapPicker() {
             </div>
 
             {/* Quick Shift / Resize Buttons */}
-            <div className="pt-3 border-t border-hairline mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-1">
-                <span className="text-text-secondary text-[11px]">Shift 10%:</span>
+                <span className="text-text-secondary text-xs">Shift 10%:</span>
                 <button
                   type="button"
                   onClick={() => handleShiftBox('N')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface"
+                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
                 >
                   ↑ N
                 </button>
                 <button
                   type="button"
                   onClick={() => handleShiftBox('S')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface"
+                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
                 >
                   ↓ S
                 </button>
                 <button
                   type="button"
                   onClick={() => handleShiftBox('W')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface"
+                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
                 >
                   ← W
                 </button>
                 <button
                   type="button"
                   onClick={() => handleShiftBox('E')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface"
+                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
                 >
                   → E
                 </button>
               </div>
 
               <div className="flex items-center gap-1">
-                <span className="text-text-secondary text-[11px]">Scale:</span>
+                <span className="text-text-secondary text-xs">Scale:</span>
                 <button
                   type="button"
                   onClick={() => handleResizeBox(1.1)}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface"
+                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
                   title="Expand box by 10%"
                 >
                   +10%
@@ -1170,7 +1201,7 @@ export default function AoiMapPicker() {
                 <button
                   type="button"
                   onClick={() => handleResizeBox(0.9)}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface"
+                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
                   title="Shrink box by 10%"
                 >
                   -10%
@@ -1178,52 +1209,52 @@ export default function AoiMapPicker() {
               </div>
             </div>
           </div>
+        </details>
 
-          {/* Area Dimensions & Export Scale Card */}
-          <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2 text-xs font-data">
-            <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-              <span className="text-text-secondary font-sans">Geodesic dimensions:</span>
-              <span className="font-medium text-ink">
-                {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-              <span className="text-text-secondary font-sans">Optimal export scale:</span>
-              <span className="font-medium text-teal">
-                {scaleInfo.scale} m resolution ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px)
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-text-secondary font-sans">Estimated uncompressed GeoTIFF:</span>
-              <span className="text-text-secondary">
-                ~{scaleInfo.uncompressedMb} MB
-              </span>
-            </div>
-
-            {/* Validation Banner */}
-            {!validation.valid ? (
-              <div className="pt-2 flex items-start gap-1.5 text-rust font-sans text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{validation.reason}</span>
-              </div>
-            ) : (
-              <div className="pt-1 flex items-center gap-1.5 text-teal font-sans text-[11px]">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                <span>Area meets all {MIN_SIDE_KM}–{MAX_SIDE_KM} km side and {MAX_AREA_KM2} km² boundary rules</span>
-              </div>
-            )}
+        {/* Area Dimensions & Export Scale Card */}
+        <div className="border-t border-hairline bg-surface-2 p-3 space-y-2 text-xs font-data">
+          <div className="flex items-center justify-between border-b border-hairline pb-1.5">
+            <span className="text-text-secondary font-sans">Geodesic dimensions:</span>
+            <span className="font-medium text-ink">
+              {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
+            </span>
           </div>
+
+          <div className="flex items-center justify-between border-b border-hairline pb-1.5">
+            <span className="text-text-secondary font-sans">Optimal export scale:</span>
+            <span className="font-medium text-teal">
+              {scaleInfo.scale} m resolution ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px)
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-text-secondary font-sans">Estimated uncompressed GeoTIFF:</span>
+            <span className="text-text-secondary">
+              ~{scaleInfo.uncompressedMb} MB
+            </span>
+          </div>
+
+          {/* Validation Banner */}
+          {!validation.valid ? (
+            <div className="pt-2 flex items-start gap-1.5 text-rust font-sans text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{validation.reason}</span>
+            </div>
+          ) : (
+            <div className="pt-1 flex items-center gap-1.5 text-teal font-sans text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Area meets all {MIN_SIDE_KM}–{MAX_SIDE_KM} km side and {MAX_AREA_KM2} km² boundary rules</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Date Windows & Acquisition Finder ── */}
+      {/* ── 2. Set the date windows ── */}
       <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
             <Calendar className="w-4 h-4 text-accent" />
-            Satellite pass finder
+            2. Set the date windows
           </h3>
 
           <button
@@ -1363,6 +1394,21 @@ export default function AoiMapPicker() {
           <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
           <span>{SEASONAL_WARNING_TEXT}</span>
         </div>
+      </div>
+
+      {/* ── 3. Find matching acquisitions ── */}
+      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
+              <Search className="w-4 h-4 text-accent" />
+              3. Find matching acquisitions
+            </h3>
+            <p className="text-xs text-text-secondary font-sans mt-0.5">
+              Query matching Sentinel-1 or NISAR orbital passes via the Alaska Satellite Facility (ASF).
+            </p>
+          </div>
+        </div>
 
         {/* Satellite Selection & ASF Query Action */}
         <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
@@ -1442,7 +1488,7 @@ export default function AoiMapPicker() {
               <span className="font-medium text-ink">
                 Found {asfTotalCount} Sentinel-1 acquisition(s) across {asfGroups.length} orbit track(s):
               </span>
-              <span className="text-[11px] text-text-secondary">
+              <span className="text-xs text-text-secondary">
                 Select an orbit track below to set Earth Engine export filter
               </span>
             </div>
@@ -1505,11 +1551,11 @@ export default function AoiMapPicker() {
                         </td>
                         <td className="py-2 px-3">
                           {grp.usable ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-[11px] font-semibold">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-xs font-semibold">
                               <Check className="w-3 h-3" /> Ready in both windows
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-[11px]">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-xs">
                               Incomplete (missing window)
                             </span>
                           )}
@@ -1529,7 +1575,7 @@ export default function AoiMapPicker() {
                 <button
                   type="button"
                   onClick={() => setSelectedTrackPass(null)}
-                  className="text-text-secondary hover:text-ink text-[11px] underline cursor-pointer"
+                  className="text-text-secondary hover:text-ink text-xs underline cursor-pointer"
                 >
                   Clear orbit constraint
                 </button>
@@ -1581,12 +1627,13 @@ export default function AoiMapPicker() {
         )}
       </div>
 
-      {/* ── Google Earth Engine Export Script Generator ── */}
+      {/* ── 4. Export script ── */}
       <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-bold font-headline text-ink">
-              Earth Engine export script
+            <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
+              <Layers className="w-4 h-4 text-accent" />
+              4. Export script
             </h3>
             <p className="text-xs text-text-secondary font-sans mt-0.5">
               Exports co-registered Sentinel-1 GRD IW VV GeoTIFFs to Google Drive using single-track look geometry.

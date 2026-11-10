@@ -480,41 +480,40 @@ function ExploreContent() {
 
           {/* ── Notice when Live Processing API URL is not configured ── */}
           {activeTab === 'upload' && !apiUrl && (
-            <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rust" />
-                <h2 className="text-base font-bold font-headline text-ink">
-                  Live Processing Not Configured
-                </h2>
-              </div>
-              <p className="text-text-secondary text-sm font-sans">
-                Live processing is not configured; precomputed areas still work.
-              </p>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('demo')}
-                  className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
-                >
-                  View Precomputed Case Studies
-                </button>
+            <div className="col-span-12 space-y-6">
+              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rust" />
+                  <h2 className="text-base font-bold font-headline text-ink">
+                    Live Processing Not Configured
+                  </h2>
+                </div>
+                <p className="text-text-secondary text-sm font-sans">
+                  Live processing is not configured; precomputed areas still work.
+                </p>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('demo')}
+                    className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
+                  >
+                    View Precomputed Case Studies
+                  </button>
+                </div>
               </div>
 
-              {/* Optional Area Picker & Earth Engine Export Script Generator */}
-              <details className="border border-hairline rounded-[2px] bg-surface-2 group mt-4">
-                <summary className="p-4 cursor-pointer font-medium text-sm text-ink hover:text-accent flex items-center justify-between select-none">
-                  <span className="flex items-center gap-2">
-                    <span className="font-semibold">Optional:</span>
-                    <span>Pick an area, find satellite passes, and generate Earth Engine export script</span>
-                  </span>
-                  <span className="text-xs text-text-secondary group-open:rotate-180 transition-transform">
-                    ▼
-                  </span>
-                </summary>
-                <div className="p-4 border-t border-hairline bg-surface">
-                  <AoiMapPicker />
-                </div>
-              </details>
+              {/* Area Picker & Earth Engine Export Script Generator */}
+              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
+                <h2 className="text-xl font-bold font-headline text-ink">
+                  Select an area and prepare the input files
+                </h2>
+                <AoiMapPicker
+                  onSelectCaseStudy={(caseId) => {
+                    setActiveTab('demo');
+                    handleAoiSelect(caseId);
+                  }}
+                />
+              </div>
             </div>
           )}
 
@@ -551,93 +550,92 @@ function ExploreContent() {
           )}
 
           {activeTab === 'upload' && apiUrl && !uploadLoading && !uploadData && (
-            <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-6">
-              <div>
+            <div className="col-span-12 space-y-6">
+              {/* Area Picker & Earth Engine Export Script Generator */}
+              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
                 <h2 className="text-xl font-bold font-headline text-ink">
-                  Upload SAR GeoTIFF Files
+                  Select an area and prepare the input files
                 </h2>
-                <p className="text-text-secondary text-sm mt-1 font-sans">
-                  Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
-                </p>
-              </div>
-
-              {/* Analysis Configuration Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
-                <div>
-                  <label htmlFor="upload-mode-select" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
-                    Analysis type
-                  </label>
-                  <select
-                    id="upload-mode-select"
-                    value={mode}
-                    onChange={(e) => handleModeSelect(e.target.value as AnalysisMode)}
-                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm focus:outline-none focus:border-accent cursor-pointer"
-                  >
-                    <option value="flood">Flood</option>
-                    <option value="river-erosion">River erosion</option>
-                    <option value="deforestation">Deforestation</option>
-                    <option value="surface-water">Surface water</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="upload-date-a" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
-                    Before date (optional)
-                  </label>
-                  <input
-                    type="date"
-                    id="upload-date-a"
-                    value={uploadDateA}
-                    onChange={(e) => setUploadDateA(e.target.value)}
-                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="upload-date-b" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
-                    After date (optional)
-                  </label>
-                  <input
-                    type="date"
-                    id="upload-date-b"
-                    value={uploadDateB}
-                    onChange={(e) => setUploadDateB(e.target.value)}
-                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
-                  />
-                </div>
-              </div>
-
-              {/* Optional Area Picker & Earth Engine Export Script Generator */}
-              <details className="border border-hairline rounded-[2px] bg-surface-2 group">
-                <summary className="p-4 cursor-pointer font-medium text-sm text-ink hover:text-accent flex items-center justify-between select-none">
-                  <span className="flex items-center gap-2">
-                    <span className="font-semibold">Optional:</span>
-                    <span>Pick an area, find satellite passes, and generate Earth Engine export script</span>
-                  </span>
-                  <span className="text-xs text-text-secondary group-open:rotate-180 transition-transform">
-                    ▼
-                  </span>
-                </summary>
-                <div className="p-4 border-t border-hairline bg-surface">
-                  <AoiMapPicker />
-                </div>
-              </details>
-
-              {/* File Drop Zones */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileDropZone
-                  label="Before image (.tif / .tiff, max 60 MB)"
-                  file={beforeFile}
-                  onFileSelect={(f) => setBeforeFile(f)}
-                  onFileRemove={() => setBeforeFile(null)}
-                  disabled={uploadLoading || sampleLoading}
-                />
-                <FileDropZone
-                  label="After image (.tif / .tiff, max 60 MB)"
-                  file={afterFile}
-                  onFileSelect={(f) => setAfterFile(f)}
-                  onFileRemove={() => setAfterFile(null)}
-                  disabled={uploadLoading || sampleLoading}
+                <AoiMapPicker
+                  onSelectCaseStudy={(caseId) => {
+                    setActiveTab('demo');
+                    handleAoiSelect(caseId);
+                  }}
                 />
               </div>
+
+              {/* Upload Section */}
+              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold font-headline text-ink">
+                    5. Upload the exported files
+                  </h2>
+                  <p className="text-text-secondary text-sm mt-1 font-sans">
+                    Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
+                  </p>
+                </div>
+
+                {/* Analysis Configuration Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
+                  <div>
+                    <label htmlFor="upload-mode-select" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
+                      Analysis type
+                    </label>
+                    <select
+                      id="upload-mode-select"
+                      value={mode}
+                      onChange={(e) => handleModeSelect(e.target.value as AnalysisMode)}
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm focus:outline-none focus:border-accent cursor-pointer"
+                    >
+                      <option value="flood">Flood</option>
+                      <option value="river-erosion">River erosion</option>
+                      <option value="deforestation">Deforestation</option>
+                      <option value="surface-water">Surface water</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="upload-date-a" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
+                      Before date (optional)
+                    </label>
+                    <input
+                      type="date"
+                      id="upload-date-a"
+                      value={uploadDateA}
+                      onChange={(e) => setUploadDateA(e.target.value)}
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="upload-date-b" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
+                      After date (optional)
+                    </label>
+                    <input
+                      type="date"
+                      id="upload-date-b"
+                      value={uploadDateB}
+                      onChange={(e) => setUploadDateB(e.target.value)}
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+
+                {/* File Drop Zones */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FileDropZone
+                    label="Before image (.tif / .tiff, max 60 MB)"
+                    file={beforeFile}
+                    onFileSelect={(f) => setBeforeFile(f)}
+                    onFileRemove={() => setBeforeFile(null)}
+                    disabled={uploadLoading || sampleLoading}
+                  />
+                  <FileDropZone
+                    label="After image (.tif / .tiff, max 60 MB)"
+                    file={afterFile}
+                    onFileSelect={(f) => setAfterFile(f)}
+                    onFileRemove={() => setAfterFile(null)}
+                    disabled={uploadLoading || sampleLoading}
+                  />
+                </div>
 
               {/* Sample buttons & Submit Action */}
               <div className="pt-4 border-t border-hairline space-y-3">
@@ -675,7 +673,8 @@ function ExploreContent() {
                 </p>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* ── Demo Loading / Error States ── */}
           {activeTab === 'demo' && demoLoading && (
