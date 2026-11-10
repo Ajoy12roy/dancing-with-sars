@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
+import { shouldProbeService } from '@/lib/service-probe';
 import BeforeAfterViewer from '@/components/visualization/BeforeAfterViewer';
 import StatsPanel from '@/components/visualization/StatsPanel';
 import CategoryBreakdownChart from '@/components/visualization/CategoryBreakdownChart';
@@ -110,12 +112,19 @@ function ExploreContent() {
     pingHealth,
   } = useUploadChangeData();
 
-  // Ping /health once when upload panel becomes visible
+  const isConnectedDeployment = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return Boolean(apiUrl);
+    }
+    return shouldProbeService(window.location.hostname, apiUrl);
+  }, [apiUrl]);
+
+  // Ping /health at most once when upload panel becomes visible, only if probe is allowed
   useEffect(() => {
-    if (activeTab === 'upload' && apiUrl && serverStatus === 'idle') {
+    if (activeTab === 'upload' && isConnectedDeployment && serverStatus === 'idle') {
       pingHealth();
     }
-  }, [activeTab, apiUrl, serverStatus, pingHealth]);
+  }, [activeTab, isConnectedDeployment, serverStatus, pingHealth]);
 
   const handleResetUpload = () => {
     setBeforeFile(null);
@@ -414,38 +423,47 @@ function ExploreContent() {
                   </button>
                 )}
 
-                {/* Server Status indicator (when in Upload mode and API URL configured) */}
-                {activeTab === 'upload' && apiUrl && (
+                {/* Server Status indicator (when in Upload mode) */}
+                {activeTab === 'upload' && (
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-sans">
-                    {serverStatus === 'ready' && (
+                    {!isConnectedDeployment ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
+                        <span className="text-text-secondary">Service not connected in this deployment</span>
+                      </>
+                    ) : serverStatus === 'ready' ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
                         <span className="text-teal font-medium">Processing service ready</span>
                       </>
-                    )}
-                    {serverStatus === 'waking' && (
+                    ) : serverStatus === 'waking' ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
-                        <span className="text-text-secondary">The processing service is starting. This can take up to one minute.</span>
+                        <span className="text-text-secondary">The processing service is starting.</span>
                       </>
-                    )}
-                    {serverStatus === 'offline' && (
+                    ) : serverStatus === 'offline' ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                        <span className="text-text-secondary">The processing service is not reachable. The precomputed case studies remain available.</span>
+                        <span className="text-text-secondary">The processing service is not reachable.</span>
                         <button
                           type="button"
                           onClick={() => pingHealth()}
                           className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
                         >
-                          Retry
+                          Check connection
                         </button>
                       </>
-                    )}
-                    {serverStatus === 'idle' && (
+                    ) : (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
-                        <span className="text-text-secondary">Connecting...</span>
+                        <span className="text-text-secondary">Not connected</span>
+                        <button
+                          type="button"
+                          onClick={() => pingHealth()}
+                          className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
+                        >
+                          Check connection
+                        </button>
                       </>
                     )}
                   </div>
@@ -475,24 +493,24 @@ function ExploreContent() {
             </div>
           </div>
 
-          {/* ── Notice when Live Processing API URL is not configured ── */}
-          {activeTab === 'upload' && !apiUrl && (
+          {/* ── Notice when Live Processing API is not connected in this deployment ── */}
+          {activeTab === 'upload' && !isConnectedDeployment && (
             <div className="col-span-12 space-y-6">
-              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
+              <div className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-rust" />
-                  <h2 className="text-base font-bold font-headline text-ink">
-                    Live Processing Not Configured
+                  <h2 className="text-xl font-semibold font-headline text-ink">
+                    Analysis service not connected
                   </h2>
                 </div>
-                <p className="text-text-secondary text-sm font-sans">
-                  Live processing is not configured; precomputed areas still work.
+                <p className="text-text-secondary text-base font-sans leading-relaxed">
+                  The analysis service is not connected in this deployment. The precomputed cases and the area picker remain available. To analyse your own files, run the project locally (<Link href="/how-it-works#earth-engine-export" className="text-teal hover:underline font-medium">see How it works</Link>).
                 </p>
                 <div>
                   <button
                     type="button"
                     onClick={() => setActiveTab('demo')}
-                    className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
+                    className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
                   >
                     View Precomputed Case Studies
                   </button>
@@ -545,7 +563,7 @@ function ExploreContent() {
             </div>
           )}
 
-          {activeTab === 'upload' && apiUrl && !uploadLoading && !uploadData && (
+          {activeTab === 'upload' && isConnectedDeployment && !uploadLoading && !uploadData && (
             <div className="col-span-12 space-y-6">
               {/* Area Picker & Earth Engine Export Script Generator (Card 1 and Card 2) */}
               <AoiMapPicker

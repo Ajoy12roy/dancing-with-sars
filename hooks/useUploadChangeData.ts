@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import type { ChangeData } from './useChangeData';
-import { getBackoffDelay, shouldRetry } from '@/lib/retry-backoff';
+import { shouldProbeService } from '@/lib/service-probe';
 
 export interface UploadAnalyzeOptions {
   mode?: string;
@@ -47,45 +47,38 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
   const apiUrl = (process.env.NEXT_PUBLIC_PROCESSING_API_URL || '').trim().replace(/\/+$/, '');
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Non-blocking ping to wake the server with exponential backoff up to 90 seconds
+  // Single non-blocking health request when upload panel opens or user triggers check
   const pingHealth = useCallback(async () => {
-    if (!apiUrl) {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (!shouldProbeService(hostname, apiUrl)) {
+        setServerStatus('offline');
+        return;
+      }
+    } else if (!apiUrl) {
       setServerStatus('offline');
       return;
     }
+
     setServerStatus('waking');
-    const startTime = Date.now();
-    let attempt = 0;
+    const controller = new AbortController();
+    const perAttemptTimeout = setTimeout(() => controller.abort(), 8000);
 
-    while (shouldRetry(Date.now() - startTime)) {
-      const controller = new AbortController();
-      const perAttemptTimeout = setTimeout(() => controller.abort(), 12000);
-
-      try {
-        const response = await fetch(`${apiUrl}/health`, {
-          method: 'GET',
-          signal: controller.signal,
-        });
-        clearTimeout(perAttemptTimeout);
-        if (response.ok) {
-          setServerStatus('ready');
-          return;
-        }
-      } catch {
-        clearTimeout(perAttemptTimeout);
+    try {
+      const response = await fetch(`${apiUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      clearTimeout(perAttemptTimeout);
+      if (response.ok) {
+        setServerStatus('ready');
+      } else {
+        setServerStatus('offline');
       }
-
-      const elapsed = Date.now() - startTime;
-      if (!shouldRetry(elapsed)) {
-        break;
-      }
-
-      const delay = getBackoffDelay(attempt);
-      attempt++;
-      await new Promise((resolve) => setTimeout(resolve, delay));
+    } catch {
+      clearTimeout(perAttemptTimeout);
+      setServerStatus('offline');
     }
-
-    setServerStatus('offline');
   }, [apiUrl]);
 
   const sendAnalysisRequest = useCallback(
