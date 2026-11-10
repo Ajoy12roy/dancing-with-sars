@@ -38,6 +38,7 @@ import {
   getMidpointDateISO,
   expandSingleDateToWindow,
   getDefaultBeforeAfterTargets,
+  create10kmBoxFromCenter,
   generateGeeScript,
   resizeBounds,
   HandleType,
@@ -134,12 +135,39 @@ function getHandleIcon(type: HandleType, isValid: boolean): L.DivIcon {
   return icon;
 }
 
+const centerIconMap = new Map<string, L.DivIcon>();
+
+function createCenterHandleIcon(isValid: boolean): L.DivIcon {
+  const borderColor = isValid ? 'var(--color-teal)' : 'var(--color-rust)';
+  return L.divIcon({
+    className: 'aoi-center-handle-marker',
+    html: `<div data-handle="move" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:move;touch-action:none;pointer-events:auto;" title="Drag to move box">
+      <div style="width:18px;height:18px;background:var(--color-surface);border:2px solid ${borderColor};border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.25);">
+        <div style="width:6px;height:6px;background:${borderColor};border-radius:50%;"></div>
+      </div>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+}
+
+function getCenterHandleIcon(isValid: boolean): L.DivIcon {
+  const key = isValid ? 'valid' : 'invalid';
+  let icon = centerIconMap.get(key);
+  if (!icon) {
+    icon = createCenterHandleIcon(isValid);
+    centerIconMap.set(key, icon);
+  }
+  return icon;
+}
+
 interface AoiBoxControllerProps {
   bbox: BoundingBox;
   onBboxChange: (newBbox: BoundingBox) => void;
   onBboxChangeComplete: () => void;
   squareSelection: boolean;
   isDrawingMode: boolean;
+  is10kmMode: boolean;
   isValid: boolean;
   onClampNotice: (notice: string | null) => void;
 }
@@ -150,6 +178,7 @@ function AoiBoxController({
   onBboxChangeComplete,
   squareSelection,
   isDrawingMode,
+  is10kmMode,
   isValid,
   onClampNotice,
 }: AoiBoxControllerProps) {
@@ -159,6 +188,7 @@ function AoiBoxController({
     startPointerLatLng: L.LatLng;
     startBbox: BoundingBox;
     pointerId: number;
+    hasMoved: boolean;
   } | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -175,10 +205,16 @@ function AoiBoxController({
       const isBox = target.classList?.contains('aoi-draggable-box') || target.closest('.aoi-draggable-box');
 
       let handleType: HandleType | null = null;
-      if (handleEl) {
-        handleType = handleEl.getAttribute('data-handle') as HandleType;
-      } else if (isBox) {
-        handleType = 'move';
+      if (is10kmMode) {
+        if (handleEl || isBox) {
+          handleType = 'move';
+        }
+      } else {
+        if (handleEl) {
+          handleType = handleEl.getAttribute('data-handle') as HandleType;
+        } else if (isBox) {
+          handleType = 'move';
+        }
       }
 
       if (!handleType) return;
@@ -201,6 +237,7 @@ function AoiBoxController({
         startPointerLatLng: pointerLatLng,
         startBbox: bbox,
         pointerId: e.pointerId,
+        hasMoved: false,
       };
     };
 
@@ -214,17 +251,29 @@ function AoiBoxController({
       const deltaLat = currentPointerLatLng.lat - startPointerLatLng.lat;
       const deltaLon = currentPointerLatLng.lng - startPointerLatLng.lng;
 
+      if (Math.abs(deltaLat) > 0.0001 || Math.abs(deltaLon) > 0.0001) {
+        activeDragRef.current.hasMoved = true;
+      }
+
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
 
       rafRef.current = requestAnimationFrame(() => {
-        const result = resizeBounds(startBbox, handleType, deltaLat, deltaLon, squareSelection);
-        onBboxChange(result.bbox);
-        if (result.clamped && result.clampReason) {
-          onClampNotice(result.clampReason);
-        } else {
+        if (handleType === 'move' && is10kmMode) {
+          const midLat = Math.min(80, Math.max(-80, (startBbox.south + startBbox.north) / 2 + deltaLat));
+          const midLon = (startBbox.west + startBbox.east) / 2 + deltaLon;
+          const nextBbox = create10kmBoxFromCenter(midLat, midLon);
+          onBboxChange(nextBbox);
           onClampNotice(null);
+        } else {
+          const result = resizeBounds(startBbox, handleType, deltaLat, deltaLon, squareSelection);
+          onBboxChange(result.bbox);
+          if (result.clamped && result.clampReason) {
+            onClampNotice(result.clampReason);
+          } else {
+            onClampNotice(null);
+          }
         }
       });
     };
@@ -232,6 +281,8 @@ function AoiBoxController({
     const handlePointerEnd = (e: PointerEvent) => {
       if (!activeDragRef.current) return;
       if (e.pointerId !== activeDragRef.current.pointerId) return;
+
+      const dragInfo = activeDragRef.current;
 
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
@@ -250,6 +301,11 @@ function AoiBoxController({
         map.doubleClickZoom.enable();
       } catch {
         // Ignored
+      }
+
+      if (!dragInfo.hasMoved && is10kmMode && dragInfo.handleType === 'move') {
+        const clickLatLng = map.mouseEventToLatLng(e as unknown as MouseEvent);
+        onBboxChange(create10kmBoxFromCenter(clickLatLng.lat, clickLatLng.lng));
       }
 
       onBboxChangeComplete();
@@ -276,9 +332,12 @@ function AoiBoxController({
         // Ignored
       }
     };
-  }, [map, isDrawingMode, bbox, squareSelection, onBboxChange, onBboxChangeComplete, onClampNotice]);
+  }, [map, isDrawingMode, is10kmMode, bbox, squareSelection, onBboxChange, onBboxChangeComplete, onClampNotice]);
 
   if (isDrawingMode) return null;
+
+  const centerLat = (bbox.south + bbox.north) / 2;
+  const centerLon = (bbox.west + bbox.east) / 2;
 
   const handles: Array<{ type: HandleType; position: [number, number] }> = [
     { type: 'nw', position: [bbox.north, bbox.west] },
@@ -293,13 +352,18 @@ function AoiBoxController({
 
   return (
     <>
-      {handles.map(({ type, position }) => (
-        <Marker
-          key={type}
-          position={position}
-          icon={getHandleIcon(type, isValid)}
-        />
-      ))}
+      <Marker
+        position={[centerLat, centerLon]}
+        icon={getCenterHandleIcon(isValid)}
+      />
+      {!is10kmMode &&
+        handles.map(({ type, position }) => (
+          <Marker
+            key={type}
+            position={position}
+            icon={getHandleIcon(type, isValid)}
+          />
+        ))}
     </>
   );
 }
@@ -534,7 +598,8 @@ export default function AoiMapPicker({
   // Recenter counter to force MapController to re-fit bounds
   const [recenterCount, setRecenterCount] = useState<number>(1);
 
-  // ── Drawing and Pointer State ──
+  // ── Drawing, Mode and Pointer State ──
+  const [mapMode, setMapMode] = useState<'box10km' | 'draw'>('box10km');
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [squareSelection, setSquareSelection] = useState<boolean>(false);
@@ -570,6 +635,12 @@ export default function AoiMapPicker({
   });
 
   const handleBboxChangeComplete = useCallback(() => {
+    if (mapMode === 'box10km') {
+      const midLat = (bbox.south + bbox.north) / 2;
+      const midLon = (bbox.west + bbox.east) / 2;
+      const snapped = create10kmBoxFromCenter(midLat, midLon);
+      setBbox(snapped);
+    }
     if (!hasUserManuallyEditedDates) {
       const matchesPreset = PRESET_AOIS.some((p) => {
         return (
@@ -589,7 +660,7 @@ export default function AoiMapPicker({
     setTimeout(() => {
       setClampNotice(null);
     }, 3000);
-  }, [announce, bbox, hasUserManuallyEditedDates]);
+  }, [announce, bbox, hasUserManuallyEditedDates, mapMode]);
 
   useEffect(() => {
     return () => {
@@ -625,7 +696,7 @@ export default function AoiMapPicker({
       setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
       setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
     }
-    announce('Area selection updated.');
+    announce('Custom area selection updated.');
   }, [announce, hasUserManuallyEditedDates]);
 
   const handleCancelDraw = useCallback(() => {
@@ -684,17 +755,15 @@ export default function AoiMapPicker({
 
   // ── Current Preset Detection ──
   const currentPreset = useMemo(() => {
-    return (
-      PRESET_AOIS.find((p) => {
-        return (
-          Math.abs(p.bbox.west - bbox.west) < 0.001 &&
-          Math.abs(p.bbox.east - bbox.east) < 0.001 &&
-          Math.abs(p.bbox.south - bbox.south) < 0.001 &&
-          Math.abs(p.bbox.north - bbox.north) < 0.001
-        );
-      }) || (selectedCaseId ? presetForCase(selectedCaseId) : undefined)
-    );
-  }, [bbox, selectedCaseId]);
+    return PRESET_AOIS.find((p) => {
+      return (
+        Math.abs(p.bbox.west - bbox.west) < 0.001 &&
+        Math.abs(p.bbox.east - bbox.east) < 0.001 &&
+        Math.abs(p.bbox.south - bbox.south) < 0.001 &&
+        Math.abs(p.bbox.north - bbox.north) < 0.001
+      );
+    });
+  }, [bbox]);
 
   // ── Generated GEE Script ──
   const geeScript = useMemo(() => {
@@ -713,20 +782,33 @@ export default function AoiMapPicker({
     });
   }, [bbox, dateWindowA, dateWindowB, selectedTrackPass, scaleInfo.scale, currentPreset]);
 
-  // ── Map Center Reposition Handler ──
+  // ── Map Center Reposition / Snap Handler ──
   const handleMapCenterClick = useCallback(
     (lat: number, lon: number) => {
-      const halfHeight = (bbox.north - bbox.south) / 2;
-      const halfWidth = (bbox.east - bbox.west) / 2;
-      const updated = normalizeBbox({
-        west: Number((lon - halfWidth).toFixed(5)),
-        east: Number((lon + halfWidth).toFixed(5)),
-        south: Number((lat - halfHeight).toFixed(5)),
-        north: Number((lat + halfHeight).toFixed(5)),
-      });
-      setBbox(updated);
+      if (isDrawingMode) return;
+      if (mapMode === 'box10km') {
+        const box10km = create10kmBoxFromCenter(lat, lon);
+        setBbox(box10km);
+        if (!hasUserManuallyEditedDates) {
+          const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
+          setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
+          setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
+        }
+        announce(`Placed 10 by 10 km box centered at latitude ${lat.toFixed(3)}, longitude ${lon.toFixed(3)}.`);
+      } else {
+        const halfHeight = (bbox.north - bbox.south) / 2;
+        const halfWidth = (bbox.east - bbox.west) / 2;
+        const updated = normalizeBbox({
+          west: Number((lon - halfWidth).toFixed(5)),
+          east: Number((lon + halfWidth).toFixed(5)),
+          south: Number((lat - halfHeight).toFixed(5)),
+          north: Number((lat + halfHeight).toFixed(5)),
+        });
+        setBbox(updated);
+        announce(`Moved area center to latitude ${lat.toFixed(3)}, longitude ${lon.toFixed(3)}.`);
+      }
     },
-    [bbox]
+    [isDrawingMode, mapMode, bbox, hasUserManuallyEditedDates, announce]
   );
 
   // ── Dimension Change Handlers ──
@@ -1157,7 +1239,7 @@ export default function AoiMapPicker({
                 className="w-full bg-surface-2 border border-hairline rounded-[2px] px-3 py-2 text-base text-ink min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
               >
                 <option value="" disabled>
-                  {currentPreset ? 'Select a preset...' : 'Custom area'}
+                  {currentPreset ? 'Select a preset...' : 'Custom AOI'}
                 </option>
                 {PRESET_AOIS.map((preset) => (
                   <option key={preset.id} value={preset.id}>
@@ -1236,24 +1318,61 @@ export default function AoiMapPicker({
             className="relative flex flex-col min-h-[320px] h-[340px] sm:h-[440px]"
             style={{ touchAction: isDrawingMode ? 'none' : 'pan-y' }}
           >
-            {/* Top-right draw rectangle toggle */}
-            <div className="absolute top-2 right-2 z-[400]">
+            {/* Top-left overlay badge */}
+            {mapMode === 'box10km' && (
+              <div className="absolute top-2 left-12 sm:left-14 z-[400] bg-surface/95 border border-hairline px-3 py-1.5 rounded-[2px] text-xs font-sans text-ink shadow-sm pointer-events-none flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-teal shrink-0" aria-hidden="true"></span>
+                <span className="font-medium">Selected Box: 10 km × 10 km (Click map or drag to move)</span>
+              </div>
+            )}
+            {mapMode === 'draw' && isDrawingMode && (
+              <div className="absolute top-2 left-12 sm:left-14 z-[400] bg-surface/95 border border-hairline px-3 py-1.5 rounded-[2px] text-xs font-sans text-ink shadow-sm pointer-events-none flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-accent shrink-0" aria-hidden="true"></span>
+                <span className="font-medium">Click and drag to draw a custom area (Esc to cancel)</span>
+              </div>
+            )}
+
+            {/* Top-right mode switcher toolbar */}
+            <div className="absolute top-2 right-2 z-[400] flex items-center gap-1 bg-surface/95 p-1 rounded-[2px] border border-hairline shadow-sm">
               <button
                 type="button"
                 onClick={() => {
-                  setIsDrawingMode((prev) => {
-                    const next = !prev;
-                    if (!next) setIsDragging(false);
-                    return next;
-                  });
+                  setMapMode('box10km');
+                  setIsDrawingMode(false);
+                  setIsDragging(false);
+                  const centerLat = (bbox.south + bbox.north) / 2;
+                  const centerLon = (bbox.west + bbox.east) / 2;
+                  setBbox(create10kmBoxFromCenter(centerLat, centerLon));
+                  announce('Switched to 10 by 10 km movable box mode.');
                 }}
-                className={`min-h-[36px] px-3 py-1.5 text-sm font-medium rounded-[2px] border transition-colors cursor-pointer ${
-                  isDrawingMode
-                    ? 'bg-rust text-text-on-accent border-rust'
-                    : 'bg-surface border-hairline text-ink hover:border-accent hover:text-accent'
+                aria-pressed={mapMode === 'box10km'}
+                className={`min-h-[32px] px-2.5 py-1 text-xs font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  mapMode === 'box10km'
+                    ? 'bg-accent text-text-on-accent font-semibold shadow-xs'
+                    : 'text-ink hover:bg-surface-2 hover:text-accent'
                 }`}
+                title="Place or move a fixed 10 km × 10 km bounding box"
               >
-                {isDrawingMode ? 'Cancel drawing (Esc)' : 'Draw rectangle'}
+                <span className="text-sm leading-none" aria-hidden="true">⛶</span>
+                <span>Place / Move 10×10 km Box</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMapMode('draw');
+                  setIsDrawingMode(true);
+                  announce('Custom draw mode active. Click and drag on the map to define an area.');
+                }}
+                aria-pressed={mapMode === 'draw'}
+                className={`min-h-[32px] px-2.5 py-1 text-xs font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  mapMode === 'draw'
+                    ? 'bg-accent text-text-on-accent font-semibold shadow-xs'
+                    : 'text-ink hover:bg-surface-2 hover:text-accent'
+                }`}
+                title="Draw a custom rectangular bounding box on the map"
+              >
+                <span className="text-sm leading-none" aria-hidden="true">✎</span>
+                <span>{isDrawingMode ? 'Drawing... (Esc)' : 'Custom Draw'}</span>
               </button>
             </div>
 
@@ -1308,6 +1427,7 @@ export default function AoiMapPicker({
                 onBboxChangeComplete={handleBboxChangeComplete}
                 squareSelection={squareSelection}
                 isDrawingMode={isDrawingMode}
+                is10kmMode={mapMode === 'box10km'}
                 isValid={validation.valid}
                 onClampNotice={handleClampNotice}
               />
@@ -1333,7 +1453,9 @@ export default function AoiMapPicker({
           <div className="p-3 border-t border-hairline bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
             <div className="space-y-1">
               <p className="text-text-secondary text-sm font-sans">
-                Drag a handle to resize the area, or drag inside the box to move it.
+                {mapMode === 'box10km'
+                  ? 'Click anywhere on the map to place a 10 km × 10 km box, or drag the box to move it.'
+                  : 'Drag a handle to resize the area, or drag inside the box to move it.'}
               </p>
               {clampNotice && (
                 <p className="text-rust text-sm font-sans font-medium" role="status">
@@ -1345,15 +1467,17 @@ export default function AoiMapPicker({
               <span className="font-data text-sm text-ink bg-surface-2 px-2.5 py-1 rounded-[2px] border border-hairline">
                 {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
               </span>
-              <label className="flex items-center gap-1.5 cursor-pointer text-sm font-sans text-text-secondary select-none">
-                <input
-                  type="checkbox"
-                  checked={squareSelection}
-                  onChange={(e) => handleSquareToggle(e.target.checked)}
-                  className="accent-accent cursor-pointer"
-                />
-                <span>Square selection</span>
-              </label>
+              {mapMode === 'draw' && (
+                <label className="flex items-center gap-1.5 cursor-pointer text-sm font-sans text-text-secondary select-none">
+                  <input
+                    type="checkbox"
+                    checked={squareSelection}
+                    onChange={(e) => handleSquareToggle(e.target.checked)}
+                    className="accent-accent cursor-pointer"
+                  />
+                  <span>Square selection</span>
+                </label>
+              )}
               <button
                 type="button"
                 onClick={() => setRecenterCount((c) => c + 1)}

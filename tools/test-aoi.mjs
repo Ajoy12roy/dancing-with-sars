@@ -91,6 +91,7 @@ const {
   getMidpointDateISO,
   expandSingleDateToWindow,
   getDefaultBeforeAfterTargets,
+  create10kmBoxFromCenter,
 } = aoiModule;
 
 console.log('Running Area Picker (lib/aoi.ts) Test Suite...\n');
@@ -410,5 +411,39 @@ assert.ok(Math.abs(moveDims.widthKm - baseDims.widthKm) < 0.01, `Move must keep 
 assert.ok(Math.abs(moveDims.heightKm - baseDims.heightKm) < 0.01, `Move must keep height: got ${moveDims.heightKm} vs ${baseDims.heightKm}`);
 assert.ok(Math.abs(moveDims.areaKm2 - baseDims.areaKm2) < 0.05, `Move must keep area: got ${moveDims.areaKm2} vs ${baseDims.areaKm2}`);
 console.log('✓ Resize logic verified: shrink clamp, grow clamp, square mode ratio, and move invariance');
+
+// ── 8. Default 10km × 10km Fixed-Size Movable Bounding Box (create10kmBoxFromCenter) ──
+console.log('Test 8: Default 10km x 10km fixed-size movable bounding box (create10kmBoxFromCenter)...');
+assert.equal(typeof create10kmBoxFromCenter, 'function', 'create10kmBoxFromCenter must be exported as a function');
+
+// (a) Equator check
+const equator10 = create10kmBoxFromCenter(0, 0);
+assert.equal(equator10.south, -0.04492, 'South at equator should be -0.04492');
+assert.equal(equator10.north, 0.04492, 'North at equator should be 0.04492');
+assert.equal(equator10.west, -0.04492, 'West at equator should be -0.04492');
+assert.equal(equator10.east, 0.04492, 'East at equator should be 0.04492');
+const eqDims = computeBboxDimensions(equator10);
+assert.ok(Math.abs(eqDims.widthKm - 10) < 0.05, `Equator width should be ~10 km, got ${eqDims.widthKm}`);
+assert.ok(Math.abs(eqDims.heightKm - 10) < 0.05, `Equator height should be ~10 km, got ${eqDims.heightKm}`);
+
+// (b) Cox's Bazar check
+const cox10 = create10kmBoxFromCenter(21.4272, 91.9702);
+const coxDims = computeBboxDimensions(cox10);
+assert.ok(Math.abs(coxDims.widthKm - 10) < 0.1, `Cox's Bazar width should be ~10 km, got ${coxDims.widthKm}`);
+assert.ok(Math.abs(coxDims.heightKm - 10) < 0.1, `Cox's Bazar height should be ~10 km, got ${coxDims.heightKm}`);
+assert.ok(Math.abs(coxDims.areaKm2 - 100) < 2.0, `Cox's Bazar area should be ~100 km², got ${coxDims.areaKm2}`);
+
+// (c) Bandarban check
+const bandarban10 = create10kmBoxFromCenter(22.1953, 92.2184);
+const banDims = computeBboxDimensions(bandarban10);
+assert.ok(Math.abs(banDims.widthKm - 10) < 0.1, `Bandarban width should be ~10 km, got ${banDims.widthKm}`);
+assert.ok(Math.abs(banDims.heightKm - 10) < 0.1, `Bandarban height should be ~10 km, got ${banDims.heightKm}`);
+
+// (d) High latitude (60° N) check
+const highLat10 = create10kmBoxFromCenter(60.0, 10.0);
+const highDims = computeBboxDimensions(highLat10);
+assert.ok(Math.abs(highDims.widthKm - 10) < 0.1, `High-latitude width should be ~10 km, got ${highDims.widthKm}`);
+assert.ok(Math.abs(highDims.heightKm - 10) < 0.1, `High-latitude height should be ~10 km, got ${highDims.heightKm}`);
+console.log('✓ create10kmBoxFromCenter verified across equator, mid-latitudes (Cox\'s Bazar, Bandarban), and high-latitudes');
 
 console.log('\nAll Area Picker (lib/aoi.ts) tests passed successfully!');

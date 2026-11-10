@@ -122,3 +122,4 @@ assert.ok(dims.areaKm2 > 200 && dims.areaKm2 < 230, `Area must be ~218 km², got
 console.log(`✓ Sylhet preset verified in PRESET_AOIS (Area: ${dims.areaKm2} km²)`);
 
 console.log('\nAll Sylhet Flow tests passed successfully!');
+

@@ -225,6 +225,26 @@ export function bboxFromCorners(c1: [number, number], c2: [number, number]): Bou
 }
 
 /**
+ * Creates a deterministic 10 km × 10 km bounding box centered at (lat, lng).
+ * halfSideKm = 5.0 (total width = 10 km, total height = 10 km).
+ * latDelta = 5.0 / 111.32
+ * lngDelta = 5.0 / (111.32 * Math.max(0.1, Math.cos((lat * Math.PI) / 180)))
+ */
+export function create10kmBoxFromCenter(lat: number, lng: number): BoundingBox {
+  const halfSideKm = 5.0;
+  const latDelta = halfSideKm / 111.32;
+  const cosLat = Math.cos((lat * Math.PI) / 180);
+  const lngDelta = halfSideKm / (111.32 * Math.max(0.1, Math.abs(cosLat)));
+
+  return {
+    south: +(lat - latDelta).toFixed(5),
+    north: +(lat + latDelta).toFixed(5),
+    west: +(lng - lngDelta).toFixed(5),
+    east: +(lng + lngDelta).toFixed(5),
+  };
+}
+
+/**
  * Computes geodesic dimensions (width, height, area) in km / km2
  * using haversine geodesic calculation at the box's mid latitude.
  */

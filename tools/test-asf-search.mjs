@@ -146,3 +146,4 @@ assert.deepEqual(emptyGroups, [], 'Empty granules array must yield empty groups 
 console.log('✓ groupAsfResults correctly determines single-orbit usability and handles 0 results gracefully');
 
 console.log('\nAll ASF Search & Date Utilities tests passed successfully!');
+
