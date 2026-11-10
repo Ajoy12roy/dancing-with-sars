@@ -16,6 +16,7 @@ import {
   Search,
   Copy,
   Check,
+  Download,
   ExternalLink,
   AlertCircle,
   Info,
@@ -640,6 +641,20 @@ export default function AoiMapPicker({
     [dateWindowA, dateWindowB]
   );
 
+  // ── Current Preset Detection ──
+  const currentPreset = useMemo(() => {
+    return (
+      PRESET_AOIS.find((p) => {
+        return (
+          Math.abs(p.bbox.west - bbox.west) < 0.001 &&
+          Math.abs(p.bbox.east - bbox.east) < 0.001 &&
+          Math.abs(p.bbox.south - bbox.south) < 0.001 &&
+          Math.abs(p.bbox.north - bbox.north) < 0.001
+        );
+      }) || (selectedCaseId ? presetForCase(selectedCaseId) : undefined)
+    );
+  }, [bbox, selectedCaseId]);
+
   // ── Generated GEE Script ──
   const geeScript = useMemo(() => {
     return generateGeeScript({
@@ -651,9 +666,11 @@ export default function AoiMapPicker({
       pass: selectedTrackPass?.pass || null,
       relativeOrbit: selectedTrackPass?.orbit ?? null,
       scale: scaleInfo.scale,
-      prefix: 'terrapulse_aoi',
+      prefix: currentPreset ? (currentPreset.id === 'sylhet' ? 'terrapulse_aoi' : currentPreset.id) : 'custom_aoi',
+      title: currentPreset ? currentPreset.name : undefined,
+      aoiName: currentPreset ? currentPreset.description : undefined,
     });
-  }, [bbox, dateWindowA, dateWindowB, selectedTrackPass, scaleInfo.scale]);
+  }, [bbox, dateWindowA, dateWindowB, selectedTrackPass, scaleInfo.scale, currentPreset]);
 
   // ── Map Center Reposition Handler ──
   const handleMapCenterClick = useCallback(
@@ -966,6 +983,22 @@ export default function AoiMapPicker({
     }
   };
 
+  // ── Download Script File ──
+  const handleDownloadScript = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const slug = currentPreset ? currentPreset.id.replace(/-/g, '_') : 'custom';
+    const blob = new Blob([geeScript], { type: 'text/javascript;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `terrapulse_gee_${slug}.js`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    announce('Earth Engine export script downloaded.');
+  }, [currentPreset, geeScript, announce]);
+
   const baselineDays = Math.max(
     1,
     Math.round((Date.parse(dateWindowA.end) - Date.parse(dateWindowA.start)) / 86400000) + 1
@@ -977,17 +1010,6 @@ export default function AoiMapPicker({
 
   const midLat = (bbox.south + bbox.north) / 2;
   const midLon = (bbox.west + bbox.east) / 2;
-
-  const currentPreset =
-    PRESET_AOIS.find((p) => {
-      return (
-        Math.abs(p.bbox.west - bbox.west) < 0.001 &&
-        Math.abs(p.bbox.east - bbox.east) < 0.001 &&
-        Math.abs(p.bbox.south - bbox.south) < 0.001 &&
-        Math.abs(p.bbox.north - bbox.north) < 0.001
-      );
-    }) ||
-    (selectedCaseId ? presetForCase(selectedCaseId) : undefined);
 
   return (
     <div className="space-y-6 text-ink">
@@ -1876,7 +1898,7 @@ export default function AoiMapPicker({
         {/* Two Collapsed Details Blocks */}
         <div className="space-y-4">
           {/* Details 1: Show export script */}
-          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+          <details open className="border border-hairline rounded-[2px] bg-surface-2 group">
             <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
               <span>Show export script</span>
               <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
@@ -1893,7 +1915,10 @@ export default function AoiMapPicker({
                 </details>
               )}
 
-              <div className="text-sm text-text-secondary space-y-1">
+              <div className="text-sm text-text-secondary space-y-1 font-sans">
+                <p className="font-medium text-ink">
+                  Selected area: {currentPreset ? currentPreset.name.split(' (')[0] : 'Custom area'} ({bbox.west}, {bbox.south}, {bbox.east}, {bbox.north})
+                </p>
                 <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
                 <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
                 <p>The script prints the selected orbit group in the Console.</p>
@@ -1916,6 +1941,15 @@ export default function AoiMapPicker({
                       <span>Copy script</span>
                     </>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadScript}
+                  className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download .js</span>
                 </button>
 
                 <a

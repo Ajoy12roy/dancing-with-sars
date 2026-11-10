@@ -29,7 +29,7 @@ const wrapper = vm.runInThisContext(
   `(function (exports, require, module, __filename, __dirname) { ${transpiled.outputText} \n})`
 );
 wrapper(mod.exports, require, mod, __filename, __dirname);
-const { generateGeeScript, SYLHET_GOLDEN_PRESET } = mod.exports;
+const { generateGeeScript, SYLHET_GOLDEN_PRESET, PRESET_AOIS } = mod.exports;
 
 console.log('Running Earth Engine Script Generator Verification Suite...\n');
 
@@ -288,5 +288,115 @@ assert.ok(
 );
 
 console.log('✓ Mock scenario V passed: throws and prints "No single orbit geometry has images in both windows. Widen a window or move the area." when groups are disjoint.');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test (vi): Presets and custom box parameterization verification
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('Test (vi): Presets and custom box parameterization verification...');
+
+// 1. Tanguar preset
+const tanguarPreset = PRESET_AOIS.find((p) => p.id === 'tanguar');
+assert.ok(tanguarPreset, 'Tanguar preset must exist');
+const tanguarScript = generateGeeScript({
+  bbox: tanguarPreset.bbox,
+  startDateA: tanguarPreset.dateA.start,
+  endDateA: tanguarPreset.dateA.end,
+  startDateB: tanguarPreset.dateB.start,
+  endDateB: tanguarPreset.dateB.end,
+  pass: tanguarPreset.recommendedPass || null,
+  relativeOrbit: tanguarPreset.recommendedOrbit ?? null,
+  prefix: tanguarPreset.id,
+});
+assert.ok(tanguarScript.includes('Tanguar Haor Wetland Dynamics'), 'Tanguar script title must reflect preset');
+assert.ok(tanguarScript.includes('90.97976'), 'Tanguar script must contain west coordinate');
+assert.ok(tanguarScript.includes('2023-02-01'), 'Tanguar script must contain startDateA');
+assert.ok(tanguarScript.includes('2023-08-31'), 'Tanguar script must contain endDateB');
+
+const tanguarTempPath = path.join(scratchDir, 'temp_tanguar_script.js');
+fs.writeFileSync(tanguarTempPath, tanguarScript, 'utf8');
+try {
+  execSync(`node --check "${tanguarTempPath}"`);
+} finally {
+  if (fs.existsSync(tanguarTempPath)) fs.unlinkSync(tanguarTempPath);
+}
+
+// 2. Jamuna preset
+const jamunaPreset = PRESET_AOIS.find((p) => p.id === 'jamuna');
+assert.ok(jamunaPreset, 'Jamuna preset must exist');
+const jamunaScript = generateGeeScript({
+  bbox: jamunaPreset.bbox,
+  startDateA: jamunaPreset.dateA.start,
+  endDateA: jamunaPreset.dateA.end,
+  startDateB: jamunaPreset.dateB.start,
+  endDateB: jamunaPreset.dateB.end,
+  pass: jamunaPreset.recommendedPass || null,
+  relativeOrbit: jamunaPreset.recommendedOrbit ?? null,
+  prefix: jamunaPreset.id,
+});
+assert.ok(jamunaScript.includes('Jamuna River Braided Channel Morphology'), 'Jamuna script title must reflect preset');
+assert.ok(jamunaScript.includes('89.6498'), 'Jamuna script must contain west coordinate');
+assert.ok(jamunaScript.includes('2019-02-01'), 'Jamuna script must contain startDateA');
+assert.ok(jamunaScript.includes('2024-02-28'), 'Jamuna script must contain endDateB');
+
+const jamunaTempPath = path.join(scratchDir, 'temp_jamuna_script.js');
+fs.writeFileSync(jamunaTempPath, jamunaScript, 'utf8');
+try {
+  execSync(`node --check "${jamunaTempPath}"`);
+} finally {
+  if (fs.existsSync(jamunaTempPath)) fs.unlinkSync(jamunaTempPath);
+}
+
+// 3. Amazon preset
+const amazonPreset = PRESET_AOIS.find((p) => p.id === 'amazon');
+assert.ok(amazonPreset, 'Amazon preset must exist');
+const amazonScript = generateGeeScript({
+  bbox: amazonPreset.bbox,
+  startDateA: amazonPreset.dateA.start,
+  endDateA: amazonPreset.dateA.end,
+  startDateB: amazonPreset.dateB.start,
+  endDateB: amazonPreset.dateB.end,
+  pass: amazonPreset.recommendedPass || null,
+  relativeOrbit: amazonPreset.recommendedOrbit ?? null,
+  prefix: amazonPreset.id,
+});
+assert.ok(amazonScript.includes('Amazon Rainforest Canopy Loss'), 'Amazon script title must reflect preset');
+assert.ok(amazonScript.includes('-62.20007'), 'Amazon script must contain west coordinate');
+assert.ok(amazonScript.includes('2021-01-01'), 'Amazon script must contain startDateA');
+assert.ok(amazonScript.includes('2023-01-15'), 'Amazon script must contain endDateB');
+
+const amazonTempPath = path.join(scratchDir, 'temp_amazon_script.js');
+fs.writeFileSync(amazonTempPath, amazonScript, 'utf8');
+try {
+  execSync(`node --check "${amazonTempPath}"`);
+} finally {
+  if (fs.existsSync(amazonTempPath)) fs.unlinkSync(amazonTempPath);
+}
+
+// 4. Custom bounding box
+const customBox = { west: 12.34, south: 45.67, east: 12.56, north: 45.89 };
+const customScript = generateGeeScript({
+  bbox: customBox,
+  startDateA: '2024-05-01',
+  endDateA: '2024-05-15',
+  startDateB: '2024-06-01',
+  endDateB: '2024-06-15',
+});
+assert.ok(customScript.includes('Custom Area SAR Analysis'), 'Custom script title must reflect custom box');
+assert.ok(customScript.includes('12.34'), 'Custom script must contain west coordinate');
+assert.ok(customScript.includes('45.67'), 'Custom script must contain south coordinate');
+assert.ok(customScript.includes('12.56'), 'Custom script must contain east coordinate');
+assert.ok(customScript.includes('45.89'), 'Custom script must contain north coordinate');
+assert.ok(customScript.includes('2024-05-01'), 'Custom script must contain startDateA');
+assert.ok(customScript.includes('2024-06-15'), 'Custom script must contain endDateB');
+
+const customTempPath = path.join(scratchDir, 'temp_custom_script.js');
+fs.writeFileSync(customTempPath, customScript, 'utf8');
+try {
+  execSync(`node --check "${customTempPath}"`);
+} finally {
+  if (fs.existsSync(customTempPath)) fs.unlinkSync(customTempPath);
+}
+
+console.log('✓ Test (vi) passed: 3 presets (Tanguar, Jamuna, Amazon) + 1 custom box generated dynamically and verified via node --check.');
 
 console.log('\nAll Earth Engine Script Generator tests passed successfully!');

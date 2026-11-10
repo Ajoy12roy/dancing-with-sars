@@ -177,6 +177,10 @@ export interface GeeScriptOptions {
   scale?: number;
   prefix?: string;
   bands?: string[];
+  title?: string;
+  aoiName?: string;
+  baselineLabel?: string;
+  comparisonLabel?: string;
 }
 
 // ── Physical & System Constants ──
@@ -679,24 +683,80 @@ export function generateGeeScript(options: GeeScriptOptions): string {
     pass = null,
     relativeOrbit = null,
     scale = 20,
-    prefix = 'sylhet',
+    prefix = '',
     bands = ['VV'],
+    title,
+    aoiName,
+    baselineLabel,
+    comparisonLabel,
   } = options;
 
   const norm = normalizeBbox(bbox);
   const bandsArrayStr = JSON.stringify(bands);
-  const cleanPrefix = prefix.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
 
   const passLiteral = pass ? `'${pass}'` : 'null';
   const orbitLiteral = relativeOrbit !== null && relativeOrbit !== undefined ? String(relativeOrbit) : 'null';
 
+  // Match preset or custom box
+  const matchingPreset = PRESET_AOIS.find((p) => {
+    return (
+      Math.abs(p.bbox.west - norm.west) < 0.001 &&
+      Math.abs(p.bbox.east - norm.east) < 0.001 &&
+      Math.abs(p.bbox.south - norm.south) < 0.001 &&
+      Math.abs(p.bbox.north - norm.north) < 0.001
+    );
+  }) || (prefix && prefix !== 'sylhet' && prefix !== 'terrapulse_aoi' ? PRESET_AOIS.find((p) => p.id === prefix) : undefined);
+
+  const cleanPrefix = (prefix || (matchingPreset?.id === 'sylhet' ? 'terrapulse_aoi' : matchingPreset?.id) || 'terrapulse_aoi')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .toLowerCase();
+
+  let scriptTitle = title;
+  let scriptAoi = aoiName;
+  let baselineNote = baselineLabel;
+  let comparisonNote = comparisonLabel;
+
+  if (!scriptTitle || !scriptAoi || !baselineNote || !comparisonNote) {
+    if (matchingPreset?.id === 'sylhet' || (!matchingPreset && norm.west === 91.8 && norm.south === 24.85 && norm.east === 91.95 && norm.north === 24.98) || prefix === 'sylhet') {
+      scriptTitle = scriptTitle || 'Sylhet Flood Inundation';
+      scriptAoi = scriptAoi || 'Sylhet Division, Bangladesh (Surma River Basin)';
+      baselineNote = baselineNote || 'Pre-monsoon / dry baseline';
+      comparisonNote = comparisonNote || 'Peak monsoon flood';
+    } else if (matchingPreset?.id === 'tanguar') {
+      scriptTitle = scriptTitle || 'Tanguar Haor Wetland Dynamics';
+      scriptAoi = scriptAoi || 'Tanguar Haor, Sunamganj, Bangladesh (Freshwater Wetland)';
+      baselineNote = baselineNote || 'Dry season / winter baseline';
+      comparisonNote = comparisonNote || 'Monsoon high water comparison';
+    } else if (matchingPreset?.id === 'jamuna') {
+      scriptTitle = scriptTitle || 'Jamuna River Braided Channel Morphology';
+      scriptAoi = scriptAoi || 'Jamuna River, Sirajganj, Bangladesh (Braided Sandbars)';
+      baselineNote = baselineNote || 'Baseline channel morphology';
+      comparisonNote = comparisonNote || 'Comparison channel morphology';
+    } else if (matchingPreset?.id === 'amazon') {
+      scriptTitle = scriptTitle || 'Amazon Rainforest Canopy Loss';
+      scriptAoi = scriptAoi || 'Amazon Rainforest, Rond\u00f4nia, Brazil';
+      baselineNote = baselineNote || 'Baseline canopy cover';
+      comparisonNote = comparisonNote || 'Comparison canopy cover';
+    } else if (matchingPreset?.id === 'padma-naria') {
+      scriptTitle = scriptTitle || 'Padma River / Naria Bank Erosion';
+      scriptAoi = scriptAoi || 'Padma River / Naria, Shariatpur, Bangladesh';
+      baselineNote = baselineNote || 'Baseline pre-erosion bank line';
+      comparisonNote = comparisonNote || 'Comparison post-erosion bank line';
+    } else {
+      scriptTitle = scriptTitle || 'Custom Area SAR Analysis';
+      scriptAoi = scriptAoi || `Custom Area (${norm.west}, ${norm.south}, ${norm.east}, ${norm.north})`;
+      baselineNote = baselineNote || 'Baseline observation';
+      comparisonNote = comparisonNote || 'Comparison observation';
+    }
+  }
+
   return `/**
- * Google Earth Engine Export Script: Sylhet Flood Inundation
+ * Google Earth Engine Export Script: ${scriptTitle}
  * Project: Dancing with the SARs (NASA Space Apps Challenge 2026)
  *
  * Dataset: COPERNICUS/S1_GRD (Sentinel-1 Ground Range Detected)
  * Swath Mode: IW (Interferometric Wide)
- * AOI: Sylhet Division, Bangladesh (Surma River Basin)
+ * AOI: ${scriptAoi}
  */
 
 // 1. Define Area of Interest (AOI) Bounding Box [west, south, east, north]
@@ -708,11 +768,11 @@ var aoi = ee.Geometry.Rectangle([
 ]);
 
 // 2. Acquisition Date Ranges
-// Baseline (Image A - Pre-monsoon / dry baseline)
+// Baseline (Image A - ${baselineNote})
 var startDateA = '${startDateA}';
 var endDateA = '${endDateA}';
 
-// Comparison (Image B - Peak monsoon flood)
+// Comparison (Image B - ${comparisonNote})
 var startDateB = '${startDateB}';
 var endDateB = '${endDateB}';
 
