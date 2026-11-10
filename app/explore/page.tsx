@@ -500,21 +500,16 @@ function ExploreContent() {
               </div>
 
               {/* Area Picker & Earth Engine Export Script Generator */}
-              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
-                <h2 className="text-xl font-bold font-headline text-ink">
-                  Select an area and prepare the input files
-                </h2>
-                <AoiMapPicker
-                  onSelectCaseStudy={(caseId) => {
-                    setActiveTab('demo');
-                    handleAoiSelect(caseId);
-                  }}
-                  selectedCaseId={selectedAoi}
-                  onPresetChange={(presetId) => {
-                    handleAoiSelect(presetId);
-                  }}
-                />
-              </div>
+              <AoiMapPicker
+                onSelectCaseStudy={(caseId) => {
+                  setActiveTab('demo');
+                  handleAoiSelect(caseId);
+                }}
+                selectedCaseId={selectedAoi}
+                onPresetChange={(presetId) => {
+                  handleAoiSelect(presetId);
+                }}
+              />
             </div>
           )}
 
@@ -552,30 +547,25 @@ function ExploreContent() {
 
           {activeTab === 'upload' && apiUrl && !uploadLoading && !uploadData && (
             <div className="col-span-12 space-y-6">
-              {/* Area Picker & Earth Engine Export Script Generator */}
-              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
-                <h2 className="text-xl font-bold font-headline text-ink">
-                  Select an area and prepare the input files
-                </h2>
-                <AoiMapPicker
-                  onSelectCaseStudy={(caseId) => {
-                    setActiveTab('demo');
-                    handleAoiSelect(caseId);
-                  }}
-                  selectedCaseId={selectedAoi}
-                  onPresetChange={(presetId) => {
-                    handleAoiSelect(presetId);
-                  }}
-                />
-              </div>
+              {/* Area Picker & Earth Engine Export Script Generator (Card 1 and Card 2) */}
+              <AoiMapPicker
+                onSelectCaseStudy={(caseId) => {
+                  setActiveTab('demo');
+                  handleAoiSelect(caseId);
+                }}
+                selectedCaseId={selectedAoi}
+                onPresetChange={(presetId) => {
+                  handleAoiSelect(presetId);
+                }}
+              />
 
-              {/* Upload Section */}
-              <div className="border border-hairline bg-surface p-6 rounded-[2px] space-y-6">
+              {/* ── Card 3: Upload and analyse ── */}
+              <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold font-headline text-ink">
-                    5. Upload the exported files
+                  <h2 className="text-xl font-semibold font-headline text-ink">
+                    3. Upload and analyse
                   </h2>
-                  <p className="text-text-secondary text-sm mt-1 font-sans">
+                  <p className="text-text-secondary text-base mt-1 font-sans leading-relaxed">
                     Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
                   </p>
                 </div>
@@ -583,14 +573,14 @@ function ExploreContent() {
                 {/* Analysis Configuration Bar */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
                   <div>
-                    <label htmlFor="upload-mode-select" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
+                    <label htmlFor="upload-mode-select" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
                       Analysis type
                     </label>
                     <select
                       id="upload-mode-select"
                       value={mode}
                       onChange={(e) => handleModeSelect(e.target.value as AnalysisMode)}
-                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm focus:outline-none focus:border-accent cursor-pointer"
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-base min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
                     >
                       <option value="flood">Flood</option>
                       <option value="river-erosion">River erosion</option>
@@ -599,7 +589,7 @@ function ExploreContent() {
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="upload-date-a" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
+                    <label htmlFor="upload-date-a" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
                       Before date (optional)
                     </label>
                     <input
@@ -607,11 +597,11 @@ function ExploreContent() {
                       id="upload-date-a"
                       value={uploadDateA}
                       onChange={(e) => setUploadDateA(e.target.value)}
-                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-base min-h-[44px] font-data focus:outline-none focus:border-accent"
                     />
                   </div>
                   <div>
-                    <label htmlFor="upload-date-b" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
+                    <label htmlFor="upload-date-b" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
                       After date (optional)
                     </label>
                     <input
@@ -619,7 +609,7 @@ function ExploreContent() {
                       id="upload-date-b"
                       value={uploadDateB}
                       onChange={(e) => setUploadDateB(e.target.value)}
-                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-base min-h-[44px] font-data focus:outline-none focus:border-accent"
                     />
                   </div>
                 </div>
@@ -642,44 +632,44 @@ function ExploreContent() {
                   />
                 </div>
 
-              {/* Sample buttons & Submit Action */}
-              <div className="pt-4 border-t border-hairline space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-2">
+                {/* Sample buttons & Submit Action */}
+                <div className="pt-4 border-t border-hairline space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadSampleFiles}
+                        className="min-h-[44px] px-4 py-2 text-sm font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface"
+                      >
+                        Download sample files
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleTryWithSampleFiles}
+                        disabled={uploadLoading || sampleLoading}
+                        className="min-h-[44px] px-4 py-2 text-sm font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
+                      </button>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={handleDownloadSampleFiles}
-                      className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface"
+                      disabled={!beforeFile || !afterFile || uploadLoading || sampleLoading}
+                      onClick={handleAnalyze}
+                      className="min-h-[44px] bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
                     >
-                      Download sample files
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleTryWithSampleFiles}
-                      disabled={uploadLoading || sampleLoading}
-                      className="px-3 py-1.5 text-xs font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
+                      Analyse
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={!beforeFile || !afterFile || uploadLoading || sampleLoading}
-                    onClick={handleAnalyze}
-                    className="bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
-                  >
-                    Analyze
-                  </button>
+                  <p className="text-sm text-text-secondary font-sans">
+                    Use clipped GeoTIFFs (about 10–20 km wide, both dates on the same grid). Full raw Sentinel-1 scenes are too large.
+                  </p>
                 </div>
-
-                <p className="text-xs text-text-secondary font-sans">
-                  Use clipped GeoTIFFs (about 10-20 km wide, both dates on the same grid). Full raw Sentinel-1 scenes are too large.
-                </p>
-              </div>
+              </section>
             </div>
-          </div>
-        )}
+          )}
 
           {/* ── Demo Loading / Error States ── */}
           {activeTab === 'demo' && demoLoading && (
@@ -901,9 +891,9 @@ export default function ExplorePage() {
     <Suspense
       fallback={
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse space-y-4">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight" role="heading" aria-level={1}>
             Explore SAR Observations
-          </h1>
+          </div>
           <div className="h-8 bg-surface-2 border border-hairline w-64 rounded-[2px]" />
           <div className="h-96 bg-surface-2 border border-hairline w-full rounded-[2px]" />
         </div>

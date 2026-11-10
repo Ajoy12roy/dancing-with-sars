@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   MapContainer,
   TileLayer,
@@ -17,9 +18,6 @@ import {
   Check,
   ExternalLink,
   AlertCircle,
-  CheckCircle2,
-  Calendar,
-  Layers,
   Info,
   ChevronDown,
   ChevronUp,
@@ -41,7 +39,6 @@ import {
   HandleType,
   AsfPassGroup,
   AsfGranule,
-  SEASONAL_WARNING_TEXT,
   MIN_SIDE_KM,
   MAX_SIDE_KM,
   MAX_AREA_KM2,
@@ -983,628 +980,594 @@ export default function AoiMapPicker({
   const midLat = (bbox.south + bbox.north) / 2;
   const midLon = (bbox.west + bbox.east) / 2;
 
+  const currentPreset =
+    PRESET_AOIS.find((p) => {
+      return (
+        Math.abs(p.bbox.west - bbox.west) < 0.001 &&
+        Math.abs(p.bbox.east - bbox.east) < 0.001 &&
+        Math.abs(p.bbox.south - bbox.south) < 0.001 &&
+        Math.abs(p.bbox.north - bbox.north) < 0.001
+      );
+    }) ||
+    (selectedCaseId ? presetForCase(selectedCaseId) : undefined);
+
+  const readyCase = currentPreset ? getCaseStudyById(currentPreset.id) : null;
+  const isReady = Boolean(readyCase && readyCase.status === 'ready');
+
   return (
     <div className="space-y-6 text-ink">
-      {/* ── 1. Select the area ── */}
-      <div>
-        <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
-          <Layers className="w-4 h-4 text-accent" />
-          1. Select the area
-        </h3>
-        <p className="text-xs text-text-secondary mt-1 font-sans">
-          Select an area of interest ({MIN_SIDE_KM}–{MAX_SIDE_KM} km side length, maximum {MAX_AREA_KM2} km²),
-          query matching Sentinel-1 or NISAR orbital passes via the Alaska Satellite Facility (ASF),
-          and export co-registered radar GeoTIFF pairs using Google Earth Engine.
-        </p>
-      </div>
+      {/* ── Card 1: Choose an area and dates ── */}
+      <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold font-headline text-ink">
+            1. Choose an area and dates
+          </h2>
+        </div>
 
-      {/* ── Preset Case Studies (100% Offline Capable) ── */}
-      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-3">
-        <label htmlFor="preset-aoi-select" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider block">
-          Preset benchmark cases
-        </label>
-        {noPresetNotice && (
-          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary font-sans" role="status">
-            {noPresetNotice}
-          </div>
-        )}
-        <div className="space-y-2">
-          {PRESET_AOIS.map((preset) => {
-            const readyCase = getCaseStudyById(preset.id);
-            const isReady = Boolean(readyCase && readyCase.status === 'ready');
-            const isSelected = selectedCaseId === preset.id;
+        {/* Preset Select, "View precomputed analysis" button, and Place Search in one compact row */}
+        <div className="space-y-3">
+          {noPresetNotice && (
+            <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-sm text-text-secondary font-sans" role="status">
+              {noPresetNotice}
+            </div>
+          )}
 
-            return (
-              <div key={preset.id} className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+            {/* Preset select and precomputed button */}
+            <div className="lg:col-span-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
+              <div className="flex-1">
+                <label htmlFor="preset-aoi-select" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
+                  Preset area
+                </label>
+                <select
+                  id="preset-aoi-select"
+                  value={currentPreset?.id || ''}
+                  onChange={(e) => {
+                    const found = PRESET_AOIS.find((p) => p.id === e.target.value);
+                    if (found) handleSelectPreset(found);
+                  }}
+                  className="w-full bg-surface-2 border border-hairline rounded-[2px] px-3 py-2 text-base text-ink min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
+                >
+                  <option value="" disabled>
+                    {currentPreset ? 'Select a preset...' : 'Custom area'}
+                  </option>
+                  {PRESET_AOIS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {isReady && onSelectCaseStudy && readyCase && (
+                <button
+                  type="button"
+                  onClick={() => onSelectCaseStudy(readyCase.id)}
+                  className="min-h-[44px] px-3.5 py-2 text-sm font-semibold border border-teal text-teal hover:bg-teal hover:text-text-on-accent rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
+                >
+                  <span>View precomputed analysis</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Search Bar (Nominatim Submit-Only) */}
+            <div className="lg:col-span-6">
+              <form onSubmit={handleSearchSubmit} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="geocode-input" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
+                    Search location
+                  </label>
+                  <span className="text-xs text-text-secondary">
+                    © OpenStreetMap
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      id="geocode-input"
+                      type="text"
+                      disabled={effectiveOffline}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={
+                        effectiveOffline
+                          ? 'Search requires a network connection.'
+                          : 'e.g. Sylhet, Sunamganj, Sirajganj...'
+                      }
+                      className="w-full bg-surface-2 border border-hairline rounded-[2px] py-2 pl-9 pr-3 text-base text-ink placeholder:text-text-secondary focus:outline-none focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+                    />
+                    <Search className="w-4 h-4 absolute left-3 top-3.5 text-text-secondary pointer-events-none" />
+                  </div>
                   <button
-                    type="button"
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`px-3 py-1.5 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-accent ${
-                      isSelected
-                        ? 'border-accent text-accent font-semibold bg-surface'
-                        : 'border-hairline bg-surface hover:border-accent hover:text-accent'
-                    }`}
-                    title={preset.description}
+                    type="submit"
+                    disabled={effectiveOffline || searchLoading || searchQuery.trim().length < 2}
+                    className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
                   >
-                    {preset.name.split(' (')[0]}
+                    {searchLoading ? 'Searching...' : 'Search'}
                   </button>
+                </div>
+              </form>
+            </div>
+          </div>
 
-                  {isReady && onSelectCaseStudy && readyCase && (
+          {searchError && (
+            <p className="text-sm text-rust font-sans">{searchError}</p>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="border border-hairline rounded-[2px] bg-surface-2 divide-y divide-hairline">
+              {searchResults.map((res, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSelectSearchResult(res)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-surface text-ink transition-colors cursor-pointer flex items-center justify-between gap-2"
+                >
+                  <span className="truncate">{res.name}</span>
+                  <span className="text-xs text-text-secondary shrink-0 font-data">
+                    {res.lat.toFixed(2)}°, {res.lon.toFixed(2)}°
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Interactive Map */}
+        <div className="border border-hairline rounded-[2px] overflow-hidden bg-surface-2 flex flex-col">
+          <div
+            className="relative flex flex-col min-h-[320px] h-[340px] sm:h-[440px]"
+            style={{ touchAction: isDrawingMode ? 'none' : 'pan-y' }}
+          >
+            {/* Top-right draw rectangle toggle */}
+            <div className="absolute top-2 right-2 z-[400]">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrawingMode((prev) => {
+                    const next = !prev;
+                    if (!next) setIsDragging(false);
+                    return next;
+                  });
+                }}
+                className={`min-h-[36px] px-3 py-1.5 text-sm font-medium rounded-[2px] border transition-colors cursor-pointer ${
+                  isDrawingMode
+                    ? 'bg-rust text-text-on-accent border-rust'
+                    : 'bg-surface border-hairline text-ink hover:border-accent hover:text-accent'
+                }`}
+              >
+                {isDrawingMode ? 'Cancel drawing (Esc)' : 'Draw rectangle'}
+              </button>
+            </div>
+
+            {/* Wheel hint toast */}
+            {showWheelHint && (
+              <div className="absolute inset-0 flex items-center justify-center z-[500] pointer-events-none">
+                <div className="bg-surface/95 border border-hairline px-3 py-1.5 rounded-[2px] text-xs font-sans text-ink shadow-md transition-opacity duration-300">
+                  Use Ctrl + scroll to zoom the map.
+                </div>
+              </div>
+            )}
+
+            {effectiveOffline && (
+              <div className="absolute bottom-10 left-2 z-[400] bg-surface/90 border border-hairline px-2 py-1 text-xs text-text-secondary font-sans pointer-events-none">
+                Street map requires a network connection.
+              </div>
+            )}
+
+            <MapContainer
+              center={[midLat, midLon]}
+              zoom={10}
+              scrollWheelZoom={false}
+              touchZoom={true}
+              style={{
+                width: '100%',
+                height: '100%',
+                cursor: isDrawingMode ? 'crosshair' : 'default',
+              }}
+              className="z-0"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Rectangle
+                bounds={[
+                  [bbox.south, bbox.west],
+                  [bbox.north, bbox.east],
+                ]}
+                pathOptions={{
+                  color: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
+                  weight: 2,
+                  fillColor: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
+                  fillOpacity: 0.15,
+                  dashArray: isDragging ? '6, 6' : undefined,
+                  className: 'aoi-draggable-box',
+                }}
+              />
+              <AoiBoxController
+                bbox={bbox}
+                onBboxChange={setBbox}
+                onBboxChangeComplete={handleBboxChangeComplete}
+                squareSelection={squareSelection}
+                isDrawingMode={isDrawingMode}
+                isValid={validation.valid}
+                onClampNotice={handleClampNotice}
+              />
+              <MapController bbox={bbox} recenterTrigger={recenterCount} />
+              <MapClickHandler
+                onCenterChange={handleMapCenterClick}
+                enabled={!isDrawingMode}
+              />
+              <MapDrawController
+                isDrawingMode={isDrawingMode}
+                isDragging={isDragging}
+                squareSelection={squareSelection}
+                onDrawStart={handleDrawStart}
+                onDrawUpdate={handleDrawUpdate}
+                onDrawEnd={handleDrawEnd}
+                onCancel={handleCancelDraw}
+                onShowWheelHint={handleShowWheelHint}
+              />
+            </MapContainer>
+          </div>
+
+          {/* Map Guidance & Live Readout below map */}
+          <div className="p-3 border-t border-hairline bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+            <div className="space-y-1">
+              <p className="text-text-secondary text-sm font-sans">
+                Drag a handle to resize the area, or drag inside the box to move it.
+              </p>
+              {clampNotice && (
+                <p className="text-rust text-sm font-sans font-medium" role="status">
+                  {clampNotice}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <span className="font-data text-sm text-ink bg-surface-2 px-2.5 py-1 rounded-[2px] border border-hairline">
+                {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
+              </span>
+              <label className="flex items-center gap-1.5 cursor-pointer text-sm font-sans text-text-secondary select-none">
+                <input
+                  type="checkbox"
+                  checked={squareSelection}
+                  onChange={(e) => handleSquareToggle(e.target.checked)}
+                  className="accent-accent cursor-pointer"
+                />
+                <span>Square selection</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setRecenterCount((c) => c + 1)}
+                className="text-accent hover:underline text-sm cursor-pointer font-sans min-h-[36px] px-1"
+              >
+                Fit map
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsed Manual Coordinate Entry (Optional) directly under map */}
+          <details className="border-t border-hairline bg-surface-2 group">
+            <summary
+              tabIndex={0}
+              className="p-3 text-sm font-semibold text-text-secondary font-sans cursor-pointer select-none hover:text-ink focus:outline-none focus:ring-1 focus:ring-accent flex items-center justify-between"
+            >
+              <span>Manual coordinate entry (optional)</span>
+              <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
+            </summary>
+            <div className="p-4 border-t border-hairline bg-surface space-y-4">
+              {/* Dimensions */}
+              <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-ink font-sans">Dimensions</span>
+                  <span className="text-xs text-text-secondary font-sans">{MIN_SIDE_KM}–{MAX_SIDE_KM} km per side</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <label htmlFor="dim-width-km" className="text-text-secondary font-medium block mb-1">
+                      Width (km)
+                    </label>
+                    <input
+                      id="dim-width-km"
+                      type="number"
+                      min={MIN_SIDE_KM}
+                      max={MAX_SIDE_KM}
+                      step="0.5"
+                      value={dimensions.widthKm}
+                      onChange={(e) => handleDimensionChange('width', parseFloat(e.target.value))}
+                      className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[40px] focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="dim-height-km" className="text-text-secondary font-medium block mb-1">
+                      Height (km)
+                    </label>
+                    <input
+                      id="dim-height-km"
+                      type="number"
+                      min={MIN_SIDE_KM}
+                      max={MAX_SIDE_KM}
+                      step="0.5"
+                      value={dimensions.heightKm}
+                      onChange={(e) => handleDimensionChange('height', parseFloat(e.target.value))}
+                      className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[40px] focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Coordinate Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <label htmlFor="coord-north" className="text-text-secondary font-medium block mb-1">
+                    North (°N)
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      id="coord-north"
+                      type="number"
+                      step="0.005"
+                      value={bbox.north}
+                      onChange={(e) =>
+                        setBbox((b) =>
+                          normalizeBbox({ ...b, north: parseFloat(e.target.value) || b.north })
+                        )
+                      }
+                      className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-base min-h-[40px]"
+                    />
                     <button
                       type="button"
-                      onClick={() => onSelectCaseStudy(readyCase.id)}
-                      className="px-3 py-1.5 text-xs font-medium border border-teal text-teal hover:bg-teal hover:text-text-on-accent rounded-[2px] transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-teal flex items-center gap-1.5"
+                      onClick={() => handleNudgeCoordinate('north', 0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge North +0.01°"
                     >
-                      <span>View precomputed analysis</span>
-                      <ExternalLink className="w-3 h-3" />
+                      +
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('north', -0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge North -0.01°"
+                    >
+                      -
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-text-secondary leading-relaxed font-sans">
-                  {preset.provenanceNote}
-                </p>
+
+                <div>
+                  <label htmlFor="coord-south" className="text-text-secondary font-medium block mb-1">
+                    South (°N)
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      id="coord-south"
+                      type="number"
+                      step="0.005"
+                      value={bbox.south}
+                      onChange={(e) =>
+                        setBbox((b) =>
+                          normalizeBbox({ ...b, south: parseFloat(e.target.value) || b.south })
+                        )
+                      }
+                      className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-base min-h-[40px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('south', 0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge South +0.01°"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('south', -0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge South -0.01°"
+                    >
+                      -
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="coord-west" className="text-text-secondary font-medium block mb-1">
+                    West (°E)
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      id="coord-west"
+                      type="number"
+                      step="0.005"
+                      value={bbox.west}
+                      onChange={(e) =>
+                        setBbox((b) =>
+                          normalizeBbox({ ...b, west: parseFloat(e.target.value) || b.west })
+                        )
+                      }
+                      className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-base min-h-[40px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('west', 0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge West +0.01°"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('west', -0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge West -0.01°"
+                    >
+                      -
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="coord-east" className="text-text-secondary font-medium block mb-1">
+                    East (°E)
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      id="coord-east"
+                      type="number"
+                      step="0.005"
+                      value={bbox.east}
+                      onChange={(e) =>
+                        setBbox((b) =>
+                          normalizeBbox({ ...b, east: parseFloat(e.target.value) || b.east })
+                        )
+                      }
+                      className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-base min-h-[40px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('east', 0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge East +0.01°"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNudgeCoordinate('east', -0.01)}
+                      className="min-h-[40px] px-2 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-sm"
+                      title="Nudge East -0.01°"
+                    >
+                      -
+                    </button>
+                  </div>
+                </div>
               </div>
-            );
-          })}
+
+              {/* Quick Shift / Resize */}
+              <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-2 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-secondary text-sm">Shift 10%:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleShiftBox('N')}
+                    className="min-h-[36px] px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-sm"
+                  >
+                    ↑ N
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShiftBox('S')}
+                    className="min-h-[36px] px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-sm"
+                  >
+                    ↓ S
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShiftBox('W')}
+                    className="min-h-[36px] px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-sm"
+                  >
+                    ← W
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleShiftBox('E')}
+                    className="min-h-[36px] px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-sm"
+                  >
+                    → E
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-text-secondary text-sm">Scale:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeBox(1.1)}
+                    className="min-h-[36px] px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-sm"
+                    title="Expand box by 10%"
+                  >
+                    +10%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeBox(0.9)}
+                    className="min-h-[36px] px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-sm"
+                    title="Shrink box by 10%"
+                  >
+                    -10%
+                  </button>
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
-      </div>
 
-      {/* ── Search Bar (Nominatim Submit-Only) ── */}
-      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <label htmlFor="geocode-input" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider">
-            Search location
-          </label>
-          <span className="text-xs text-text-secondary">
-            Data © OpenStreetMap contributors
-          </span>
-        </div>
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              id="geocode-input"
-              type="text"
-              disabled={effectiveOffline}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                effectiveOffline
-                  ? 'Search requires a network connection.'
-                  : 'e.g. Sylhet, Sunamganj, Sirajganj, Naria, Khanty-Mansiysk...'
-              }
-              className="w-full bg-surface-2 border border-hairline rounded-[2px] py-1.5 pl-8 pr-3 text-xs text-ink placeholder:text-text-secondary focus:outline-none focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-text-secondary pointer-events-none" />
-          </div>
-          <button
-            type="submit"
-            disabled={effectiveOffline || searchLoading || searchQuery.trim().length < 2}
-            className="px-4 py-1.5 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-          >
-            {searchLoading ? 'Searching...' : 'Search'}
-          </button>
-        </form>
-
-        {effectiveOffline ? (
-          <p className="text-xs text-text-secondary mt-1 font-sans">
-            Search requires a network connection. Use the preset cases below or enter coordinates manually.
-          </p>
-        ) : searchError ? (
-          <p className="text-xs text-rust mt-1 font-sans">{searchError}</p>
-        ) : null}
-
-        {searchResults.length > 0 && (
-          <div className="border border-hairline rounded-[2px] bg-surface-2 mt-2 divide-y divide-hairline">
-            {searchResults.map((res, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectSearchResult(res)}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-surface text-ink transition-colors cursor-pointer flex items-center justify-between gap-2"
-              >
-                <span className="truncate">{res.name}</span>
-                <span className="text-xs text-text-secondary shrink-0 font-data">
-                  {res.lat.toFixed(2)}°, {res.lon.toFixed(2)}°
-                </span>
-              </button>
-            ))}
+        {/* Validation Banner if invalid */}
+        {!validation.valid && (
+          <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{validation.reason}</span>
           </div>
         )}
-      </div>
 
-      {/* ── Interactive Map & Bounding Box Controls ── */}
-      <div className="border border-hairline rounded-[2px] overflow-hidden bg-surface-2 flex flex-col">
-        {/* Map View */}
-        <div
-          className="relative flex flex-col min-h-[380px] h-[420px]"
-          style={{ touchAction: isDrawingMode ? 'none' : 'pan-y' }}
-        >
-          {/* Top-right draw rectangle toggle (top-left zoom controls remain completely unobstructed) */}
-          <div className="absolute top-2 right-2 z-[400]">
+        {/* Two Date Inputs in Two Columns */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider font-sans">
+              Acquisition date windows
+            </h3>
+
             <button
               type="button"
-              onClick={() => {
-                setIsDrawingMode((prev) => {
-                  const next = !prev;
-                  if (!next) setIsDragging(false);
-                  return next;
-                });
-              }}
-              className={`px-2.5 py-1 text-xs font-medium rounded-[2px] border transition-colors cursor-pointer ${
-                isDrawingMode
-                  ? 'bg-rust text-text-on-accent border-rust'
-                  : 'bg-surface border-hairline text-ink hover:border-accent hover:text-accent'
-              }`}
+              onClick={() => setShowEventHelper((v) => !v)}
+              className="text-sm text-accent hover:underline flex items-center gap-1 cursor-pointer"
             >
-              {isDrawingMode ? 'Cancel drawing (Esc)' : 'Draw rectangle'}
+              {showEventHelper ? (
+                <>
+                  Hide event helper <ChevronUp className="w-3.5 h-3.5" />
+                </>
+              ) : (
+                <>
+                  Suggest windows around event date <ChevronDown className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
           </div>
 
-          {/* Wheel hint toast */}
-          {showWheelHint && (
-            <div className="absolute inset-0 flex items-center justify-center z-[500] pointer-events-none">
-              <div className="bg-surface/95 border border-hairline px-3 py-1.5 rounded-[2px] text-xs font-sans text-ink shadow-md transition-opacity duration-300">
-                Use Ctrl + scroll to zoom the map.
-              </div>
-            </div>
-          )}
-
-          {effectiveOffline && (
-            <div className="absolute bottom-10 left-2 z-[400] bg-surface/90 border border-hairline px-2 py-1 text-xs text-text-secondary font-sans pointer-events-none">
-              Street map requires a network connection.
-            </div>
-          )}
-
-          <MapContainer
-            center={[midLat, midLon]}
-            zoom={10}
-            scrollWheelZoom={false}
-            touchZoom={true}
-            style={{
-              width: '100%',
-              height: '100%',
-              cursor: isDrawingMode ? 'crosshair' : 'default',
-            }}
-            className="z-0"
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Rectangle
-              bounds={[
-                [bbox.south, bbox.west],
-                [bbox.north, bbox.east],
-              ]}
-              pathOptions={{
-                color: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
-                weight: 2,
-                fillColor: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
-                fillOpacity: 0.15,
-                dashArray: isDragging ? '6, 6' : undefined,
-                className: 'aoi-draggable-box',
-              }}
-            />
-            <AoiBoxController
-              bbox={bbox}
-              onBboxChange={setBbox}
-              onBboxChangeComplete={handleBboxChangeComplete}
-              squareSelection={squareSelection}
-              isDrawingMode={isDrawingMode}
-              isValid={validation.valid}
-              onClampNotice={handleClampNotice}
-            />
-            <MapController bbox={bbox} recenterTrigger={recenterCount} />
-            <MapClickHandler
-              onCenterChange={handleMapCenterClick}
-              enabled={!isDrawingMode}
-            />
-            <MapDrawController
-              isDrawingMode={isDrawingMode}
-              isDragging={isDragging}
-              squareSelection={squareSelection}
-              onDrawStart={handleDrawStart}
-              onDrawUpdate={handleDrawUpdate}
-              onDrawEnd={handleDrawEnd}
-              onCancel={handleCancelDraw}
-              onShowWheelHint={handleShowWheelHint}
-            />
-          </MapContainer>
-        </div>
-
-        {/* Map Toolbar & Live Readout */}
-        <div className="p-3 border-t border-hairline bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="space-y-1">
-            <p className="text-text-secondary text-xs font-sans">
-              Drag a handle to resize the area, or drag inside the box to move it.
-            </p>
-            {clampNotice && (
-              <p className="text-rust text-xs font-sans font-medium" role="status">
-                {clampNotice}
+          {/* Collapsible Event Date Suggestion Helper */}
+          {showEventHelper && (
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2 text-sm">
+              <p className="text-text-secondary font-sans">
+                Enter an event date to configure 12-day pre-event baseline and post-event comparison windows:
               </p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            {/* Live readout in monospace font */}
-            <span className="font-data text-xs text-ink bg-surface-2 px-2 py-1 rounded-[2px] border border-hairline">
-              {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
-            </span>
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-sans text-text-secondary select-none">
-              <input
-                type="checkbox"
-                checked={squareSelection}
-                onChange={(e) => handleSquareToggle(e.target.checked)}
-                className="accent-accent cursor-pointer"
-              />
-              <span>Square selection</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => setRecenterCount((c) => c + 1)}
-              className="text-accent hover:underline text-xs cursor-pointer font-sans"
-            >
-              Fit map
-            </button>
-          </div>
-        </div>
-
-        {/* Collapsed Manual Coordinate Entry (Optional) directly below the map toolbar */}
-        <details className="border-t border-hairline bg-surface-2 group">
-          <summary
-            tabIndex={0}
-            className="p-3 text-xs font-semibold text-text-secondary font-sans cursor-pointer select-none hover:text-ink focus:outline-none focus:ring-1 focus:ring-accent flex items-center justify-between"
-          >
-            <span>Manual coordinate entry (optional)</span>
-            <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
-          </summary>
-          <div className="p-4 border-t border-hairline bg-surface space-y-4">
-            {/* Live numeric width & height in km */}
-            <div className="p-2.5 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-ink font-sans">Dimensions</span>
-                <span className="text-xs text-text-secondary font-sans">{MIN_SIDE_KM}–{MAX_SIDE_KM} km per side</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <label htmlFor="dim-width-km" className="text-text-secondary font-medium block mb-1">
-                    Width (km)
-                  </label>
-                  <input
-                    id="dim-width-km"
-                    type="number"
-                    min={MIN_SIDE_KM}
-                    max={MAX_SIDE_KM}
-                    step="0.5"
-                    value={dimensions.widthKm}
-                    onChange={(e) => handleDimensionChange('width', parseFloat(e.target.value))}
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs focus:outline-none focus:border-accent"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dim-height-km" className="text-text-secondary font-medium block mb-1">
-                    Height (km)
-                  </label>
-                  <input
-                    id="dim-height-km"
-                    type="number"
-                    min={MIN_SIDE_KM}
-                    max={MAX_SIDE_KM}
-                    step="0.5"
-                    value={dimensions.heightKm}
-                    onChange={(e) => handleDimensionChange('height', parseFloat(e.target.value))}
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs focus:outline-none focus:border-accent"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 4 Coordinate Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              <div>
-                <label htmlFor="coord-north" className="text-text-secondary font-medium block mb-1">
-                  North (°N)
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    id="coord-north"
-                    type="number"
-                    step="0.005"
-                    value={bbox.north}
-                    onChange={(e) =>
-                      setBbox((b) =>
-                        normalizeBbox({ ...b, north: parseFloat(e.target.value) || b.north })
-                      )
-                    }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('north', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge North +0.01°"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('north', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge North -0.01°"
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="coord-south" className="text-text-secondary font-medium block mb-1">
-                  South (°N)
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    id="coord-south"
-                    type="number"
-                    step="0.005"
-                    value={bbox.south}
-                    onChange={(e) =>
-                      setBbox((b) =>
-                        normalizeBbox({ ...b, south: parseFloat(e.target.value) || b.south })
-                      )
-                    }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('south', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge South +0.01°"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('south', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge South -0.01°"
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="coord-west" className="text-text-secondary font-medium block mb-1">
-                  West (°E)
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    id="coord-west"
-                    type="number"
-                    step="0.005"
-                    value={bbox.west}
-                    onChange={(e) =>
-                      setBbox((b) =>
-                        normalizeBbox({ ...b, west: parseFloat(e.target.value) || b.west })
-                      )
-                    }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('west', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge West +0.01°"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('west', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge West -0.01°"
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="coord-east" className="text-text-secondary font-medium block mb-1">
-                  East (°E)
-                </label>
-                <div className="flex items-center gap-1">
-                  <input
-                    id="coord-east"
-                    type="number"
-                    step="0.005"
-                    value={bbox.east}
-                    onChange={(e) =>
-                      setBbox((b) =>
-                        normalizeBbox({ ...b, east: parseFloat(e.target.value) || b.east })
-                      )
-                    }
-                    className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('east', 0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge East +0.01°"
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNudgeCoordinate('east', -0.01)}
-                    className="px-1.5 py-1 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-ink text-xs"
-                    title="Nudge East -0.01°"
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Shift / Resize Buttons */}
-            <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <span className="text-text-secondary text-xs">Shift 10%:</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={eventDateInput}
+                  onChange={(e) => setEventDateInput(e.target.value)}
+                  className="bg-surface border border-hairline rounded-[2px] px-3 py-1.5 text-base text-ink font-data min-h-[40px]"
+                />
                 <button
                   type="button"
-                  onClick={() => handleShiftBox('N')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
+                  onClick={handleApplyEventSuggestion}
+                  className="min-h-[40px] px-3.5 py-1.5 bg-accent text-text-on-accent font-semibold rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer text-sm"
                 >
-                  ↑ N
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleShiftBox('S')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
-                >
-                  ↓ S
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleShiftBox('W')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
-                >
-                  ← W
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleShiftBox('E')}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
-                >
-                  → E
+                  Apply suggestion
                 </button>
               </div>
-
-              <div className="flex items-center gap-1">
-                <span className="text-text-secondary text-xs">Scale:</span>
-                <button
-                  type="button"
-                  onClick={() => handleResizeBox(1.1)}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
-                  title="Expand box by 10%"
-                >
-                  +10%
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleResizeBox(0.9)}
-                  className="px-2 py-0.5 border border-hairline rounded-[2px] bg-surface-2 hover:bg-surface text-xs"
-                  title="Shrink box by 10%"
-                >
-                  -10%
-                </button>
-              </div>
-            </div>
-          </div>
-        </details>
-
-        {/* Area Dimensions & Export Scale Card */}
-        <div className="border-t border-hairline bg-surface-2 p-3 space-y-2 text-xs font-data">
-          <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-            <span className="text-text-secondary font-sans">Geodesic dimensions:</span>
-            <span className="font-medium text-ink">
-              {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-            <span className="text-text-secondary font-sans">Optimal export scale:</span>
-            <span className="font-medium text-teal">
-              {scaleInfo.scale} m resolution ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px)
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-text-secondary font-sans">Estimated uncompressed GeoTIFF:</span>
-            <span className="text-text-secondary">
-              ~{scaleInfo.uncompressedMb} MB
-            </span>
-          </div>
-
-          {/* Validation Banner */}
-          {!validation.valid ? (
-            <div className="pt-2 flex items-start gap-1.5 text-rust font-sans text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{validation.reason}</span>
-            </div>
-          ) : (
-            <div className="pt-1 flex items-center gap-1.5 text-teal font-sans text-xs">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Area meets all {MIN_SIDE_KM}–{MAX_SIDE_KM} km side and {MAX_AREA_KM2} km² boundary rules</span>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* ── 2. Set the date windows ── */}
-      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-accent" />
-            2. Set the date windows
-          </h3>
-
-          <button
-            type="button"
-            onClick={() => setShowEventHelper((v) => !v)}
-            className="text-xs text-accent hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            {showEventHelper ? (
-              <>
-                Hide event helper <ChevronUp className="w-3 h-3" />
-              </>
-            ) : (
-              <>
-                Suggest windows around event date <ChevronDown className="w-3 h-3" />
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Collapsible Event Date Suggestion Helper */}
-        {showEventHelper && (
-          <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2 text-xs">
-            <p className="text-text-secondary font-sans">
-              Enter an event date (e.g. peak flood or storm landfall) to automatically configure 12-day pre-event baseline and 12-day post-event comparison windows:
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={eventDateInput}
-                onChange={(e) => setEventDateInput(e.target.value)}
-                className="bg-surface border border-hairline rounded-[2px] px-2 py-1 text-xs text-ink font-data"
-              />
-              <button
-                type="button"
-                onClick={handleApplyEventSuggestion}
-                className="px-3 py-1 bg-accent text-text-on-accent font-semibold rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer"
-              >
-                Apply suggestion
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Date Inputs Grid */}
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider font-sans">
-            Acquisition date windows
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Baseline Window (A) */}
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2">
-              <span className="font-semibold text-ink font-sans block">
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
+              <span className="font-semibold text-ink text-sm font-sans block">
                 Baseline window (Image A, pre-event)
               </span>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="date-window-a-start" className="text-text-secondary block mb-1">
+                  <label htmlFor="date-window-a-start" className="text-sm font-medium text-text-secondary block mb-1">
                     Start date
                   </label>
                   <input
@@ -1614,11 +1577,11 @@ export default function AoiMapPicker({
                     onChange={(e) =>
                       setDateWindowA((prev) => ({ ...prev, start: e.target.value }))
                     }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <label htmlFor="date-window-a-end" className="text-text-secondary block mb-1">
+                  <label htmlFor="date-window-a-end" className="text-sm font-medium text-text-secondary block mb-1">
                     End date
                   </label>
                   <input
@@ -1628,20 +1591,20 @@ export default function AoiMapPicker({
                     onChange={(e) =>
                       setDateWindowA((prev) => ({ ...prev, end: e.target.value }))
                     }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
                   />
                 </div>
               </div>
             </div>
 
             {/* Comparison Window (B) */}
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2">
-              <span className="font-semibold text-ink font-sans block">
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
+              <span className="font-semibold text-ink text-sm font-sans block">
                 Comparison window (Image B, post-event)
               </span>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="date-window-b-start" className="text-text-secondary block mb-1">
+                  <label htmlFor="date-window-b-start" className="text-sm font-medium text-text-secondary block mb-1">
                     Start date
                   </label>
                   <input
@@ -1651,11 +1614,11 @@ export default function AoiMapPicker({
                     onChange={(e) =>
                       setDateWindowB((prev) => ({ ...prev, start: e.target.value }))
                     }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <label htmlFor="date-window-b-end" className="text-text-secondary block mb-1">
+                  <label htmlFor="date-window-b-end" className="text-sm font-medium text-text-secondary block mb-1">
                     End date
                   </label>
                   <input
@@ -1665,332 +1628,356 @@ export default function AoiMapPicker({
                     onChange={(e) =>
                       setDateWindowB((prev) => ({ ...prev, end: e.target.value }))
                     }
-                    className="w-full bg-surface border border-hairline rounded-[2px] px-2 py-1 font-data text-ink text-xs"
+                    className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px]"
                   />
                 </div>
               </div>
             </div>
           </div>
+
+          {!dateValidation.valid && (
+            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{dateValidation.reason}</span>
+            </div>
+          )}
         </div>
 
-        {/* Date Validation Alert */}
-        {!dateValidation.valid && (
-          <div className="p-2 border border-rust text-rust rounded-[2px] text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{dateValidation.reason}</span>
-          </div>
-        )}
+        {/* Find Matching Acquisitions (Compact: button + one-line summary + collapsible table) */}
+        <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-text-secondary">Dataset:</label>
+                <div className="inline-flex rounded-[2px] border border-hairline bg-surface p-0.5 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setAsfMode('s1')}
+                    className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
+                      asfMode === 's1'
+                        ? 'bg-accent text-text-on-accent font-semibold'
+                        : 'text-text-secondary hover:text-ink'
+                    }`}
+                  >
+                    Sentinel-1 C-band
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAsfMode('nisar')}
+                    className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
+                      asfMode === 'nisar'
+                        ? 'bg-accent text-text-on-accent font-semibold'
+                        : 'text-text-secondary hover:text-ink'
+                    }`}
+                  >
+                    NISAR L-band
+                  </button>
+                </div>
+              </div>
 
-        {/* Seasonal Warning Callout */}
-        <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 flex items-start gap-2 text-xs text-text-secondary">
-          <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-          <span>{SEASONAL_WARNING_TEXT}</span>
-        </div>
-      </div>
-
-      {/* ── 3. Find matching acquisitions ── */}
-      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
-              <Search className="w-4 h-4 text-accent" />
-              3. Find matching acquisitions
-            </h3>
-            <p className="text-xs text-text-secondary font-sans mt-0.5">
-              Query matching Sentinel-1 or NISAR orbital passes via the Alaska Satellite Facility (ASF).
-            </p>
-          </div>
-        </div>
-
-        {/* Satellite Selection & ASF Query Action */}
-        <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-text-secondary font-medium">Dataset:</label>
-            <div className="inline-flex rounded-[2px] border border-hairline bg-surface-2 p-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => setAsfMode('s1')}
-                className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
-                  asfMode === 's1'
-                    ? 'bg-accent text-text-on-accent font-semibold'
-                    : 'text-text-secondary hover:text-ink'
-                }`}
+                disabled={effectiveOffline || asfLoading || !validation.valid || !dateValidation.valid}
+                onClick={handleFindAcquisitions}
+                className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
               >
-                Sentinel-1 C-band
-              </button>
-              <button
-                type="button"
-                onClick={() => setAsfMode('nisar')}
-                className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
-                  asfMode === 'nisar'
-                    ? 'bg-accent text-text-on-accent font-semibold'
-                    : 'text-text-secondary hover:text-ink'
-                }`}
-              >
-                NISAR L-band
+                {asfLoading
+                  ? 'Searching ASF archives...'
+                  : asfMode === 's1'
+                  ? 'Find Sentinel-1 passes'
+                  : 'Find NISAR passes'}
               </button>
             </div>
-          </div>
 
-          <button
-            type="button"
-            disabled={effectiveOffline || asfLoading || !validation.valid || !dateValidation.valid}
-            onClick={handleFindAcquisitions}
-            className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
-          >
-            {asfLoading ? 'Searching ASF archives...' : `Find ${asfMode === 's1' ? 'Sentinel-1' : 'NISAR'} passes via ASF`}
-          </button>
-        </div>
-
-        {/* Offline notice when network mode is offline */}
-        {effectiveOffline && (
-          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
-            <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-ink">Offline mode notice</p>
-              <p className="mt-0.5">
-                Search requires a network connection. Use the preset cases below or enter coordinates manually.
-              </p>
+            <div className="text-sm text-text-secondary font-sans">
+              {asfMode === 's1' && asfGroups.length > 0 ? (
+                <span className="text-ink font-medium">
+                  {asfGroups.filter((g) => g.usable).length} usable orbit {asfGroups.filter((g) => g.usable).length === 1 ? 'group' : 'groups'} found ({asfTotalCount} total scenes).
+                </span>
+              ) : asfMode === 'nisar' && asfNisarGranules.length > 0 ? (
+                <span className="text-ink font-medium">
+                  {asfNisarGranules.length} NISAR acquisition(s) found.
+                </span>
+              ) : (
+                <span>Query matching satellite passes via the Alaska Satellite Facility.</span>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Offline / Error Notifications */}
-        {asfOfflineNotice && (
-          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
-            <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-ink">Offline mode notice</p>
-              <p className="mt-0.5">{asfOfflineNotice}</p>
+          {effectiveOffline && (
+            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-sm text-text-secondary flex items-start gap-2">
+              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-ink">Offline mode notice</p>
+                <p className="mt-0.5">
+                  Satellite acquisition lookup requires a network connection.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {asfError && (
-          <div className="p-3 border border-rust text-rust rounded-[2px] text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{asfError}</span>
-          </div>
-        )}
-
-        {/* Sentinel-1 Pass Groups Results Table */}
-        {asfMode === 's1' && asfGroups.length > 0 && (
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-ink">
-                Found {asfTotalCount} Sentinel-1 acquisition(s) across {asfGroups.length} orbit track(s):
-              </span>
-              <span className="text-xs text-text-secondary">
-                Select an orbit track below to set Earth Engine export filter
-              </span>
+          {asfOfflineNotice && (
+            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-sm text-text-secondary flex items-start gap-2">
+              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-ink">Offline mode notice</p>
+                <p className="mt-0.5">{asfOfflineNotice}</p>
+              </div>
             </div>
+          )}
 
-            <div className="border border-hairline rounded-[2px] overflow-hidden">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-2 border-b border-hairline text-text-secondary">
-                    <th className="py-2 px-3 w-8">Select</th>
-                    <th className="py-2 px-3">Flight direction</th>
-                    <th className="py-2 px-3 font-data">Relative orbit track</th>
-                    <th className="py-2 px-3 font-data">Before window</th>
-                    <th className="py-2 px-3 font-data">After window</th>
-                    <th className="py-2 px-3">Usability status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline bg-surface font-sans">
-                  {asfGroups.map((grp) => {
-                    const isSelected =
-                      selectedTrackPass?.pass === grp.flightDirection &&
-                      selectedTrackPass?.orbit === grp.relativeOrbit;
+          {asfError && (
+            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{asfError}</span>
+            </div>
+          )}
 
-                    const handleSelectGroup = () => {
-                      if (grp.flightDirection === 'ASCENDING' || grp.flightDirection === 'DESCENDING') {
-                        setSelectedTrackPass({
-                          pass: grp.flightDirection,
-                          orbit: grp.relativeOrbit,
-                        });
-                      }
-                    };
+          {/* Collapsible Acquisitions Table */}
+          {((asfMode === 's1' && asfGroups.length > 0) || (asfMode === 'nisar' && asfNisarGranules.length > 0)) && (
+            <details className="border border-hairline rounded-[2px] bg-surface group mt-2">
+              <summary className="p-3 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
+                <span>Show all acquisitions</span>
+                <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
+              </summary>
+              <div className="p-3 border-t border-hairline space-y-3">
+                {asfMode === 's1' && asfGroups.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="border border-hairline rounded-[2px] overflow-hidden">
+                      <table className="w-full text-sm text-left border-collapse">
+                        <thead>
+                          <tr className="bg-surface-2 border-b border-hairline text-text-secondary">
+                            <th className="py-2 px-3 w-8">Select</th>
+                            <th className="py-2 px-3">Flight direction</th>
+                            <th className="py-2 px-3 font-data">Relative orbit track</th>
+                            <th className="py-2 px-3 font-data">Before window</th>
+                            <th className="py-2 px-3 font-data">After window</th>
+                            <th className="py-2 px-3">Usability status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-hairline bg-surface font-sans">
+                          {asfGroups.map((grp) => {
+                            const isSelected =
+                              selectedTrackPass?.pass === grp.flightDirection &&
+                              selectedTrackPass?.orbit === grp.relativeOrbit;
 
-                    return (
-                      <tr
-                        key={grp.id}
-                        onClick={handleSelectGroup}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected ? 'bg-surface-2' : 'hover:bg-surface-2/60'
-                        }`}
+                            const handleSelectGroup = () => {
+                              if (grp.flightDirection === 'ASCENDING' || grp.flightDirection === 'DESCENDING') {
+                                setSelectedTrackPass({
+                                  pass: grp.flightDirection,
+                                  orbit: grp.relativeOrbit,
+                                });
+                              }
+                            };
+
+                            return (
+                              <tr
+                                key={grp.id}
+                                onClick={handleSelectGroup}
+                                className={`cursor-pointer transition-colors ${
+                                  isSelected ? 'bg-surface-2' : 'hover:bg-surface-2/60'
+                                }`}
+                              >
+                                <td className="py-2 px-3 text-center">
+                                  <input
+                                    type="radio"
+                                    name="selected-track"
+                                    checked={isSelected}
+                                    onChange={handleSelectGroup}
+                                    className="accent-accent cursor-pointer"
+                                  />
+                                </td>
+                                <td className="py-2 px-3 font-medium">
+                                  {grp.flightDirection}
+                                </td>
+                                <td className="py-2 px-3 font-data font-semibold">
+                                  Track {grp.relativeOrbit}
+                                </td>
+                                <td className="py-2 px-3 font-data text-text-secondary">
+                                  {grp.beforeCount} scene(s)
+                                </td>
+                                <td className="py-2 px-3 font-data text-text-secondary">
+                                  {grp.afterCount} scene(s)
+                                </td>
+                                <td className="py-2 px-3">
+                                  {grp.usable ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-xs font-semibold">
+                                      <Check className="w-3 h-3" /> Ready in both windows
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-xs">
+                                      Incomplete (missing window)
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <span className="text-text-secondary">
+                        Active selection: {selectedTrackPass ? `${selectedTrackPass.pass} Track ${selectedTrackPass.orbit}` : 'None (auto-selection)'}
+                      </span>
+                      {selectedTrackPass && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTrackPass(null)}
+                          className="text-text-secondary hover:text-ink text-xs underline cursor-pointer"
+                        >
+                          Clear orbit constraint
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {asfMode === 'nisar' && asfNisarGranules.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-ink">
+                        Found {asfNisarGranules.length} NISAR acquisition(s):
+                      </span>
+                      <a
+                        href={`https://search.asf.alaska.edu/#/?dataset=NISAR&polygon=${bbox.west},${bbox.south},${bbox.east},${bbox.north}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent hover:underline text-xs flex items-center gap-1"
                       >
-                        <td className="py-2 px-3 text-center">
-                          <input
-                            type="radio"
-                            name="selected-track"
-                            checked={isSelected}
-                            onChange={handleSelectGroup}
-                            className="accent-accent cursor-pointer"
-                          />
-                        </td>
-                        <td className="py-2 px-3 font-medium">
-                          {grp.flightDirection}
-                        </td>
-                        <td className="py-2 px-3 font-data font-semibold">
-                          Track {grp.relativeOrbit}
-                        </td>
-                        <td className="py-2 px-3 font-data text-text-secondary">
-                          {grp.beforeCount} scene(s)
-                        </td>
-                        <td className="py-2 px-3 font-data text-text-secondary">
-                          {grp.afterCount} scene(s)
-                        </td>
-                        <td className="py-2 px-3">
-                          {grp.usable ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-xs font-semibold">
-                              <Check className="w-3 h-3" /> Ready in both windows
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-xs">
-                              Incomplete (missing window)
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        Open ASF Vertex <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
 
-            <div className="flex items-center justify-between text-xs pt-1">
-              <span className="text-text-secondary">
-                Active selection: {selectedTrackPass ? `${selectedTrackPass.pass} Track ${selectedTrackPass.orbit}` : 'None (auto-selection)'}
-              </span>
-              {selectedTrackPass && (
+                    <div className="border border-hairline rounded-[2px] overflow-hidden max-h-48 overflow-y-auto">
+                      <table className="w-full text-xs text-left border-collapse font-data">
+                        <thead>
+                          <tr className="bg-surface-2 border-b border-hairline text-text-secondary font-sans">
+                            <th className="py-1.5 px-3">Scene name</th>
+                            <th className="py-1.5 px-3">Start time</th>
+                            <th className="py-1.5 px-3">Direction</th>
+                            <th className="py-1.5 px-3">Track</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-hairline bg-surface">
+                          {asfNisarGranules.map((g, i) => (
+                            <tr key={i} className="hover:bg-surface-2/60">
+                              <td className="py-1.5 px-3 truncate max-w-xs">{g.sceneName || 'NISAR Granule'}</td>
+                              <td className="py-1.5 px-3 text-text-secondary">{g.startTime?.slice(0, 10) || '—'}</td>
+                              <td className="py-1.5 px-3 font-sans">{g.flightDirection || '—'}</td>
+                              <td className="py-1.5 px-3">{g.pathNumber || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+        </div>
+      </section>
+
+      {/* ── Card 2: Export the images from Google Earth Engine ── */}
+      <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold font-headline text-ink">
+            2. Export the images from Google Earth Engine
+          </h2>
+          <p className="text-base text-text-secondary mt-1 font-sans leading-relaxed">
+            Generate a Google Earth Engine script to export co-registered Sentinel-1 GeoTIFF pairs. The script enforces single-orbit geometry and optimal spatial resolution for analysis.
+          </p>
+        </div>
+
+        {/* Two Collapsed Details Blocks */}
+        <div className="space-y-4">
+          {/* Details 1: Show export script */}
+          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+            <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
+              <span>Show export script</span>
+              <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
+            </summary>
+            <div className="p-4 border-t border-hairline bg-surface space-y-4 font-sans">
+              {currentPreset && (
+                <p className="text-sm text-text-secondary italic leading-relaxed">
+                  Provenance: {currentPreset.provenanceNote}
+                </p>
+              )}
+
+              <div className="text-sm text-text-secondary space-y-1">
+                <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
+                <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
+                <p>The script prints the selected orbit group in the Console.</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setSelectedTrackPass(null)}
-                  className="text-text-secondary hover:text-ink text-xs underline cursor-pointer"
+                  onClick={handleCopyScript}
+                  className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
                 >
-                  Clear orbit constraint
+                  {scriptCopied ? (
+                    <>
+                      <Check className="w-4 h-4 text-teal" />
+                      <span className="text-teal">Copied to clipboard</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy script</span>
+                    </>
+                  )}
                 </button>
-              )}
+
+                <a
+                  href="https://code.earthengine.google.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <span>Open Earth Engine Code Editor</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+
+              <div className="relative">
+                <textarea
+                  readOnly
+                  value={geeScript}
+                  rows={14}
+                  className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
+                />
+              </div>
             </div>
-          </div>
-        )}
+          </details>
 
-        {/* NISAR Granules Results Table */}
-        {asfMode === 'nisar' && asfNisarGranules.length > 0 && (
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-ink">
-                Found {asfNisarGranules.length} NISAR acquisition(s):
-              </span>
-              <a
-                href={`https://search.asf.alaska.edu/#/?dataset=NISAR&polygon=${bbox.west},${bbox.south},${bbox.east},${bbox.north}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline text-xs flex items-center gap-1"
-              >
-                Open ASF Vertex <ExternalLink className="w-3 h-3" />
-              </a>
+          {/* Details 2: How to run the script */}
+          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+            <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
+              <span>How to run the script</span>
+              <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
+            </summary>
+            <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans">
+              <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary leading-relaxed">
+                <li>Copy the export script above and open the Google Earth Engine Code Editor.</li>
+                <li>Paste the script into the center editor pane and click <strong>Run</strong>.</li>
+                <li>In the <strong>Tasks</strong> tab in the upper-right pane, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code> to export the GeoTIFFs to Google Drive.</li>
+              </ol>
+              <div className="pt-2">
+                <Link
+                  href="/how-it-works#earth-engine-export"
+                  className="text-teal hover:underline text-sm font-medium inline-flex items-center gap-1"
+                >
+                  <span>Full guide</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
-
-            <div className="border border-hairline rounded-[2px] overflow-hidden max-h-48 overflow-y-auto">
-              <table className="w-full text-xs text-left border-collapse font-data">
-                <thead>
-                  <tr className="bg-surface-2 border-b border-hairline text-text-secondary font-sans">
-                    <th className="py-1.5 px-3">Scene name</th>
-                    <th className="py-1.5 px-3">Start time</th>
-                    <th className="py-1.5 px-3">Direction</th>
-                    <th className="py-1.5 px-3">Track</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline bg-surface">
-                  {asfNisarGranules.map((g, i) => (
-                    <tr key={i} className="hover:bg-surface-2/60">
-                      <td className="py-1.5 px-3 truncate max-w-xs">{g.sceneName || 'NISAR Granule'}</td>
-                      <td className="py-1.5 px-3 text-text-secondary">{g.startTime?.slice(0, 10) || '—'}</td>
-                      <td className="py-1.5 px-3 font-sans">{g.flightDirection || '—'}</td>
-                      <td className="py-1.5 px-3">{g.pathNumber || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 4. Export script ── */}
-      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-base font-bold font-headline text-ink flex items-center gap-2">
-              <Layers className="w-4 h-4 text-accent" />
-              4. Export script
-            </h3>
-            <p className="text-xs text-text-secondary font-sans mt-0.5">
-              Exports co-registered Sentinel-1 GRD IW VV GeoTIFFs to Google Drive using single-track look geometry.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopyScript}
-              className="px-3 py-1.5 text-xs font-semibold border border-hairline bg-surface-2 hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              {scriptCopied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-teal" />
-                  <span className="text-teal">Copied to clipboard</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copy script</span>
-                </>
-              )}
-            </button>
-
-            <a
-              href="https://code.earthengine.google.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <span>Open Earth Engine Code Editor</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
+          </details>
         </div>
-
-        {/* 3 formal script summary lines */}
-        <div className="text-xs text-text-secondary space-y-0.5 font-sans">
-          <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
-          <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
-          <p>The script prints the selected orbit group in the Console.</p>
-        </div>
-
-        {/* Script Code View */}
-        <div className="relative">
-          <textarea
-            readOnly
-            value={geeScript}
-            rows={14}
-            className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
-          />
-        </div>
-
-        {/* Instructions */}
-        <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 text-xs space-y-1 text-text-secondary font-sans">
-          <p className="font-semibold text-ink">How to run this export:</p>
-          <ol className="list-decimal list-inside space-y-0.5 pl-1">
-            <li>Click <strong>Copy script</strong> above and open the <a href="https://code.earthengine.google.com/" target="_blank" rel="noopener noreferrer" className="text-accent underline">Earth Engine Code Editor</a>.</li>
-            <li>Paste into the editor and click <strong>Run</strong> at the top.</li>
-            <li>In the <strong>Tasks</strong> tab on the right, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code>.</li>
-            <li>When export completes, download both files from your Google Drive folder and drop them into the upload boxes below.</li>
-          </ol>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
