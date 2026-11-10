@@ -64,6 +64,94 @@ export interface AsfPassGroup {
   sampleGranule?: AsfGranule;
 }
 
+export interface PresetAoi {
+  id: string;
+  name: string;
+  description: string;
+  bbox: BoundingBox;
+  dateA: { start: string; end: string };
+  dateB: { start: string; end: string };
+  recommendedPass?: 'ASCENDING' | 'DESCENDING';
+  recommendedOrbit?: number;
+  provenanceNote: string;
+}
+
+export const SYLHET_GOLDEN_PRESET = {
+  id: 'sylhet',
+  name: 'Sylhet Division, Bangladesh (Flood Inundation)',
+  description: 'Surma River Basin, 2022 catastrophic monsoon flood (Benchmark case)',
+  bbox: { west: 91.8, south: 24.85, east: 91.95, north: 24.98 },
+  startDateA: '2022-05-01',
+  endDateA: '2022-05-10',
+  startDateB: '2022-06-18',
+  endDateB: '2022-06-22',
+  pass: 'DESCENDING' as const,
+  relativeOrbit: 77,
+  scale: 20,
+  prefix: 'terrapulse_aoi',
+  bands: ['VV'],
+  provenanceNote:
+    'The preset comparison window (2022-06-18 to 2022-06-22) and single orbit geometry (DESCENDING track 77) capture the flood peak pass on 2022-06-18, whereas the reference script had window 2022-06-20 to 2022-06-21 and did not restrict the orbit; results are therefore comparable but not identical.',
+};
+
+export const PRESET_AOIS: PresetAoi[] = [
+  {
+    id: SYLHET_GOLDEN_PRESET.id,
+    name: SYLHET_GOLDEN_PRESET.name,
+    description: SYLHET_GOLDEN_PRESET.description,
+    bbox: SYLHET_GOLDEN_PRESET.bbox,
+    dateA: { start: SYLHET_GOLDEN_PRESET.startDateA, end: SYLHET_GOLDEN_PRESET.endDateA },
+    dateB: { start: SYLHET_GOLDEN_PRESET.startDateB, end: SYLHET_GOLDEN_PRESET.endDateB },
+    recommendedPass: SYLHET_GOLDEN_PRESET.pass,
+    recommendedOrbit: SYLHET_GOLDEN_PRESET.relativeOrbit,
+    provenanceNote: SYLHET_GOLDEN_PRESET.provenanceNote,
+  },
+  {
+    id: 'tanguar',
+    name: 'Tanguar Haor, Bangladesh (Wetland Dynamics)',
+    description: 'Sunamganj freshwater wetland seasonal hydrological fluctuations',
+    bbox: { west: 90.97976, south: 25.04979, east: 91.2002, north: 25.22011 },
+    dateA: { start: '2023-02-01', end: '2023-02-28' },
+    dateB: { start: '2023-08-01', end: '2023-08-31' },
+    recommendedPass: 'DESCENDING',
+    provenanceNote:
+      'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+  },
+  {
+    id: 'jamuna',
+    name: 'Jamuna River, Bangladesh (Braided Sandbars)',
+    description: 'Sirajganj multi-thread braided channel and char morphology shifts',
+    bbox: { west: 89.6498, south: 24.29979, east: 89.95002, north: 24.55015 },
+    dateA: { start: '2019-02-01', end: '2019-02-28' },
+    dateB: { start: '2024-02-01', end: '2024-02-28' },
+    recommendedPass: 'ASCENDING',
+    provenanceNote:
+      'The preset enforces a single orbit geometry (ASCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+  },
+  {
+    id: 'amazon',
+    name: 'Amazon Rainforest, Rondônia, Brazil (Canopy Loss)',
+    description: 'Deforestation monitoring in the southwestern Amazon basin',
+    bbox: { west: -62.20007, south: -10.35003, east: -61.99992, north: -10.14988 },
+    dateA: { start: '2021-01-01', end: '2021-01-15' },
+    dateB: { start: '2023-01-01', end: '2023-01-15' },
+    recommendedPass: 'DESCENDING',
+    provenanceNote:
+      'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+  },
+  {
+    id: 'padma-naria',
+    name: 'Padma River / Naria, Bangladesh (Bank Erosion)',
+    description: 'Shariatpur riverbank recession and severe land loss monitoring',
+    bbox: { west: 90.23272, south: 23.31002, east: 90.42765, north: 23.49005 },
+    dateA: { start: '2017-01-15', end: '2017-03-15' },
+    dateB: { start: '2024-01-15', end: '2024-03-15' },
+    recommendedPass: 'DESCENDING',
+    provenanceNote:
+      'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the precomputed case does not restrict the orbit; results are therefore comparable but not identical.',
+  },
+];
+
 export interface GeeScriptOptions {
   bbox: BoundingBox;
   startDateA: string;

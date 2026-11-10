@@ -29,7 +29,7 @@ const wrapper = vm.runInThisContext(
   `(function (exports, require, module, __filename, __dirname) { ${transpiled.outputText} \n})`
 );
 wrapper(mod.exports, require, mod, __filename, __dirname);
-const { generateGeeScript } = mod.exports;
+const { generateGeeScript, SYLHET_GOLDEN_PRESET } = mod.exports;
 
 console.log('Running Earth Engine Script Generator Verification Suite...\n');
 
@@ -40,18 +40,8 @@ console.log('Test (i): Golden comparison for Sylhet preset against verified_sylh
 const goldenPath = path.resolve(rootDir, 'scripts/gee/verified_sylhet_picker.js');
 const goldenContent = fs.readFileSync(goldenPath, 'utf8');
 
-const generatedGolden = generateGeeScript({
-  bbox: { west: 91.8, south: 24.85, east: 91.95, north: 24.98 },
-  startDateA: '2022-05-01',
-  endDateA: '2022-05-10',
-  startDateB: '2022-06-18',
-  endDateB: '2022-06-22',
-  pass: 'DESCENDING',
-  relativeOrbit: 77,
-  scale: 20,
-  prefix: 'terrapulse_aoi',
-  bands: ['VV'],
-});
+assert.ok(SYLHET_GOLDEN_PRESET, 'SYLHET_GOLDEN_PRESET must be defined in lib/aoi.ts');
+const generatedGolden = generateGeeScript(SYLHET_GOLDEN_PRESET);
 
 function normalizeLine(line) {
   return line.trim();

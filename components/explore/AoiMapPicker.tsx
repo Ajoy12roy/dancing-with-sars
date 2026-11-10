@@ -41,6 +41,8 @@ import {
   MIN_SIDE_KM,
   MAX_SIDE_KM,
   MAX_AREA_KM2,
+  PresetAoi,
+  PRESET_AOIS,
 } from '@/lib/aoi';
 
 // Guard Leaflet default marker icons for client environments
@@ -290,66 +292,6 @@ function MapDrawController({
 
   return null;
 }
-
-interface PresetAoi {
-  id: string;
-  name: string;
-  description: string;
-  bbox: BoundingBox;
-  dateA: { start: string; end: string };
-  dateB: { start: string; end: string };
-  recommendedPass?: 'ASCENDING' | 'DESCENDING';
-  recommendedOrbit?: number;
-}
-
-const PRESET_AOIS: PresetAoi[] = [
-  {
-    id: 'sylhet',
-    name: 'Sylhet Division, Bangladesh (Flood Inundation)',
-    description: 'Surma River Basin, 2022 catastrophic monsoon flood (Benchmark case)',
-    bbox: { west: 91.79992, south: 24.84992, east: 91.95012, north: 24.98017 },
-    dateA: { start: '2022-05-01', end: '2022-05-10' },
-    dateB: { start: '2022-06-20', end: '2022-06-21' },
-    recommendedPass: 'DESCENDING',
-    recommendedOrbit: 77,
-  },
-  {
-    id: 'tanguar',
-    name: 'Tanguar Haor, Bangladesh (Wetland Dynamics)',
-    description: 'Sunamganj freshwater wetland seasonal hydrological fluctuations',
-    bbox: { west: 90.97976, south: 25.04979, east: 91.2002, north: 25.22011 },
-    dateA: { start: '2023-02-01', end: '2023-02-28' },
-    dateB: { start: '2023-08-01', end: '2023-08-31' },
-    recommendedPass: 'DESCENDING',
-  },
-  {
-    id: 'jamuna',
-    name: 'Jamuna River, Bangladesh (Braided Sandbars)',
-    description: 'Sirajganj multi-thread braided channel and char morphology shifts',
-    bbox: { west: 89.6498, south: 24.29979, east: 89.95002, north: 24.55015 },
-    dateA: { start: '2019-02-01', end: '2019-02-28' },
-    dateB: { start: '2024-02-01', end: '2024-02-28' },
-    recommendedPass: 'ASCENDING',
-  },
-  {
-    id: 'amazon',
-    name: 'Amazon Rainforest, Rondônia, Brazil (Canopy Loss)',
-    description: 'Deforestation monitoring in the southwestern Amazon basin',
-    bbox: { west: -62.20007, south: -10.35003, east: -61.99992, north: -10.14988 },
-    dateA: { start: '2021-01-01', end: '2021-01-15' },
-    dateB: { start: '2023-01-01', end: '2023-01-15' },
-    recommendedPass: 'DESCENDING',
-  },
-  {
-    id: 'padma-naria',
-    name: 'Padma River / Naria, Bangladesh (Bank Erosion)',
-    description: 'Shariatpur riverbank recession and severe land loss monitoring',
-    bbox: { west: 90.23272, south: 23.31002, east: 90.42765, north: 23.49005 },
-    dateA: { start: '2017-01-15', end: '2017-03-15' },
-    dateB: { start: '2024-01-15', end: '2024-03-15' },
-    recommendedPass: 'DESCENDING',
-  },
-];
 
 export default function AoiMapPicker() {
   const { effectiveOffline } = useNetworkMode();
@@ -778,21 +720,27 @@ export default function AoiMapPicker() {
       </div>
 
       {/* ── Preset Case Studies (100% Offline Capable) ── */}
-      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-2">
+      <div className="border border-hairline rounded-[2px] bg-surface p-4 space-y-3">
         <label htmlFor="preset-aoi-select" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider block">
           Preset benchmark cases
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="space-y-2">
           {PRESET_AOIS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => handleSelectPreset(preset)}
-              className="px-3 py-1.5 text-xs font-medium border border-hairline bg-surface-2 hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer text-left"
-              title={preset.description}
-            >
-              {preset.name.split(' (')[0]}
-            </button>
+            <div key={preset.id} className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSelectPreset(preset)}
+                  className="px-3 py-1.5 text-xs font-medium border border-hairline bg-surface hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-accent"
+                  title={preset.description}
+                >
+                  {preset.name.split(' (')[0]}
+                </button>
+              </div>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                {preset.provenanceNote}
+              </p>
+            </div>
           ))}
         </div>
       </div>
@@ -803,7 +751,7 @@ export default function AoiMapPicker() {
           <label htmlFor="geocode-input" className="text-xs font-semibold text-text-secondary font-sans uppercase tracking-wider">
             Search location
           </label>
-          <span className="text-[10px] text-text-secondary">
+          <span className="text-xs text-text-secondary">
             Data © OpenStreetMap contributors
           </span>
         </div>
