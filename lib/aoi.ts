@@ -439,7 +439,7 @@ var aoi = ee.Geometry.Rectangle([
   ${norm.west}, // west
   ${norm.south}, // south
   ${norm.east}, // east
-  ${norm.north}  // north
+  ${norm.north} // north
 ]);
 
 // 2. Acquisition Date Ranges
@@ -466,11 +466,37 @@ var s1Collection = ee.ImageCollection('COPERNICUS/S1_GRD')
 var PASS = ${passLiteral};
 var ORBIT = ${orbitLiteral};
 
+var endAExclusive = ee.Date(endDateA).advance(1, 'day');
+var endBExclusive = ee.Date(endDateB).advance(1, 'day');
+
+if (PASS !== null && ORBIT !== null) {
+  var countA = s1Collection
+    .filterDate(startDateA, endAExclusive)
+    .filter(ee.Filter.eq('orbitProperties_pass', PASS))
+    .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT))
+    .size()
+    .getInfo();
+  var countB = s1Collection
+    .filterDate(startDateB, endBExclusive)
+    .filter(ee.Filter.eq('orbitProperties_pass', PASS))
+    .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT))
+    .size()
+    .getInfo();
+
+  if (countA === 0 || countB === 0) {
+    print('Requested orbit group ' + PASS + ' track ' + ORBIT + ' has ' + countA + ' baseline and ' + countB + ' comparison images. Falling back to automatic single-geometry selection.');
+    PASS = null;
+    ORBIT = null;
+  } else {
+    print('Selected single-geometry orbit group: ' + PASS + ' track ' + ORBIT + ' (Baseline: ' + countA + ', Comparison: ' + countB + ').');
+  }
+}
+
 if (PASS === null || ORBIT === null) {
-  var beforePasses = s1Collection.filterDate(startDateA, ee.Date(endDateA).advance(1, 'day')).aggregate_array('orbitProperties_pass').getInfo();
-  var beforeOrbits = s1Collection.filterDate(startDateA, ee.Date(endDateA).advance(1, 'day')).aggregate_array('relativeOrbitNumber_start').getInfo();
-  var afterPasses = s1Collection.filterDate(startDateB, ee.Date(endDateB).advance(1, 'day')).aggregate_array('orbitProperties_pass').getInfo();
-  var afterOrbits = s1Collection.filterDate(startDateB, ee.Date(endDateB).advance(1, 'day')).aggregate_array('relativeOrbitNumber_start').getInfo();
+  var beforePasses = s1Collection.filterDate(startDateA, endAExclusive).aggregate_array('orbitProperties_pass').getInfo();
+  var beforeOrbits = s1Collection.filterDate(startDateA, endAExclusive).aggregate_array('relativeOrbitNumber_start').getInfo();
+  var afterPasses = s1Collection.filterDate(startDateB, endBExclusive).aggregate_array('orbitProperties_pass').getInfo();
+  var afterOrbits = s1Collection.filterDate(startDateB, endBExclusive).aggregate_array('relativeOrbitNumber_start').getInfo();
 
   var countMapA = {};
   for (var i = 0; i < beforePasses.length; i++) {
@@ -520,28 +546,6 @@ if (PASS === null || ORBIT === null) {
   PASS = candidates[0].pass;
   ORBIT = candidates[0].orbit;
   print('Selected single-geometry orbit group: ' + PASS + ' track ' + ORBIT + ' (used for both baseline and comparison windows).');
-} else {
-  var countA = s1Collection
-    .filterDate(startDateA, ee.Date(endDateA).advance(1, 'day'))
-    .filter(ee.Filter.eq('orbitProperties_pass', PASS))
-    .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT))
-    .size()
-    .getInfo();
-  var countB = s1Collection
-    .filterDate(startDateB, ee.Date(endDateB).advance(1, 'day'))
-    .filter(ee.Filter.eq('orbitProperties_pass', PASS))
-    .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT))
-    .size()
-    .getInfo();
-
-  if (countA === 0 && countB === 0) {
-    throw new Error('Both baseline and comparison windows have no images for orbit group ' + PASS + ' track ' + ORBIT + '.');
-  } else if (countA === 0) {
-    throw new Error('Baseline window has no images for orbit group ' + PASS + ' track ' + ORBIT + '.');
-  } else if (countB === 0) {
-    throw new Error('Comparison window has no images for orbit group ' + PASS + ' track ' + ORBIT + '.');
-  }
-  print('Selected single-geometry orbit group: ' + PASS + ' track ' + ORBIT + ' (used for both baseline and comparison windows).');
 }
 
 s1Collection = s1Collection
@@ -549,15 +553,14 @@ s1Collection = s1Collection
   .filter(ee.Filter.eq('relativeOrbitNumber_start', ORBIT));
 
 // 5. Select Images
-// TODO: Confirm composite reducer (.mosaic(), .first(), or .mean() if multiple acquisitions in date window):
 var imageA = s1Collection
-  .filterDate(startDateA, ee.Date(endDateA).advance(1, 'day'))
+  .filterDate(startDateA, endAExclusive)
   .select(bands)
   .mosaic()
   .clip(aoi);
 
 var imageB = s1Collection
-  .filterDate(startDateB, ee.Date(endDateB).advance(1, 'day'))
+  .filterDate(startDateB, endBExclusive)
   .select(bands)
   .mosaic()
   .clip(aoi);
