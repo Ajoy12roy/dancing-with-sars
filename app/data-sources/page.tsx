@@ -522,7 +522,7 @@ export default function DataSourcesPage() {
 
                 return (
                   <tr key={aoi.id} className="hover:bg-surface-2/60 transition-colors">
-                    <th scope="row" className="p-3 font-medium text-text-primary text-left font-normal">
+                    <th scope="row" className="p-3 font-medium text-text-primary text-left">
                       <div className="font-semibold">{aoi.name || aoi.title}</div>
                       <span className="font-data text-[10px] text-teal uppercase">{aoi.modeLabel || aoi.module}</span>
                     </th>

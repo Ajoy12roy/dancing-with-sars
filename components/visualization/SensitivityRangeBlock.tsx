@@ -102,7 +102,7 @@ export default function SensitivityRangeBlock({
               return (
                 <div
                   key={st.value}
-                  className="absolute -top-3 transform -translate-x-1/2 flex flex-col items-center"
+                  className="absolute -top-3 -translate-x-1/2 flex flex-col items-center"
                   style={{ left: `${leftPercent}%` }}
                 >
                   {/* Tick marker */}
