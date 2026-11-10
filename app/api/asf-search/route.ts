@@ -146,11 +146,40 @@ export async function GET(request: Request) {
         }
       }
 
+      let nisar2026Context: { found: number; firstDate?: string; lastDate?: string } | undefined;
+
+      if (combined.length === 0) {
+        try {
+          const todayIso = new Date().toISOString().slice(0, 10);
+          const year2026Granules = await queryAsfWindow(polygonWkt, '2026-01-01', todayIso, 'NISAR');
+          if (year2026Granules.length > 0) {
+            const sortedDates = year2026Granules
+              .map((g) => (g.startTime ? g.startTime.split('T')[0] : ''))
+              .filter(Boolean)
+              .sort();
+            nisar2026Context = {
+              found: year2026Granules.length,
+              firstDate: sortedDates[0],
+              lastDate: sortedDates[sortedDates.length - 1],
+            };
+          } else {
+            nisar2026Context = {
+              found: 0,
+            };
+          }
+        } catch {
+          nisar2026Context = {
+            found: 0,
+          };
+        }
+      }
+
       return NextResponse.json({
         success: true,
         kind: 'nisar',
         count: combined.length,
         granules: combined,
+        nisar2026Context,
       });
     }
 

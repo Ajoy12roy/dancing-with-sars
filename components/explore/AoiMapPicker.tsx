@@ -619,6 +619,13 @@ export default function AoiMapPicker({
   const [asfError, setAsfError] = useState<string | null>(null);
   const [asfOfflineNotice, setAsfOfflineNotice] = useState<string | null>(null);
   const [asfTotalCount, setAsfTotalCount] = useState<number | null>(null);
+  const [asfSearched, setAsfSearched] = useState<boolean>(false);
+  const [asfZeroResultKind, setAsfZeroResultKind] = useState<'s1' | 'nisar' | null>(null);
+  const [asfNisar2026Context, setAsfNisar2026Context] = useState<{
+    found: number;
+    firstDate?: string;
+    lastDate?: string;
+  } | null>(null);
 
   // Selected Track / Pass Filter
   const [selectedTrackPass, setSelectedTrackPass] = useState<{
@@ -817,6 +824,9 @@ export default function AoiMapPicker({
       setAsfError(null);
       setAsfOfflineNotice(null);
       setAsfTotalCount(null);
+      setAsfSearched(false);
+      setAsfZeroResultKind(null);
+      setAsfNisar2026Context(null);
       setRecenterCount((c) => c + 1);
     } else {
       setNoPresetNotice('No area preset is available for this case. Draw an area on the map.');
@@ -843,6 +853,9 @@ export default function AoiMapPicker({
     setAsfError(null);
     setAsfOfflineNotice(null);
     setAsfTotalCount(null);
+    setAsfSearched(false);
+    setAsfZeroResultKind(null);
+    setAsfNisar2026Context(null);
     setRecenterCount((c) => c + 1);
     const dims = computeBboxDimensions(preset.bbox);
     announce(`Loaded preset ${preset.name.split(' (')[0]}. Area: ${dims.widthKm} by ${dims.heightKm} kilometers.`);
@@ -927,6 +940,9 @@ export default function AoiMapPicker({
     setAsfOfflineNotice(null);
     setAsfGroups([]);
     setAsfNisarGranules([]);
+    setAsfSearched(true);
+    setAsfZeroResultKind(null);
+    setAsfNisar2026Context(null);
 
     const params = new URLSearchParams({
       west: String(bbox.west),
@@ -942,32 +958,45 @@ export default function AoiMapPicker({
 
     try {
       const res = await fetch(`/api/asf-search?${params.toString()}`);
+      if (!res.ok) {
+        setAsfError(`Unable to complete satellite catalogue search (server responded with ${res.status}).`);
+        return;
+      }
       const data = await res.json();
 
       if (data.offline) {
         setAsfOfflineNotice(data.reason);
       } else if (data.error) {
-        setAsfError(data.error);
+        setAsfError(`Unable to complete satellite catalogue search: ${data.error}`);
       } else {
-        setAsfTotalCount(data.count ?? 0);
-        if (asfMode === 's1' && Array.isArray(data.groups)) {
-          setAsfGroups(data.groups);
-          // Auto-select first usable group if none selected or current is invalid
-          const firstUsable = data.groups.find(
-            (g: AsfPassGroup) => g.usable && g.flightDirection !== 'UNKNOWN'
-          );
-          if (firstUsable) {
-            setSelectedTrackPass({
-              pass: firstUsable.flightDirection as 'ASCENDING' | 'DESCENDING',
-              orbit: firstUsable.relativeOrbit,
-            });
+        const count = data.count ?? 0;
+        setAsfTotalCount(count);
+        if (count === 0) {
+          setAsfZeroResultKind(asfMode);
+          if (asfMode === 'nisar' && data.nisar2026Context) {
+            setAsfNisar2026Context(data.nisar2026Context);
           }
-        } else if (asfMode === 'nisar' && Array.isArray(data.granules)) {
-          setAsfNisarGranules(data.granules);
+        } else {
+          if (asfMode === 's1' && Array.isArray(data.groups)) {
+            setAsfGroups(data.groups);
+            // Auto-select first usable group if none selected or current is invalid
+            const firstUsable = data.groups.find(
+              (g: AsfPassGroup) => g.usable && g.flightDirection !== 'UNKNOWN'
+            );
+            if (firstUsable) {
+              setSelectedTrackPass({
+                pass: firstUsable.flightDirection as 'ASCENDING' | 'DESCENDING',
+                orbit: firstUsable.relativeOrbit,
+              });
+            }
+          } else if (asfMode === 'nisar' && Array.isArray(data.granules)) {
+            setAsfNisarGranules(data.granules);
+          }
         }
       }
-    } catch {
-      setAsfError('Network error while querying satellite acquisitions.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setAsfError(`Unable to complete satellite catalogue search: ${msg}`);
     } finally {
       setAsfLoading(false);
     }
@@ -1653,29 +1682,44 @@ export default function AoiMapPicker({
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-text-secondary">Dataset:</label>
-                <div className="inline-flex rounded-[2px] border border-hairline bg-surface p-0.5 text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setAsfMode('s1')}
-                    className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
-                      asfMode === 's1'
-                        ? 'bg-accent text-text-on-accent font-semibold'
-                        : 'text-text-secondary hover:text-ink'
-                    }`}
-                  >
-                    Sentinel-1 C-band
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAsfMode('nisar')}
-                    className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
-                      asfMode === 'nisar'
-                        ? 'bg-accent text-text-on-accent font-semibold'
-                        : 'text-text-secondary hover:text-ink'
-                    }`}
-                  >
-                    NISAR L-band
-                  </button>
+                <div className="flex flex-col">
+                  <div className="inline-flex rounded-[2px] border border-hairline bg-surface p-0.5 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAsfMode('s1');
+                        setAsfSearched(false);
+                        setAsfZeroResultKind(null);
+                      }}
+                      className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
+                        asfMode === 's1'
+                          ? 'bg-accent text-text-on-accent font-semibold'
+                          : 'text-text-secondary hover:text-ink'
+                      }`}
+                    >
+                      Sentinel-1 C-band
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAsfMode('nisar');
+                        setAsfSearched(false);
+                        setAsfZeroResultKind(null);
+                      }}
+                      className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
+                        asfMode === 'nisar'
+                          ? 'bg-accent text-text-on-accent font-semibold'
+                          : 'text-text-secondary hover:text-ink'
+                      }`}
+                    >
+                      NISAR L-band
+                    </button>
+                  </div>
+                  {asfMode === 'nisar' && (
+                    <p className="text-xs text-text-secondary font-sans mt-1">
+                      The Earth Engine export below uses Sentinel-1 data.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1694,7 +1738,9 @@ export default function AoiMapPicker({
             </div>
 
             <div className="text-sm text-text-secondary font-sans">
-              {asfMode === 's1' && asfGroups.length > 0 ? (
+              {asfLoading ? (
+                <span className="text-text-secondary">Searching ASF satellite archives...</span>
+              ) : asfMode === 's1' && asfGroups.length > 0 ? (
                 <span className="text-ink font-medium">
                   {asfGroups.filter((g) => g.usable).length} usable orbit {asfGroups.filter((g) => g.usable).length === 1 ? 'group' : 'groups'} found ({asfTotalCount} total scenes).
                 </span>
@@ -1702,6 +1748,19 @@ export default function AoiMapPicker({
                 <span className="text-ink font-medium">
                   {asfNisarGranules.length} NISAR acquisition(s) found.
                 </span>
+              ) : asfSearched && asfZeroResultKind ? (
+                <div className="p-3 border border-hairline bg-surface rounded-[2px] space-y-1.5 text-text-secondary">
+                  <p>
+                    No {asfZeroResultKind === 's1' ? 'Sentinel-1' : 'NISAR'} acquisitions were found in the ASF catalogue for this area between {dateWindowA.start} and {dateWindowB.end}. Widen the date windows or change the area.
+                  </p>
+                  {asfZeroResultKind === 'nisar' && asfNisar2026Context && (
+                    <p className="text-xs text-text-secondary pt-1 border-t border-hairline">
+                      {asfNisar2026Context.found > 0
+                        ? `NISAR acquisitions exist for this area between ${asfNisar2026Context.firstDate} and ${asfNisar2026Context.lastDate} (${asfNisar2026Context.found} found).`
+                        : 'no NISAR acquisitions found for this area in 2026.'}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <span>Query matching satellite passes via the Alaska Satellite Facility.</span>
               )}
@@ -1893,6 +1952,11 @@ export default function AoiMapPicker({
           <p className="text-base text-text-secondary mt-1 font-sans leading-relaxed">
             Generate a Google Earth Engine script to export co-registered Sentinel-1 GeoTIFF pairs. The script enforces single-orbit geometry and optimal spatial resolution for analysis.
           </p>
+          {asfMode === 'nisar' && (
+            <p className="text-xs text-text-secondary mt-1 font-sans">
+              The Earth Engine export below uses Sentinel-1 data.
+            </p>
+          )}
         </div>
 
         {/* Two Collapsed Details Blocks */}
