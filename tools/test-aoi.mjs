@@ -86,6 +86,7 @@ const {
   SEASONAL_WARNING_TEXT,
   PRESET_AOIS,
   presetForCase,
+  resizeBounds,
 } = aoiModule;
 
 console.log('Running Area Picker (lib/aoi.ts) Test Suite...\n');
@@ -355,5 +356,40 @@ assert.equal(noPreset, undefined, 'presetForCase must return undefined for case 
 const unknownCase = presetForCase('unknown-case-id');
 assert.equal(unknownCase, undefined, 'presetForCase must return undefined for unknown case id');
 console.log('✓ Preset for case synchronization verified for all presets and unmapped cases');
+
+// ── 7. Bounding Box Resizing, Handles, and Constraints (resizeBounds) ──
+console.log('Test 7: Bounding box resize math and limits (resizeBounds)...');
+assert.equal(typeof resizeBounds, 'function', 'resizeBounds must be exported as a function');
+
+const baseBbox = { west: 91.8, south: 24.85, east: 91.95, north: 24.98 };
+const baseDims = computeBboxDimensions(baseBbox);
+
+// (a) Shrink below 2 km clamps to MIN_SIDE_KM
+const shrinkRes = resizeBounds(baseBbox, 'n', -0.5, 0, false);
+assert.equal(shrinkRes.clamped, true, 'Shrinking below 2 km must be clamped');
+assert.ok(shrinkRes.clampReason?.includes('2 km'), 'Clamp reason must state 2 km minimum');
+const shrinkDims = computeBboxDimensions(shrinkRes.bbox);
+assert.ok(shrinkDims.heightKm >= 1.99 && shrinkDims.heightKm <= 2.05, `Height should be clamped to ~2 km, got ${shrinkDims.heightKm}`);
+
+// (b) Grow above 30 km clamps to MAX_SIDE_KM
+const growRes = resizeBounds(baseBbox, 'e', 0, 1.0, false);
+assert.equal(growRes.clamped, true, 'Growing above 30 km must be clamped');
+assert.ok(growRes.clampReason?.includes('30 km') || growRes.clampReason?.includes('900 km²'), 'Clamp reason must state max limit');
+const growDims = computeBboxDimensions(growRes.bbox);
+assert.ok(growDims.widthKm <= 30.01, `Width should be clamped to <= 30 km, got ${growDims.widthKm}`);
+
+// (c) Square mode keeps the ratio (width == height) on corner drag
+const squareRes = resizeBounds(baseBbox, 'ne', 0.05, 0.05, true);
+const squareDims = computeBboxDimensions(squareRes.bbox);
+assert.ok(Math.abs(squareDims.widthKm - squareDims.heightKm) < 0.1, `Square mode must keep 1:1 ratio, got width ${squareDims.widthKm} vs height ${squareDims.heightKm}`);
+
+// (d) Move keeps the size exactly
+const moveRes = resizeBounds(baseBbox, 'move', 0.08, -0.05, false);
+assert.equal(moveRes.clamped, false, 'Move should not clamp if within world boundaries');
+const moveDims = computeBboxDimensions(moveRes.bbox);
+assert.ok(Math.abs(moveDims.widthKm - baseDims.widthKm) < 0.01, `Move must keep width: got ${moveDims.widthKm} vs ${baseDims.widthKm}`);
+assert.ok(Math.abs(moveDims.heightKm - baseDims.heightKm) < 0.01, `Move must keep height: got ${moveDims.heightKm} vs ${baseDims.heightKm}`);
+assert.ok(Math.abs(moveDims.areaKm2 - baseDims.areaKm2) < 0.05, `Move must keep area: got ${moveDims.areaKm2} vs ${baseDims.areaKm2}`);
+console.log('✓ Resize logic verified: shrink clamp, grow clamp, square mode ratio, and move invariance');
 
 console.log('\nAll Area Picker (lib/aoi.ts) tests passed successfully!');

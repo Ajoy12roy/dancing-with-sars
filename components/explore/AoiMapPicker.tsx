@@ -5,6 +5,7 @@ import {
   MapContainer,
   TileLayer,
   Rectangle,
+  Marker,
   useMap,
   useMapEvents,
 } from 'react-leaflet';
@@ -36,6 +37,8 @@ import {
   validateDateWindows,
   suggestWindowsForEvent,
   generateGeeScript,
+  resizeBounds,
+  HandleType,
   AsfPassGroup,
   AsfGranule,
   SEASONAL_WARNING_TEXT,
@@ -96,6 +99,208 @@ function MapClickHandler({
     },
   });
   return null;
+}
+
+const handleIconMap = new Map<string, L.DivIcon>();
+
+function createHandleIcon(type: HandleType, isValid: boolean): L.DivIcon {
+  const cursor =
+    type === 'n' || type === 's'
+      ? 'ns-resize'
+      : type === 'w' || type === 'e'
+      ? 'ew-resize'
+      : type === 'nw' || type === 'se'
+      ? 'nwse-resize'
+      : 'nesw-resize';
+  const borderColor = isValid ? 'var(--color-teal)' : 'var(--color-rust)';
+  return L.divIcon({
+    className: 'aoi-handle-marker',
+    html: `<div data-handle="${type}" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:${cursor};touch-action:none;pointer-events:auto;">
+      <div style="width:12px;height:12px;background:var(--color-surface);border:2px solid ${borderColor};border-radius:2px;box-sizing:border-box;pointer-events:none;"></div>
+    </div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
+function getHandleIcon(type: HandleType, isValid: boolean): L.DivIcon {
+  const key = `${type}-${isValid ? 'valid' : 'invalid'}`;
+  let icon = handleIconMap.get(key);
+  if (!icon) {
+    icon = createHandleIcon(type, isValid);
+    handleIconMap.set(key, icon);
+  }
+  return icon;
+}
+
+interface AoiBoxControllerProps {
+  bbox: BoundingBox;
+  onBboxChange: (newBbox: BoundingBox) => void;
+  onBboxChangeComplete: () => void;
+  squareSelection: boolean;
+  isDrawingMode: boolean;
+  isValid: boolean;
+  onClampNotice: (notice: string | null) => void;
+}
+
+function AoiBoxController({
+  bbox,
+  onBboxChange,
+  onBboxChangeComplete,
+  squareSelection,
+  isDrawingMode,
+  isValid,
+  onClampNotice,
+}: AoiBoxControllerProps) {
+  const map = useMap();
+  const activeDragRef = useRef<{
+    handleType: HandleType;
+    startPointerLatLng: L.LatLng;
+    startBbox: BoundingBox;
+    pointerId: number;
+  } | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    const container = map.getContainer();
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (isDrawingMode) return;
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+      const target = e.target as HTMLElement;
+      const handleEl = target.closest('[data-handle]') as HTMLElement | null;
+      const isBox = target.classList?.contains('aoi-draggable-box') || target.closest('.aoi-draggable-box');
+
+      let handleType: HandleType | null = null;
+      if (handleEl) {
+        handleType = handleEl.getAttribute('data-handle') as HandleType;
+      } else if (isBox) {
+        handleType = 'move';
+      }
+
+      if (!handleType) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch {
+        // Fallback
+      }
+
+      map.dragging.disable();
+      map.doubleClickZoom.disable();
+
+      const pointerLatLng = map.mouseEventToLatLng(e as unknown as MouseEvent);
+      activeDragRef.current = {
+        handleType,
+        startPointerLatLng: pointerLatLng,
+        startBbox: bbox,
+        pointerId: e.pointerId,
+      };
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!activeDragRef.current) return;
+      if (e.pointerId !== activeDragRef.current.pointerId) return;
+
+      const { handleType, startPointerLatLng, startBbox } = activeDragRef.current;
+      const currentPointerLatLng = map.mouseEventToLatLng(e as unknown as MouseEvent);
+
+      const deltaLat = currentPointerLatLng.lat - startPointerLatLng.lat;
+      const deltaLon = currentPointerLatLng.lng - startPointerLatLng.lng;
+
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+
+      rafRef.current = requestAnimationFrame(() => {
+        const result = resizeBounds(startBbox, handleType, deltaLat, deltaLon, squareSelection);
+        onBboxChange(result.bbox);
+        if (result.clamped && result.clampReason) {
+          onClampNotice(result.clampReason);
+        } else {
+          onClampNotice(null);
+        }
+      });
+    };
+
+    const handlePointerEnd = (e: PointerEvent) => {
+      if (!activeDragRef.current) return;
+      if (e.pointerId !== activeDragRef.current.pointerId) return;
+
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+
+      activeDragRef.current = null;
+      try {
+        container.releasePointerCapture(e.pointerId);
+      } catch {
+        // Ignored
+      }
+
+      try {
+        map.dragging.enable();
+        map.doubleClickZoom.enable();
+      } catch {
+        // Ignored
+      }
+
+      onBboxChangeComplete();
+    };
+
+    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointerup', handlePointerEnd);
+    container.addEventListener('pointercancel', handlePointerEnd);
+
+    return () => {
+      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerup', handlePointerEnd);
+      container.removeEventListener('pointercancel', handlePointerEnd);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      try {
+        map.dragging.enable();
+        map.doubleClickZoom.enable();
+      } catch {
+        // Ignored
+      }
+    };
+  }, [map, isDrawingMode, bbox, squareSelection, onBboxChange, onBboxChangeComplete, onClampNotice]);
+
+  if (isDrawingMode) return null;
+
+  const handles: Array<{ type: HandleType; position: [number, number] }> = [
+    { type: 'nw', position: [bbox.north, bbox.west] },
+    { type: 'ne', position: [bbox.north, bbox.east] },
+    { type: 'sw', position: [bbox.south, bbox.west] },
+    { type: 'se', position: [bbox.south, bbox.east] },
+    { type: 'n', position: [bbox.north, (bbox.west + bbox.east) / 2] },
+    { type: 's', position: [bbox.south, (bbox.west + bbox.east) / 2] },
+    { type: 'w', position: [(bbox.south + bbox.north) / 2, bbox.west] },
+    { type: 'e', position: [(bbox.south + bbox.north) / 2, bbox.east] },
+  ];
+
+  return (
+    <>
+      {handles.map(({ type, position }) => (
+        <Marker
+          key={type}
+          position={position}
+          icon={getHandleIcon(type, isValid)}
+        />
+      ))}
+    </>
+  );
 }
 
 interface MapDrawControllerProps {
@@ -332,9 +537,24 @@ export default function AoiMapPicker({
   // ── Drawing and Pointer State ──
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [squareSelection, setSquareSelection] = useState<boolean>(true);
+  const [squareSelection, setSquareSelection] = useState<boolean>(false);
   const [showWheelHint, setShowWheelHint] = useState<boolean>(false);
+  const [clampNotice, setClampNotice] = useState<string | null>(null);
   const wheelHintTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleClampNotice = useCallback((notice: string | null) => {
+    setClampNotice(notice);
+    if (notice) {
+      announce(notice);
+    }
+  }, [announce]);
+
+  const handleBboxChangeComplete = useCallback(() => {
+    announce('Area selection updated.');
+    setTimeout(() => {
+      setClampNotice(null);
+    }, 3000);
+  }, [announce]);
 
   useEffect(() => {
     return () => {
@@ -900,32 +1120,25 @@ export default function AoiMapPicker({
           className="relative flex flex-col min-h-[380px] h-[420px]"
           style={{ touchAction: isDrawingMode ? 'none' : 'pan-y' }}
         >
-          {/* Top Overlay Bar */}
-          <div className="absolute top-2 left-2 right-2 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-            <div className="bg-surface/90 backdrop-blur-sm border border-hairline rounded-[2px] px-2 py-1 text-xs text-text-secondary font-sans pointer-events-auto shadow-sm">
-              {isDrawingMode
-                ? 'Drawing active: drag on map to define area. Press Escape to cancel.'
-                : 'Click map to reposition center, or select Draw rectangle to drag a box.'}
-            </div>
-            <div className="flex items-center gap-2 pointer-events-auto">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDrawingMode((prev) => {
-                    const next = !prev;
-                    if (!next) setIsDragging(false);
-                    return next;
-                  });
-                }}
-                className={`px-2.5 py-1 text-xs font-medium rounded-[2px] border transition-colors cursor-pointer shadow-sm ${
-                  isDrawingMode
-                    ? 'bg-rust text-text-on-accent border-rust'
-                    : 'bg-surface/90 backdrop-blur-sm border-hairline text-ink hover:border-accent hover:text-accent'
-                }`}
-              >
-                {isDrawingMode ? 'Cancel drawing (Esc)' : 'Draw rectangle'}
-              </button>
-            </div>
+          {/* Top-right draw rectangle toggle (top-left zoom controls remain completely unobstructed) */}
+          <div className="absolute top-2 right-2 z-[400]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsDrawingMode((prev) => {
+                  const next = !prev;
+                  if (!next) setIsDragging(false);
+                  return next;
+                });
+              }}
+              className={`px-2.5 py-1 text-xs font-medium rounded-[2px] border transition-colors cursor-pointer ${
+                isDrawingMode
+                  ? 'bg-rust text-text-on-accent border-rust'
+                  : 'bg-surface border-hairline text-ink hover:border-accent hover:text-accent'
+              }`}
+            >
+              {isDrawingMode ? 'Cancel drawing (Esc)' : 'Draw rectangle'}
+            </button>
           </div>
 
           {/* Wheel hint toast */}
@@ -970,7 +1183,17 @@ export default function AoiMapPicker({
                 fillColor: validation.valid ? 'var(--color-teal)' : 'var(--color-rust)',
                 fillOpacity: 0.15,
                 dashArray: isDragging ? '6, 6' : undefined,
+                className: 'aoi-draggable-box',
               }}
+            />
+            <AoiBoxController
+              bbox={bbox}
+              onBboxChange={setBbox}
+              onBboxChangeComplete={handleBboxChangeComplete}
+              squareSelection={squareSelection}
+              isDrawingMode={isDrawingMode}
+              isValid={validation.valid}
+              onClampNotice={handleClampNotice}
             />
             <MapController bbox={bbox} recenterTrigger={recenterCount} />
             <MapClickHandler
@@ -990,12 +1213,23 @@ export default function AoiMapPicker({
           </MapContainer>
         </div>
 
-        {/* Map Toolbar */}
-        <div className="p-2.5 border-t border-hairline bg-surface flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="text-text-secondary">
-            Center: <span className="font-data font-medium text-ink">{midLat.toFixed(4)}°N, {midLon.toFixed(4)}°E</span>
-          </span>
-          <div className="flex items-center gap-3">
+        {/* Map Toolbar & Live Readout */}
+        <div className="p-3 border-t border-hairline bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="space-y-1">
+            <p className="text-text-secondary text-xs font-sans">
+              Drag a handle to resize the area, or drag inside the box to move it.
+            </p>
+            {clampNotice && (
+              <p className="text-rust text-xs font-sans font-medium" role="status">
+                {clampNotice}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Live readout in monospace font */}
+            <span className="font-data text-xs text-ink bg-surface-2 px-2 py-1 rounded-[2px] border border-hairline">
+              {dimensions.widthKm} km × {dimensions.heightKm} km ({dimensions.areaKm2} km²)
+            </span>
             <label className="flex items-center gap-1.5 cursor-pointer text-xs font-sans text-text-secondary select-none">
               <input
                 type="checkbox"
@@ -1008,9 +1242,9 @@ export default function AoiMapPicker({
             <button
               type="button"
               onClick={() => setRecenterCount((c) => c + 1)}
-              className="text-accent hover:underline text-xs cursor-pointer"
+              className="text-accent hover:underline text-xs cursor-pointer font-sans"
             >
-              Fit map to selection
+              Fit map
             </button>
           </div>
         </div>

@@ -685,6 +685,15 @@ select option {
   padding: 4px 4px 0 0 !important;
 }
 
+.aoi-draggable-box {
+  cursor: move !important;
+}
+
+.aoi-handle-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* ========================================================================
    TerraPulse Logo — Wordmark Tone Switching (CSS-only)
    ======================================================================== */

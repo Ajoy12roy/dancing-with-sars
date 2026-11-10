@@ -314,6 +314,169 @@ export function clampBboxToLimits(bbox: BoundingBox): BoundingBox {
   });
 }
 
+export type HandleType = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e' | 'move';
+
+export interface ResizeBoundsResult {
+  bbox: BoundingBox;
+  clamped: boolean;
+  clampReason?: string;
+}
+
+/**
+ * Pure resize and move logic for AOI bounding boxes.
+ * Clamps dimensions to [MIN_SIDE_KM..MAX_SIDE_KM] (2 to 30 km) and area to MAX_AREA_KM2 (900 km2).
+ * When squareMode is active on corner drags, preserves 1:1 aspect ratio.
+ */
+export function resizeBounds(
+  currentBbox: BoundingBox,
+  handleType: HandleType,
+  deltaLat: number,
+  deltaLon: number,
+  squareMode: boolean = false
+): ResizeBoundsResult {
+  const norm = normalizeBbox(currentBbox);
+
+  if (handleType === 'move') {
+    const initialDims = computeBboxDimensions(norm);
+    const newMidLat = (norm.south + norm.north) / 2 + deltaLat;
+    const newMidLon = (norm.west + norm.east) / 2 + deltaLon;
+    const rad = Math.PI / 180;
+    const kmPerDegLat = WGS84_AUTHALIC_RADIUS_KM * rad;
+    const kmPerDegLon = WGS84_AUTHALIC_RADIUS_KM * rad * (Math.cos(newMidLat * rad) || 1);
+
+    const halfHeightDeg = (initialDims.heightKm / kmPerDegLat) / 2;
+    const halfWidthDeg = (initialDims.widthKm / kmPerDegLon) / 2;
+
+    const moved = normalizeBbox({
+      west: Number((newMidLon - halfWidthDeg).toFixed(5)),
+      east: Number((newMidLon + halfWidthDeg).toFixed(5)),
+      south: Number((newMidLat - halfHeightDeg).toFixed(5)),
+      north: Number((newMidLat + halfHeightDeg).toFixed(5)),
+    });
+    return { bbox: moved, clamped: false };
+  }
+
+  const midLat = (norm.south + norm.north) / 2;
+  const rad = Math.PI / 180;
+  const kmPerDegLat = WGS84_AUTHALIC_RADIUS_KM * rad;
+  const kmPerDegLon = WGS84_AUTHALIC_RADIUS_KM * rad * (Math.cos(midLat * rad) || 1);
+
+  const initialWidthKm = (norm.east - norm.west) * kmPerDegLon;
+  const initialHeightKm = (norm.north - norm.south) * kmPerDegLat;
+
+  let rawWidthKm = initialWidthKm;
+  let rawHeightKm = initialHeightKm;
+
+  if (handleType === 'e' || handleType === 'ne' || handleType === 'se') {
+    rawWidthKm = initialWidthKm + deltaLon * kmPerDegLon;
+  } else if (handleType === 'w' || handleType === 'nw' || handleType === 'sw') {
+    rawWidthKm = initialWidthKm - deltaLon * kmPerDegLon;
+  }
+
+  if (handleType === 'n' || handleType === 'nw' || handleType === 'ne') {
+    rawHeightKm = initialHeightKm + deltaLat * kmPerDegLat;
+  } else if (handleType === 's' || handleType === 'sw' || handleType === 'se') {
+    rawHeightKm = initialHeightKm - deltaLat * kmPerDegLat;
+  }
+
+  const isCorner = handleType === 'nw' || handleType === 'ne' || handleType === 'sw' || handleType === 'se';
+  if (squareMode && isCorner) {
+    const squareSide = Math.max(rawWidthKm, rawHeightKm);
+    rawWidthKm = squareSide;
+    rawHeightKm = squareSide;
+  }
+
+  let clamped = false;
+  let clampReason: string | undefined;
+
+  let targetWidthKm = rawWidthKm;
+  let targetHeightKm = rawHeightKm;
+
+  if (targetWidthKm < MIN_SIDE_KM) {
+    targetWidthKm = MIN_SIDE_KM;
+    clamped = true;
+    clampReason = `Area side length clamped to minimum ${MIN_SIDE_KM} km.`;
+  } else if (targetWidthKm > MAX_SIDE_KM) {
+    targetWidthKm = MAX_SIDE_KM;
+    clamped = true;
+    clampReason = `Area side length clamped to maximum ${MAX_SIDE_KM} km.`;
+  }
+
+  if (targetHeightKm < MIN_SIDE_KM) {
+    targetHeightKm = MIN_SIDE_KM;
+    clamped = true;
+    clampReason = `Area side length clamped to minimum ${MIN_SIDE_KM} km.`;
+  } else if (targetHeightKm > MAX_SIDE_KM) {
+    targetHeightKm = MAX_SIDE_KM;
+    clamped = true;
+    clampReason = `Area side length clamped to maximum ${MAX_SIDE_KM} km.`;
+  }
+
+  if (targetWidthKm * targetHeightKm > MAX_AREA_KM2) {
+    const scaleFactor = Math.sqrt(MAX_AREA_KM2 / (targetWidthKm * targetHeightKm));
+    targetWidthKm = Number((targetWidthKm * scaleFactor).toFixed(4));
+    targetHeightKm = Number((targetHeightKm * scaleFactor).toFixed(4));
+    clamped = true;
+    clampReason = `Total area clamped to maximum ${MAX_AREA_KM2} km².`;
+  }
+
+  if (squareMode && isCorner) {
+    const minSide = Math.min(targetWidthKm, targetHeightKm);
+    targetWidthKm = minSide;
+    targetHeightKm = minSide;
+  }
+
+  const dLatDeg = targetHeightKm / kmPerDegLat;
+  const dLonDeg = targetWidthKm / kmPerDegLon;
+
+  let west = norm.west;
+  let east = norm.east;
+  let south = norm.south;
+  let north = norm.north;
+
+  switch (handleType) {
+    case 'n':
+      north = south + dLatDeg;
+      break;
+    case 's':
+      south = north - dLatDeg;
+      break;
+    case 'e':
+      east = west + dLonDeg;
+      break;
+    case 'w':
+      west = east - dLonDeg;
+      break;
+    case 'ne':
+      east = west + dLonDeg;
+      north = south + dLatDeg;
+      break;
+    case 'nw':
+      west = east - dLonDeg;
+      north = south + dLatDeg;
+      break;
+    case 'se':
+      east = west + dLonDeg;
+      south = north - dLatDeg;
+      break;
+    case 'sw':
+      west = east - dLonDeg;
+      south = north - dLatDeg;
+      break;
+  }
+
+  return {
+    bbox: normalizeBbox({
+      west: Number(west.toFixed(5)),
+      south: Number(south.toFixed(5)),
+      east: Number(east.toFixed(5)),
+      north: Number(north.toFixed(5)),
+    }),
+    clamped,
+    clampReason,
+  };
+}
+
 /**
  * Export scale rule:
  * scale = the smallest multiple of 10 metres such that max(width, height) / scale <= 1500 pixels.
