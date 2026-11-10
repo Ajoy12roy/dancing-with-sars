@@ -362,7 +362,7 @@ function ExploreContent() {
           {/* ── Row 1: Centered Case Study Title and Description (12 cols) ── */}
           <div className="col-span-12 text-center space-y-2 pb-2">
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-headline font-semibold text-text-primary">
                 {displayTitle}
               </h1>
               {activeTab === 'demo' && (displayData?.sensitivity || currentCaseStudy?.sensitivity) && (
@@ -372,14 +372,6 @@ function ExploreContent() {
             <p className="text-text-secondary text-sm sm:text-base max-w-3xl mx-auto font-sans leading-relaxed">
               {displayDescription}
             </p>
-            <details className="text-xs text-text-secondary max-w-2xl mx-auto group">
-              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
-                Technical details
-              </summary>
-              <div className="pt-1.5 border-t border-hairline/60 text-[11px] text-text-secondary font-sans leading-relaxed text-left">
-                Processes Sentinel-1 C-band Synthetic Aperture Radar rasters using calibrated decibel thresholding, spatial filtering, and multi-threshold sensitivity sweeps. All calculated metrics and classifications are deterministic.
-              </div>
-            </details>
           </div>
 
           {/* ── Row 2: Two-Sided Controls (Left: Quick Demo & Upload, Right: Case Study Selector) ── */}
@@ -909,7 +901,7 @@ export default function ExplorePage() {
     <Suspense
       fallback={
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse space-y-4">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-headline font-semibold text-text-primary">
             Explore SAR Observations
           </h1>
           <div className="h-8 bg-surface-2 border border-hairline w-64 rounded-[2px]" />

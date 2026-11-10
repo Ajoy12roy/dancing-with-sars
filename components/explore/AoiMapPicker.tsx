@@ -23,7 +23,6 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useNetworkMode, useAccessibility } from '@/context';
-import { getCaseStudyById } from '@/lib/case-studies';
 
 import {
   BoundingBox,
@@ -504,7 +503,6 @@ export interface AoiMapPickerProps {
 }
 
 export default function AoiMapPicker({
-  onSelectCaseStudy,
   selectedCaseId,
   onPresetChange,
 }: AoiMapPickerProps = {}) {
@@ -991,9 +989,6 @@ export default function AoiMapPicker({
     }) ||
     (selectedCaseId ? presetForCase(selectedCaseId) : undefined);
 
-  const readyCase = currentPreset ? getCaseStudyById(currentPreset.id) : null;
-  const isReady = Boolean(readyCase && readyCase.status === 'ready');
-
   return (
     <div className="space-y-6 text-ink">
       {/* ── Card 1: Choose an area and dates ── */}
@@ -1004,7 +999,7 @@ export default function AoiMapPicker({
           </h2>
         </div>
 
-        {/* Preset Select, "View precomputed analysis" button, and Place Search in one compact row */}
+        {/* Preset Select and Place Search in one compact row */}
         <div className="space-y-3">
           {noPresetNotice && (
             <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-sm text-text-secondary font-sans" role="status">
@@ -1013,42 +1008,29 @@ export default function AoiMapPicker({
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
-            {/* Preset select and precomputed button */}
-            <div className="lg:col-span-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
-              <div className="flex-1">
-                <label htmlFor="preset-aoi-select" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
-                  Preset area
-                </label>
-                <select
-                  id="preset-aoi-select"
-                  value={currentPreset?.id || ''}
-                  onChange={(e) => {
-                    const found = PRESET_AOIS.find((p) => p.id === e.target.value);
-                    if (found) handleSelectPreset(found);
-                  }}
-                  className="w-full bg-surface-2 border border-hairline rounded-[2px] px-3 py-2 text-base text-ink min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
-                >
-                  <option value="" disabled>
-                    {currentPreset ? 'Select a preset...' : 'Custom area'}
+            {/* Preset select */}
+            <div className="lg:col-span-6">
+              <label htmlFor="preset-aoi-select" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
+                Preset area
+              </label>
+              <select
+                id="preset-aoi-select"
+                value={currentPreset?.id || ''}
+                onChange={(e) => {
+                  const found = PRESET_AOIS.find((p) => p.id === e.target.value);
+                  if (found) handleSelectPreset(found);
+                }}
+                className="w-full bg-surface-2 border border-hairline rounded-[2px] px-3 py-2 text-base text-ink min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
+              >
+                <option value="" disabled>
+                  {currentPreset ? 'Select a preset...' : 'Custom area'}
+                </option>
+                {PRESET_AOIS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
                   </option>
-                  {PRESET_AOIS.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {isReady && onSelectCaseStudy && readyCase && (
-                <button
-                  type="button"
-                  onClick={() => onSelectCaseStudy(readyCase.id)}
-                  className="min-h-[44px] px-3.5 py-2 text-sm font-semibold border border-teal text-teal hover:bg-teal hover:text-text-on-accent rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
-                >
-                  <span>View precomputed analysis</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              )}
+                ))}
+              </select>
             </div>
 
             {/* Search Bar (Nominatim Submit-Only) */}
@@ -1901,9 +1883,14 @@ export default function AoiMapPicker({
             </summary>
             <div className="p-4 border-t border-hairline bg-surface space-y-4 font-sans">
               {currentPreset && (
-                <p className="text-sm text-text-secondary italic leading-relaxed">
-                  Provenance: {currentPreset.provenanceNote}
-                </p>
+                <details className="text-xs text-text-secondary group">
+                  <summary className="font-sans cursor-pointer hover:text-ink select-none py-0.5">
+                    Orbit geometry provenance note
+                  </summary>
+                  <p className="pt-1 text-xs text-text-secondary leading-relaxed font-sans">
+                    {currentPreset.provenanceNote}
+                  </p>
+                </details>
               )}
 
               <div className="text-sm text-text-secondary space-y-1">
