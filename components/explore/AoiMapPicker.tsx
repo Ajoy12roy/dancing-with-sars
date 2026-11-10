@@ -634,6 +634,39 @@ export default function AoiMapPicker({
     return expandSingleDateToWindow(afterTarget, 12);
   });
 
+  // ── ASF Search & Pass Finder State ──
+  const [asfMode, setAsfMode] = useState<'s1' | 'nisar'>('s1');
+  const [asfLoading, setAsfLoading] = useState<boolean>(false);
+  const [asfGroups, setAsfGroups] = useState<AsfPassGroup[]>([]);
+  const [asfNisarGranules, setAsfNisarGranules] = useState<AsfGranule[]>([]);
+  const [asfError, setAsfError] = useState<string | null>(null);
+  const [asfOfflineNotice, setAsfOfflineNotice] = useState<string | null>(null);
+  const [asfTotalCount, setAsfTotalCount] = useState<number | null>(null);
+  const [asfSearched, setAsfSearched] = useState<boolean>(false);
+  const [asfZeroResultKind, setAsfZeroResultKind] = useState<'s1' | 'nisar' | null>(null);
+  const [asfNisar2026Context, setAsfNisar2026Context] = useState<{
+    found: number;
+    firstDate?: string;
+    lastDate?: string;
+  } | null>(null);
+
+  // Selected Track / Pass Filter
+  const [selectedTrackPass, setSelectedTrackPass] = useState<{
+    pass: 'ASCENDING' | 'DESCENDING';
+    orbit: number;
+  } | null>(() => {
+    if (selectedCaseId) {
+      const preset = presetForCase(selectedCaseId);
+      if (preset?.recommendedPass && preset?.recommendedOrbit) {
+        return {
+          pass: preset.recommendedPass,
+          orbit: preset.recommendedOrbit,
+        };
+      }
+    }
+    return null;
+  });
+
   const handleBboxChangeComplete = useCallback(() => {
     if (mapMode === 'box10km') {
       const midLat = (bbox.south + bbox.north) / 2;
@@ -641,16 +674,19 @@ export default function AoiMapPicker({
       const snapped = create10kmBoxFromCenter(midLat, midLon);
       setBbox(snapped);
     }
-    if (!hasUserManuallyEditedDates) {
-      const matchesPreset = PRESET_AOIS.some((p) => {
-        return (
-          Math.abs(p.bbox.west - bbox.west) < 0.001 &&
-          Math.abs(p.bbox.east - bbox.east) < 0.001 &&
-          Math.abs(p.bbox.south - bbox.south) < 0.001 &&
-          Math.abs(p.bbox.north - bbox.north) < 0.001
-        );
-      });
-      if (!matchesPreset) {
+    const matchesPreset = PRESET_AOIS.some((p) => {
+      return (
+        Math.abs(p.bbox.west - bbox.west) < 0.001 &&
+        Math.abs(p.bbox.east - bbox.east) < 0.001 &&
+        Math.abs(p.bbox.south - bbox.south) < 0.001 &&
+        Math.abs(p.bbox.north - bbox.north) < 0.001
+      );
+    });
+    if (!matchesPreset) {
+      setSelectedTrackPass(null);
+      setAsfGroups([]);
+      setAsfSearched(false);
+      if (!hasUserManuallyEditedDates) {
         const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
         setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
         setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
@@ -660,7 +696,7 @@ export default function AoiMapPicker({
     setTimeout(() => {
       setClampNotice(null);
     }, 3000);
-  }, [announce, bbox, hasUserManuallyEditedDates, mapMode]);
+  }, [announce, bbox, hasUserManuallyEditedDates, mapMode, setSelectedTrackPass, setAsfGroups, setAsfSearched]);
 
   useEffect(() => {
     return () => {
@@ -681,8 +717,11 @@ export default function AoiMapPicker({
   }, []);
 
   const handleDrawStart = useCallback(() => {
+    setSelectedTrackPass(null);
+    setAsfGroups([]);
+    setAsfSearched(false);
     setIsDragging(true);
-  }, []);
+  }, [setSelectedTrackPass, setAsfGroups, setAsfSearched]);
 
   const handleDrawUpdate = useCallback((newBbox: BoundingBox) => {
     setBbox(normalizeBbox(newBbox));
@@ -715,31 +754,6 @@ export default function AoiMapPicker({
     Array<{ name: string; lat: number; lon: number; bbox: BoundingBox }>
   >([]);
   const [searchError, setSearchError] = useState<string | null>(null);
-
-  // ── ASF Search & Pass Finder State ──
-  const [asfMode, setAsfMode] = useState<'s1' | 'nisar'>('s1');
-  const [asfLoading, setAsfLoading] = useState<boolean>(false);
-  const [asfGroups, setAsfGroups] = useState<AsfPassGroup[]>([]);
-  const [asfNisarGranules, setAsfNisarGranules] = useState<AsfGranule[]>([]);
-  const [asfError, setAsfError] = useState<string | null>(null);
-  const [asfOfflineNotice, setAsfOfflineNotice] = useState<string | null>(null);
-  const [asfTotalCount, setAsfTotalCount] = useState<number | null>(null);
-  const [asfSearched, setAsfSearched] = useState<boolean>(false);
-  const [asfZeroResultKind, setAsfZeroResultKind] = useState<'s1' | 'nisar' | null>(null);
-  const [asfNisar2026Context, setAsfNisar2026Context] = useState<{
-    found: number;
-    firstDate?: string;
-    lastDate?: string;
-  } | null>(null);
-
-  // Selected Track / Pass Filter
-  const [selectedTrackPass, setSelectedTrackPass] = useState<{
-    pass: 'ASCENDING' | 'DESCENDING';
-    orbit: number;
-  } | null>({
-    pass: 'DESCENDING',
-    orbit: 77,
-  });
 
   // ── Export Script Preview State ──
   const [scriptCopied, setScriptCopied] = useState<boolean>(false);
@@ -786,6 +800,9 @@ export default function AoiMapPicker({
   const handleMapCenterClick = useCallback(
     (lat: number, lon: number) => {
       if (isDrawingMode) return;
+      setSelectedTrackPass(null);
+      setAsfGroups([]);
+      setAsfSearched(false);
       if (mapMode === 'box10km') {
         const box10km = create10kmBoxFromCenter(lat, lon);
         setBbox(box10km);
@@ -808,7 +825,7 @@ export default function AoiMapPicker({
         announce(`Moved area center to latitude ${lat.toFixed(3)}, longitude ${lon.toFixed(3)}.`);
       }
     },
-    [isDrawingMode, mapMode, bbox, hasUserManuallyEditedDates, announce]
+    [isDrawingMode, mapMode, bbox, hasUserManuallyEditedDates, announce, setSelectedTrackPass, setAsfGroups, setAsfSearched]
   );
 
   // ── Dimension Change Handlers ──
@@ -1037,6 +1054,9 @@ export default function AoiMapPicker({
       setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
       setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
     }
+    setSelectedTrackPass(null);
+    setAsfGroups([]);
+    setAsfSearched(false);
     setBbox(targetBbox);
     setSearchResults([]);
     setSearchQuery('');
@@ -1340,6 +1360,9 @@ export default function AoiMapPicker({
                   setMapMode('box10km');
                   setIsDrawingMode(false);
                   setIsDragging(false);
+                  setSelectedTrackPass(null);
+                  setAsfGroups([]);
+                  setAsfSearched(false);
                   const centerLat = (bbox.south + bbox.north) / 2;
                   const centerLon = (bbox.west + bbox.east) / 2;
                   setBbox(create10kmBoxFromCenter(centerLat, centerLon));
@@ -2238,6 +2261,46 @@ export default function AoiMapPicker({
               The Earth Engine export below uses Sentinel-1 data.
             </p>
           )}
+        </div>
+
+        {/* Prominent Primary Actions (Always visible without expanding accordions) */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCopyScript}
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
+          >
+            {scriptCopied ? (
+              <>
+                <Check className="w-4 h-4 text-text-on-accent" />
+                <span>Copied to clipboard</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Copy script</span>
+              </>
+            )}
+          </button>
+
+          <a
+            href="https://code.earthengine.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <span>Open Earth Engine Code Editor</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+
+          <button
+            type="button"
+            onClick={handleDownloadScript}
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download .js</span>
+          </button>
         </div>
 
         {/* Two Collapsed Details Blocks */}
