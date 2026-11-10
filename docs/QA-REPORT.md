@@ -377,3 +377,63 @@ All user-interface strings in `components/explore/AoiMapPicker.tsx` were audited
 
 Owner-reported: the generated Sylhet script ran in the Earth Engine Code Editor and exported to Google Drive; this was not verified by automated checks.
 
+---
+
+## 13. UI Simplification, Service Probing & Documentation Verification (Steps 0–6)
+
+### 13.1 Step 0: Baseline Verification
+- `npx tsc --noEmit`: 0 errors.
+- `npm run lint`: 0 warnings, 0 errors.
+- `node tools/test-aoi.mjs`: 5/5 tests passed.
+- `node tools/test-gee-script.mjs`: 5/5 tests passed.
+
+### 13.2 Step 1: Case Selector and Map Synchronization
+- **Commit:** `a35106f` (`fix: keep case selector, map and script in sync`)
+- Implemented `presetForCase(caseId: string)` in `lib/aoi.ts` and added mode properties to `PRESET_AOIS`.
+- Added `selectedCaseId` and `onPresetChange` props to `components/explore/AoiMapPicker.tsx` to keep the explore page dropdown and area picker in bidirectional sync without cascading re-renders or unwanted tab switches.
+- Extended `tools/test-aoi.mjs` with Test 6: verifying preset lookup, GEE script parameters, and unmapped case fallback.
+- Verification: `tsc` 0 errors, `lint` 0 warnings, `tools/test-aoi.mjs` 6/6 passed, `tools/test-gee-script.mjs` 5/5 passed.
+
+### 13.3 Step 2: Map Controls & Smooth Selection
+- **Commit:** `6359e36` (`feat: resize handles and uncluttered map`)
+- Added pure function `resizeBounds(currentBbox, handleType, deltaLat, deltaLon, squareMode)` in `lib/aoi.ts`.
+- Extended `tools/test-aoi.mjs` with Test 7: verifying min 2 km clamp, max 30 km / 900 km² clamp, square mode 1:1 ratio, and move area/dimension invariance.
+- Integrated `AoiBoxController` inside Leaflet MapContainer with 8 SVG/div handles (12px visible, 28px hit area) and box dragging with pointer capture and `requestAnimationFrame`.
+- Removed top overlay banner covering zoom controls; zoom buttons on top-left are fully unobstructed. Added live monospace readout below map (`{widthKm} km × {heightKm} km ({areaKm2} km²)`).
+- Verification: `tsc` 0 errors, `lint` 0 warnings, `tools/test-aoi.mjs` 7/7 passed.
+
+### 13.4 Step 3: Simplified Upload Layout
+- **Commit:** `09c01b1` (`feat: simplified upload layout`)
+- Relocated multi-paragraph explanations to `/how-it-works#earth-engine-export` under `<h2>Google Earth Engine Export Guide</h2>` and subsection `Run the analysis service locally`.
+- Refactored `/explore` Upload mode into three clean, sequential cards:
+  - Card 1: `<h2>1. Choose an area and dates</h2>` (preset select + "View precomputed analysis" button + search in one compact row, map 440px desktop/340px mobile, guidance and live readout below map, collapsed manual coordinates, date inputs in two columns, and compact satellite pass finder with `<details>Show all acquisitions</details>`).
+  - Card 2: `<h2>2. Export the images from Google Earth Engine</h2>` (two short sentences, `<details>Show export script</details>`, and `<details>How to run the script</details>`).
+  - Card 3: `<h2>3. Upload and analyse</h2>` (co-registered Before/After drop zones and analysis trigger).
+- Verified single `<h1>` per page mode in DOM.
+- Verification: `tsc` 0 errors, `lint` 0 warnings.
+
+### 13.5 Step 4: Analysis Service Probing Without Console Spam
+- **Commit:** `ec5de4d` (`fix: probe the analysis service at most once`)
+- Created pure function `shouldProbeService(hostname: string, apiUrl: string | undefined): boolean` in `lib/service-probe.ts`.
+- Prohibits automated network requests when served from non-local hosts and `NEXT_PUBLIC_PROCESSING_API_URL` points to a loopback address or is empty.
+- Replaced the exponential backoff retry loop in `hooks/useUploadChangeData.ts` with at most ONE health check upon entering Upload mode, and ONE more only upon explicit user trigger ("Check connection" or "Analyse").
+- Added unit test suite `tools/test-service-probe.mjs` verifying local and remote hostname truth tables.
+- Verification: `tsc` 0 errors, `lint` 0 warnings, `tools/test-service-probe.mjs` passed.
+
+### 13.6 Step 5: Readable Typography Scale & Formal Wording
+- **Commit:** `6108888` (`style: readable type scale and formal wording`)
+- Adjusted typography tokens in `app/globals.css`: base body `font-size: 1rem` (16px), `line-height: 1.6`, and `--text-xs: 0.875rem` (14px) ensuring secondary and caption text never drops below 14px.
+- Preserved all `components/chiku/**` files unedited (they inherit tokens directly).
+- Audited all user-facing text in Explore header and Upload mode: confirmed 0 emoji characters, 0 exclamation marks, and plain formal sentence case throughout.
+- Verification: `tsc` 0 errors, `lint` 0 warnings.
+
+### 13.7 Step 6: Documentation Alignment
+- **Encoding Audit:** Automated scan of all repository text files confirmed zero occurrences of garbled characters (`â€`, `Ã—`, `Â²`, `Ã`). The garbling previously reported appears only when Windows PowerShell reads UTF-8 files without `-Encoding utf8`.
+- **SUBMISSION.md Section 6.4:** Updated picker description to the primary block of Upload mode on `/explore` (Cards 1 and 2 above file drop zones).
+- **Preset Alignment:** Aligned presets in `docs/SUBMISSION.md` with `PRESET_AOIS` in `lib/aoi.ts` (5 presets: Sylhet, Tanguar Haor, Jamuna River, Amazon Rainforest, Padma River / Naria).
+- **Operational Boundary:** Explicitly clarified that precomputed cases, NISAR charts, and the exposure model load from local files and run offline; geocoding, ASF pass search, and AI insight use the internet; uploaded file analysis requires the local companion service. Documented exact startup commands from `python-service/README.md`.
+- **Speech Synthesis:** Described Web Speech API voice selection accurately (queries browser `speechSynthesis.getVoices()`, prioritizes local English voices; offline capability depends on voices installed on the host OS).
+- **Accessibility & Contrast:** Rephrased generic "WCAG 2.1 AA" / "WCAG 2.2 AA" marketing claims in documentation to verified accessibility design system implementations (high-contrast tokens, keyboard focus outlines, live announcer, deterministic speech).
+- **Path Audit:** `python scripts/qa/check_doc_paths.py` confirmed 97/97 referenced repository paths exist on disk.
+
+

@@ -15,7 +15,7 @@ TerraPulse is an open-source, accessible scientific platform for analyzing and i
 
 The platform processes dual-frequency SAR observations: European Space Agency / European Commission Copernicus Sentinel-1 C-band (5.405 GHz) backscatter across 10 precomputed global hazard benchmarks, and NASA-ISRO NISAR L-band (1.25 GHz, ~24 cm wavelength) Level-2 geocoded backscatter (GCOV) provisional data distributed by the Alaska Satellite Facility (ASF) DAAC. Through an interactive interface, users inspect before-and-after radar composites, explore multi-threshold sensitivity distributions, review vector shoreline and flood extents, and examine a demographic exposure model combining Sentinel-1 change masks with WorldPop 2020 gridded population counts.
 
-Recognizing that radar backscatter thresholds are empirical and uncalibrated against ground truth, TerraPulse introduces an honesty-first architecture: every headline measurement is accompanied by a systematic parameter perturbation range and an algorithmic sensitivity classification (stable, moderate, high). Furthermore, an inclusive, deterministic speech guide named "Chiku" vocalizes navigation hints, environmental contexts, and algorithmic caveats using the browser's native Web Speech API—operating completely offline with zero generative models in the critical path.
+Recognizing that radar backscatter thresholds are empirical and uncalibrated against ground truth, TerraPulse introduces an honesty-first architecture: every headline measurement is accompanied by a systematic parameter perturbation range and an algorithmic sensitivity classification (stable, moderate, high). Furthermore, an inclusive, deterministic speech guide named "Chiku" vocalizes navigation hints, environmental contexts, and algorithmic caveats using the browser's built-in speech synthesis (with priority for installed local English voices; offline availability depends on the voices installed on the device) with zero generative models in the critical path.
 
 TerraPulse demonstrates how satellite radar can democratize environmental monitoring without overclaiming certainty: providing clear observations through cloud decks and storm systems while remaining candid about sensor physics, provisional data statuses, and methodology boundaries.
 
@@ -33,7 +33,7 @@ TerraPulse demonstrates how satellite radar can democratize environmental monito
 | **Ancillary Data** | Combined Sentinel-1 flood extents with WorldPop 2020 gridded population data (CC BY 4.0) to estimate demographic exposure across 218.10 km² of Sylhet Basin. | `/explore#exposure` (Sylhet Flood Exposure Card, demographic breakdown table, SVG bar chart) |
 | **Physical Drivers as Hypotheses** | Framed backscatter changes as physically grounded hypotheses (specular reflection, double-bounce, volume scattering loss) rather than definitive ground truth. | `/how-it-works#physical-mechanisms`, `/explore#nisar` ("What this could mean" hypothesis block) |
 | **Open Source** | Fully public GitHub repository under the permissive MIT License; documented reproducible Python processing scripts, test suites, and clean-clone workflows. | Root `LICENSE`, `README.md`, `python-service/`, `scripts/` |
-| **Accessible to Broad Audience** | Engineered high-contrast WCAG 2.1 AA tokens, keyboard focus outlines, live screen reader announcers (`aria-live`), and "Chiku"—an offline deterministic voice guide. | Header voice toggle, `components/chiku/ChikuGuide.tsx`, `/how-it-works#accessibility` |
+| **Accessible to Broad Audience** | Engineered high-contrast color tokens, keyboard focus outlines, live screen reader announcers (`aria-live`), and "Chiku"—a deterministic browser speech guide. | Header voice toggle, `components/chiku/ChikuGuide.tsx`, `/how-it-works#accessibility` |
 
 ---
 
@@ -69,7 +69,7 @@ TerraPulse demonstrates how satellite radar can democratize environmental monito
 
 ## 5. How to Run Locally (Offline Demo)
 
-The entire application runs locally with zero external API dependencies:
+Precomputed cases, NISAR charts, and the exposure model load from local files and work offline; area search, acquisition lookup, and the AI insight use the internet; analysing uploaded files needs the local processing service.
 
 ```bash
 # 1. Clone repository
@@ -87,6 +87,17 @@ npx next start
 ```
 
 Open `http://localhost:3000` in your web browser. All precomputed cases, NISAR charts, and exposure calculations load instantly from local JSON files.
+
+### Run the analysis service locally (for custom GeoTIFF uploads)
+
+```bash
+# 1. Install prerequisites (Python 3.10+):
+cd python-service
+pip install -r requirements.txt
+
+# 2. Start the local analysis server on port 8000:
+uvicorn api:app --port 8000
+```
 
 ---
 
@@ -111,15 +122,15 @@ Open `http://localhost:3000` in your web browser. All precomputed cases, NISAR c
   Expected output: Flooded Area 37.19 km² (17.05%).
 
 ### 6.4 Area Picker & Earth Engine Script Generator
-- **Location:** Interactive drawer on `/explore` above the file drop zones.
+- **Location:** Primary block of Upload mode on `/explore` (Cards 1 and 2 above the file drop zones).
 - **Implementation:** Core math in `lib/aoi.ts`, interactive React component in `components/explore/AoiMapPicker.tsx`, and Next.js backend proxy routes in `app/api/asf-search/route.ts` and `app/api/geocode/route.ts`.
 - **Capabilities:**
   - Dynamic Area of Interest (AOI) selection constrained to 2–30 km side lengths and $\le 900\text{ km}^2$.
-  - Instant offline presets for 5 benchmark regions (Sylhet, Tanguar, Jamuna, Padma-Naria, Western Siberia).
+  - Instant offline presets for 5 benchmark regions: Sylhet, Bangladesh (2022 Monsoon Floods); Tanguar Haor, Bangladesh (Wetland Dynamics); Jamuna River, Bangladesh (Braided Sandbars); Amazon Rainforest, Rondônia, Brazil (Canopy Loss); and Padma River / Naria, Bangladesh (Bank Erosion).
   - Rate-limited geocoding via OpenStreetMap Nominatim with full attribution.
   - Multi-window acquisition query via Alaska Satellite Facility (ASF) DAAC Search API (`/api/asf-search`).
   - Automatic orbit track grouping (`ASCENDING` / `DESCENDING`) isolating valid single-geometry pairs across before and after windows.
-  - Parameterized Google Earth Engine export script generator matching `scripts/gee/export_sylhet.js` with automated spatial scaling keeping raster dimensions $\le 1500\text{ px}$.
+  - Parameterized Google Earth Engine export script generator matching `scripts/gee/verified_sylhet_picker.js` / `scripts/gee/export_sylhet.js` with automated spatial scaling keeping raster dimensions $\le 1500\text{ px}$.
 - **Honest Boundaries:** Export execution requires a personal Google Earth Engine account; downloaded GeoTIFF pairs are subsequently analyzed by TerraPulse's processing pipeline.
 
 ---
