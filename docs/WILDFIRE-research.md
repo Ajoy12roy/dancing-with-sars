@@ -421,7 +421,7 @@ The radiometric sanity stop is governed by several clear design and physical lim
 1. **Window Placement:** The sanity test windows ($256 	imes 256$ pixels, $\sim 5.1	ext{ km} 	imes 5.1	ext{ km}$) were centred on the candidate's centroid. Granules acquired after the fire event (such as 2026-08-28 and subsequent September/October passes) can contain real fire effects themselves, potentially biasing the post-fire distribution against which earlier acquisitions are evaluated.
 2. **Frequency of Flags:** 3 of the 8 tested dates (2026-07-11, 2026-07-23 BEFORE, and 2026-10-03) were flagged by the outlier rule. The rule's underlying premise that outliers are rare did not hold for this site over the seasonal cycle.
 3. **Threshold Sensitivity:** The median absolute deviation (MAD) of the other granules was very small (about 0.1 dB), which makes the $3 	imes 1.4826 	imes 	ext{MAD}$ threshold about 0.45 dB (0.448 dB). The BEFORE granule exceeded this sensitive threshold by only 0.03 dB (0.478 dB against 0.448 dB).
-4. **Origin of the Rule:** The rule was originally designed on a Hakaluki Haor case study in which the outlier was about 40 dB away (a catastrophic near-zero or corrupted dataset). Applying the same mathematical rule to a site with subtle natural seasonal variation resulted in flagging a 0.48 dB shift.
+4. **Sanity Evaluation:** The pre-registered radiometric sanity rule flagged the BEFORE granule of 2026-07-23 by 0.478 dB against a threshold of 0.448 dB (three of eight tested dates were flagged). The pre-registered radiometric sanity rule flagged the pre-fire NISAR acquisition, so no backscatter comparison was computed and no wildfire claim is made. We could not separate an instrument cause from natural seasonal change.
 5. **Physical Cause Not Established:** Therefore, the flag is evidence only that this date differs from the others by a small amount, not that the instrument was mis-calibrated. The underlying physical or technical cause is **"NOT ESTABLISHED"**, and any potential explanation (soil moisture variations, freeze and thaw dynamics, vegetation phonology, or provisional calibration drift) remains **"Hypothesis (not tested)"**.
 
 ---
@@ -479,7 +479,7 @@ When summarizing or referencing this wildfire investigation in user-facing appli
 
 ## 8. One-Sentence Application Summary
 
-> "We built an event-first wildfire pipeline from NASA FIRMS hotspots and NISAR L-band granules. For the highest-ranked candidate (Western Siberia, August 2026) our pre-registered radiometric sanity rule flagged the pre-fire NISAR acquisition, so no backscatter comparison was computed and we make no wildfire claim. We could not separate an instrument cause from natural seasonal change."
+> "We built an event-first wildfire pipeline from NASA FIRMS hotspots and NISAR L-band granules. For the highest-ranked candidate (Western Siberia, August 2026) our pre-registered radiometric sanity rule flagged the pre-fire NISAR acquisition, so no backscatter comparison was computed and no wildfire claim is made. We could not separate an instrument cause from natural seasonal change."
 
 ---
 

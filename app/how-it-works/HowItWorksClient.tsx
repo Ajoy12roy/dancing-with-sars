@@ -636,7 +636,7 @@ export function HowItWorksClient() {
             </h2>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed mb-6">
-            TerraPulse was built following accessibility best practices so that satellite radar observations and scientific analysis remain operable and understandable for all researchers, responders, and citizens:
+            TerraPulse was built following WCAG 2.2 AA guidelines; not certified, so that satellite radar observations and scientific analysis remain operable and understandable for all researchers, responders, and citizens:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-text-secondary">
             <div className="space-y-2">
