@@ -169,12 +169,12 @@ def main():
     # 6. VERIFY DATA SOURCE ATTRIBUTIONS ACROSS 4 LOCATIONS
     # -------------------------------------------------------------
     # 4 locations:
-    # 1. Home page: components/home/DataSourcesSection.tsx
+    # 1. Home page: components/home/AttributionStrip.tsx
     # 2. Data sources page: app/data-sources/page.tsx
     # 3. Footer: components/layout/Footer.tsx
     # 4. README: README.md
 
-    home_src = (repo_root / "components/home/DataSourcesSection.tsx").read_text(encoding="utf-8")
+    home_src = (repo_root / "components/home/AttributionStrip.tsx").read_text(encoding="utf-8")
     ds_src = (repo_root / "app/data-sources/page.tsx").read_text(encoding="utf-8")
     footer_src = (repo_root / "components/layout/Footer.tsx").read_text(encoding="utf-8")
     readme_src = (repo_root / "README.md").read_text(encoding="utf-8")
@@ -197,7 +197,7 @@ def main():
         if not (d and f and r):
             mismatches.append(("Attribution", f"Core source '{label}' missing from one of DataSources/Footer/README"))
         if not h:
-            mismatches.append(("components/home/DataSourcesSection.tsx", f"Source '{label}' not mentioned on home DataSourcesSection"))
+            mismatches.append(("components/home/AttributionStrip.tsx", f"Source '{label}' not mentioned on home AttributionStrip"))
 
     # -------------------------------------------------------------
     # 7. VERIFY NASA DATASET LABELLING (USED, REFERENCED, FUTURE WORK)

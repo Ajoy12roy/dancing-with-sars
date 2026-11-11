@@ -4,4 +4,7 @@ export { PipelineSection } from './PipelineSection';
 export { OfflineArchitectureSection } from './OfflineArchitectureSection';
 export { DataSourcesSection } from './DataSourcesSection';
 export { AboutSection } from './AboutSection';
-
+export { ChallengeSection } from './ChallengeSection';
+export { TechnologySection } from './TechnologySection';
+export { MetricsSection } from './MetricsSection';
+export { AttributionStrip } from './AttributionStrip';

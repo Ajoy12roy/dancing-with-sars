@@ -10,12 +10,10 @@ import Link from 'next/link';
 import { Satellite } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  WhyRadarSection,
-  HazardsSection,
-  PipelineSection,
-  OfflineArchitectureSection,
-  DataSourcesSection,
-  AboutSection,
+  ChallengeSection,
+  TechnologySection,
+  MetricsSection,
+  AttributionStrip,
 } from '@/components/home';
 import ExploreButton from '@/components/ui/ExploreButton';
 
@@ -194,23 +192,10 @@ export default function HomePage() {
 
       {/* Main content sections */}
       <div className="mx-auto max-w-5xl px-6 pb-16">
-        {/* 1. Why radar? */}
-        <WhyRadarSection />
-
-        {/* 2. Four hazards, one workflow */}
-        <HazardsSection />
-
-        {/* 3. From radar scene to answer */}
-        <PipelineSection />
-
-        {/* 4. Built to work offline */}
-        <OfflineArchitectureSection />
-
-        {/* 5. Data sources */}
-        <DataSourcesSection />
-
-        {/* 8. About section (preserved id="about") */}
-        <AboutSection />
+        <ChallengeSection />
+        <TechnologySection />
+        <MetricsSection />
+        <AttributionStrip />
       </div>
     </div>
   );

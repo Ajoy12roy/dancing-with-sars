@@ -65,6 +65,11 @@ Hero exception (homepage first section only):
 2. Colors: light mode accent = the existing teal accent token, text on fill = the existing paper/page background token. Dark mode accent = #19E66F, text on fill = #090B11. No glow, no gradient.
 3. All its animations are disabled under prefers-reduced-motion (the color change still happens, the movement does not).
 
+## Home page exception
+1. The home page cards (below the hero) may use an 8px border-radius and a soft, low-alpha colored hover glow box-shadow transition.
+2. All other pages retain the existing rules (0–2px border-radius, hairline borders, no shadows or glows).
+3. Under prefers-reduced-motion, card hover transitions and decorative glow effects are disabled.
+
 ## Footer v2
 1. Light mode footer: background = the existing light surface token that differs from the page background (if none exists use the paper color), 1px top border in the existing hairline color. Headings = ink; links and secondary text = the existing secondary text color; link hover = the existing teal accent. No new colors.
 2. Dark mode footer: background #0C0E15, 1px top border #1A1F29, column headings #F9FAFB (Public Sans 600, 16px), links and secondary text #A3ABB5 (14-15px, solid), link hover #19E66F, bottom bar rule #1A1F29. No opacity modifiers on text.
