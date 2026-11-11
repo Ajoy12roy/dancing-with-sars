@@ -162,6 +162,48 @@ export const PRESET_AOIS: PresetAoi[] = [
   },
 ];
 
+export interface AreaSelectionState {
+  bbox: BoundingBox;
+  placeName?: string | null;
+  presetId?: string | null;
+  presetName?: string | null;
+  pass?: 'ASCENDING' | 'DESCENDING' | null;
+  orbit?: number | null;
+}
+
+export interface AreaSelectionResult {
+  presetId: null;
+  presetName: null;
+  pass: null;
+  orbit: null;
+  areaLabel: string;
+}
+
+/**
+ * Pure function that resets preset and orbital constraints when a user moves,
+ * clicks, or draws a custom area, computing a descriptive custom area label.
+ */
+export function selectionAfterUserAreaChange(
+  state: AreaSelectionState
+): AreaSelectionResult {
+  let areaLabel: string;
+  if (state.placeName && state.placeName.trim().length > 0) {
+    areaLabel = state.placeName.trim();
+  } else {
+    const centerLat = Number(((state.bbox.south + state.bbox.north) / 2).toFixed(3));
+    const centerLon = Number(((state.bbox.west + state.bbox.east) / 2).toFixed(3));
+    areaLabel = `Custom area (${centerLat}, ${centerLon})`;
+  }
+
+  return {
+    presetId: null,
+    presetName: null,
+    pass: null,
+    orbit: null,
+    areaLabel,
+  };
+}
+
 /**
  * Returns the matching PresetAoi for a given case study ID, or undefined if no preset exists.
  */

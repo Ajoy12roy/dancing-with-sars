@@ -1,12 +1,6 @@
 // scripts/qa/audit-presets.mjs
 // Audit every preset in lib/aoi.ts against the real ASF Search API.
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '../..');
 
 const ASF_BASE_URL = 'https://api.daac.asf.alaska.edu/services/search/param';
 

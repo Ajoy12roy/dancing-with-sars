@@ -35,12 +35,12 @@ import {
   validateDateWindows,
   suggestWindowsForEvent,
   addDaysISO,
-  expandSingleDateToWindow,
   windowAroundDate,
   presetTargetDates,
   validateTargetDates,
   getDefaultBeforeAfterTargets,
   create10kmBoxFromCenter,
+  selectionAfterUserAreaChange,
   generateGeeScript,
   resizeBounds,
   HandleType,
@@ -596,6 +596,7 @@ export default function AoiMapPicker({
 
   // Notice when selected case has no preset
   const [noPresetNotice, setNoPresetNotice] = useState<string | null>(null);
+  const [customAreaLabel, setCustomAreaLabel] = useState<string | null>(null);
 
   // Recenter counter to force MapController to re-fit bounds
   const [recenterCount, setRecenterCount] = useState<number>(1);
@@ -688,6 +689,51 @@ export default function AoiMapPicker({
     return null;
   });
 
+  // ── Current Preset Detection ──
+  const currentPreset = useMemo(() => {
+    return PRESET_AOIS.find((p) => {
+      return (
+        Math.abs(p.bbox.west - bbox.west) < 0.001 &&
+        Math.abs(p.bbox.east - bbox.east) < 0.001 &&
+        Math.abs(p.bbox.south - bbox.south) < 0.001 &&
+        Math.abs(p.bbox.north - bbox.north) < 0.001
+      );
+    });
+  }, [bbox]);
+
+  const activeAreaLabel = useMemo(() => {
+    if (currentPreset) return currentPreset.name.split(' (')[0];
+    if (customAreaLabel) return customAreaLabel;
+    const cLat = Number(((bbox.south + bbox.north) / 2).toFixed(3));
+    const cLon = Number(((bbox.west + bbox.east) / 2).toFixed(3));
+    return `Custom area (${cLat}, ${cLon})`;
+  }, [currentPreset, customAreaLabel, bbox]);
+
+  const applyUserAreaChange = useCallback(
+    (newBbox: BoundingBox, placeName?: string | null) => {
+      const res = selectionAfterUserAreaChange({
+        bbox: newBbox,
+        placeName,
+        presetId: currentPreset?.id,
+        presetName: currentPreset?.name,
+        pass: selectedTrackPass?.pass,
+        orbit: selectedTrackPass?.orbit,
+      });
+      setSelectedTrackPass(null);
+      setCustomAreaLabel(res.areaLabel);
+      setAsfGroups([]);
+      setAsfSearched(false);
+      if (!hasUserManuallyEditedDates) {
+        const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
+        setSingleDateBefore(beforeTarget);
+        setSingleDateAfter(afterTarget);
+        setDateWindowA(windowAroundDate(beforeTarget, 12));
+        setDateWindowB(windowAroundDate(afterTarget, 12));
+      }
+    },
+    [currentPreset, selectedTrackPass, hasUserManuallyEditedDates]
+  );
+
   const handleBboxChangeComplete = useCallback(() => {
     if (mapMode === 'box10km') {
       const midLat = (bbox.south + bbox.north) / 2;
@@ -704,20 +750,13 @@ export default function AoiMapPicker({
       );
     });
     if (!matchesPreset) {
-      setSelectedTrackPass(null);
-      setAsfGroups([]);
-      setAsfSearched(false);
-      if (!hasUserManuallyEditedDates) {
-        const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
-        setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
-        setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
-      }
+      applyUserAreaChange(bbox);
     }
     announce('Area selection updated.');
     setTimeout(() => {
       setClampNotice(null);
     }, 3000);
-  }, [announce, bbox, hasUserManuallyEditedDates, mapMode, setSelectedTrackPass, setAsfGroups, setAsfSearched]);
+  }, [announce, bbox, mapMode, applyUserAreaChange]);
 
   useEffect(() => {
     return () => {
@@ -738,11 +777,9 @@ export default function AoiMapPicker({
   }, []);
 
   const handleDrawStart = useCallback(() => {
-    setSelectedTrackPass(null);
-    setAsfGroups([]);
-    setAsfSearched(false);
+    applyUserAreaChange(bbox);
     setIsDragging(true);
-  }, [setSelectedTrackPass, setAsfGroups, setAsfSearched]);
+  }, [applyUserAreaChange, bbox]);
 
   const handleDrawUpdate = useCallback((newBbox: BoundingBox) => {
     setBbox(normalizeBbox(newBbox));
@@ -751,13 +788,9 @@ export default function AoiMapPicker({
   const handleDrawEnd = useCallback(() => {
     setIsDragging(false);
     setIsDrawingMode(false);
-    if (!hasUserManuallyEditedDates) {
-      const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
-      setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
-      setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
-    }
+    applyUserAreaChange(bbox);
     announce('Custom area selection updated.');
-  }, [announce, hasUserManuallyEditedDates]);
+  }, [announce, applyUserAreaChange, bbox]);
 
   const handleCancelDraw = useCallback(() => {
     setIsDragging(false);
@@ -796,18 +829,6 @@ export default function AoiMapPicker({
     [useExplicitDateRanges, dateValidation, targetDateValidation]
   );
 
-  // ── Current Preset Detection ──
-  const currentPreset = useMemo(() => {
-    return PRESET_AOIS.find((p) => {
-      return (
-        Math.abs(p.bbox.west - bbox.west) < 0.001 &&
-        Math.abs(p.bbox.east - bbox.east) < 0.001 &&
-        Math.abs(p.bbox.south - bbox.south) < 0.001 &&
-        Math.abs(p.bbox.north - bbox.north) < 0.001
-      );
-    });
-  }, [bbox]);
-
   // ── Generated GEE Script ──
   const geeScript = useMemo(() => {
     return generateGeeScript({
@@ -819,7 +840,7 @@ export default function AoiMapPicker({
       pass: selectedTrackPass?.pass || null,
       relativeOrbit: selectedTrackPass?.orbit ?? null,
       scale: scaleInfo.scale,
-      prefix: currentPreset ? (currentPreset.id === 'sylhet' ? 'terrapulse_aoi' : currentPreset.id) : 'custom_aoi',
+      prefix: currentPreset ? (currentPreset.id === 'sylhet' ? 'terrapulse_aoi' : currentPreset.id) : undefined,
       title: currentPreset ? currentPreset.name : undefined,
       aoiName: currentPreset ? currentPreset.description : undefined,
     });
@@ -829,17 +850,10 @@ export default function AoiMapPicker({
   const handleMapCenterClick = useCallback(
     (lat: number, lon: number) => {
       if (isDrawingMode) return;
-      setSelectedTrackPass(null);
-      setAsfGroups([]);
-      setAsfSearched(false);
       if (mapMode === 'box10km') {
         const box10km = create10kmBoxFromCenter(lat, lon);
         setBbox(box10km);
-        if (!hasUserManuallyEditedDates) {
-          const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
-          setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
-          setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
-        }
+        applyUserAreaChange(box10km);
         announce(`Placed 10 by 10 km box centered at latitude ${lat.toFixed(3)}, longitude ${lon.toFixed(3)}.`);
       } else {
         const halfHeight = (bbox.north - bbox.south) / 2;
@@ -851,10 +865,11 @@ export default function AoiMapPicker({
           north: Number((lat + halfHeight).toFixed(5)),
         });
         setBbox(updated);
+        applyUserAreaChange(updated);
         announce(`Moved area center to latitude ${lat.toFixed(3)}, longitude ${lon.toFixed(3)}.`);
       }
     },
-    [isDrawingMode, mapMode, bbox, hasUserManuallyEditedDates, announce, setSelectedTrackPass, setAsfGroups, setAsfSearched]
+    [isDrawingMode, mapMode, bbox, announce, applyUserAreaChange]
   );
 
   // ── Dimension Change Handlers ──
@@ -919,10 +934,9 @@ export default function AoiMapPicker({
     coord: 'west' | 'south' | 'east' | 'north',
     delta: number
   ) => {
-    setBbox((prev) => {
-      const next = { ...prev, [coord]: Number((prev[coord] + delta).toFixed(5)) };
-      return normalizeBbox(next);
-    });
+    const next = normalizeBbox({ ...bbox, [coord]: Number((bbox[coord] + delta).toFixed(5)) });
+    setBbox(next);
+    applyUserAreaChange(next);
   };
 
   const handleShiftBox = (direction: 'N' | 'S' | 'E' | 'W') => {
@@ -931,21 +945,21 @@ export default function AoiMapPicker({
     const stepLat = latSpan * 0.1;
     const stepLon = lonSpan * 0.1;
 
-    setBbox((prev) => {
-      let dLat = 0;
-      let dLon = 0;
-      if (direction === 'N') dLat = stepLat;
-      if (direction === 'S') dLat = -stepLat;
-      if (direction === 'E') dLon = stepLon;
-      if (direction === 'W') dLon = -stepLon;
+    let dLat = 0;
+    let dLon = 0;
+    if (direction === 'N') dLat = stepLat;
+    if (direction === 'S') dLat = -stepLat;
+    if (direction === 'E') dLon = stepLon;
+    if (direction === 'W') dLon = -stepLon;
 
-      return normalizeBbox({
-        west: Number((prev.west + dLon).toFixed(5)),
-        east: Number((prev.east + dLon).toFixed(5)),
-        south: Number((prev.south + dLat).toFixed(5)),
-        north: Number((prev.north + dLat).toFixed(5)),
-      });
+    const next = normalizeBbox({
+      west: Number((bbox.west + dLon).toFixed(5)),
+      east: Number((bbox.east + dLon).toFixed(5)),
+      south: Number((bbox.south + dLat).toFixed(5)),
+      north: Number((bbox.north + dLat).toFixed(5)),
     });
+    setBbox(next);
+    applyUserAreaChange(next);
   };
 
   const handleResizeBox = (factor: number) => {
@@ -960,7 +974,9 @@ export default function AoiMapPicker({
       south: midLat - halfLat,
       north: midLat + halfLat,
     });
-    setBbox(clampBboxToLimits(unconstrained));
+    const next = clampBboxToLimits(unconstrained);
+    setBbox(next);
+    applyUserAreaChange(next);
   };
 
   // ── Synchronize with selectedCaseId prop from page (adjust state during render) ──
@@ -1078,15 +1094,8 @@ export default function AoiMapPicker({
       });
     }
 
-    if (!hasUserManuallyEditedDates) {
-      const { beforeTarget, afterTarget } = getDefaultBeforeAfterTargets();
-      setDateWindowA(expandSingleDateToWindow(beforeTarget, 12));
-      setDateWindowB(expandSingleDateToWindow(afterTarget, 12));
-    }
-    setSelectedTrackPass(null);
-    setAsfGroups([]);
-    setAsfSearched(false);
     setBbox(targetBbox);
+    applyUserAreaChange(targetBbox, result.name);
     setSearchResults([]);
     setSearchQuery('');
     setRecenterCount((c) => c + 1);
@@ -1197,18 +1206,22 @@ export default function AoiMapPicker({
       announce(effectiveDateValidation.reason || validation.reason || 'Invalid inputs for script generation.');
       return;
     }
-    const slug = currentPreset ? currentPreset.id.replace(/-/g, '_') : 'custom';
+    const cleanSlug = (activeAreaLabel || 'custom')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    const filename = `terrapulse_${cleanSlug}_${bbox.west}_${bbox.south}.js`;
     const blob = new Blob([geeScript], { type: 'text/javascript;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `terrapulse_gee_${slug}.js`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     announce('Earth Engine export script downloaded.');
-  }, [currentPreset, geeScript, announce, validation.valid, validation.reason, effectiveDateValidation.valid, effectiveDateValidation.reason]);
+  }, [activeAreaLabel, bbox.west, bbox.south, geeScript, announce, validation.valid, validation.reason, effectiveDateValidation.valid, effectiveDateValidation.reason]);
 
   // ── Derived Single Dates & Gap Calculations ──
   const targetGapDays = useMemo(() => {
@@ -2307,12 +2320,40 @@ export default function AoiMapPicker({
           )}
         </div>
 
-        {/* Prominent Primary Actions (Always visible without expanding accordions) */}
+        {/* Above script: single line metadata */}
+        <div className="text-sm font-sans text-text-secondary truncate">
+          Area: {activeAreaLabel} | Box: {bbox.west}, {bbox.south}, {bbox.east}, {bbox.north} | Before: {dateWindowA.start} to {dateWindowA.end} | After: {dateWindowB.start} to {dateWindowB.end}
+        </div>
+
+        {/* Script: textarea or validation error */}
+        {!effectiveDateValidation.valid ? (
+          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{effectiveDateValidation.reason}</span>
+          </div>
+        ) : !validation.valid ? (
+          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{validation.reason}</span>
+          </div>
+        ) : (
+          <div className="relative">
+            <textarea
+              readOnly
+              value={geeScript}
+              rows={14}
+              aria-label="Generated Google Earth Engine script"
+              className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
+            />
+          </div>
+        )}
+
+        {/* Below script: ONLY three buttons */}
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={handleCopyScript}
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2 shadow-xs"
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
           >
             {scriptCopied ? (
               <>
@@ -2327,6 +2368,15 @@ export default function AoiMapPicker({
             )}
           </button>
 
+          <button
+            type="button"
+            onClick={handleDownloadScript}
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download script</span>
+          </button>
+
           <a
             href="https://code.earthengine.google.com/"
             target="_blank"
@@ -2336,105 +2386,28 @@ export default function AoiMapPicker({
             <span>Open Earth Engine Code Editor</span>
             <ExternalLink className="w-4 h-4" />
           </a>
-
-          <button
-            type="button"
-            onClick={handleDownloadScript}
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download .js</span>
-          </button>
         </div>
 
-        {/* Two Collapsed Details Blocks */}
+        {/* Collapsed Details Blocks */}
         <div className="space-y-4">
-          {/* Details 1: Show export script */}
-          <details open className="border border-hairline rounded-[2px] bg-surface-2 group">
+          {/* Details 1: Notes on this script */}
+          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
             <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
-              <span>Show export script</span>
+              <span>Notes on this script</span>
               <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
             </summary>
-            <div className="p-4 border-t border-hairline bg-surface space-y-4 font-sans">
-              {currentPreset && (
-                <details className="text-xs text-text-secondary group">
-                  <summary className="font-sans cursor-pointer hover:text-ink select-none py-0.5">
-                    Orbit geometry provenance note
-                  </summary>
-                  <p className="pt-1 text-xs text-text-secondary leading-relaxed font-sans">
+            <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans text-sm text-text-secondary">
+              {currentPreset?.provenanceNote && (
+                <div>
+                  <p className="font-medium text-ink">Orbit geometry provenance</p>
+                  <p className="text-xs text-text-secondary leading-relaxed mt-0.5">
                     {currentPreset.provenanceNote}
                   </p>
-                </details>
-              )}
-
-              <div className="text-sm text-text-secondary space-y-1 font-sans">
-                <p className="font-medium text-ink">
-                  Selected area: {currentPreset ? currentPreset.name.split(' (')[0] : 'Custom area'} ({bbox.west}, {bbox.south}, {bbox.east}, {bbox.north})
-                </p>
-                <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
-                <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
-                <p>The script prints the selected orbit group in the Console.</p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleCopyScript}
-                  className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  {scriptCopied ? (
-                    <>
-                      <Check className="w-4 h-4 text-teal" />
-                      <span className="text-teal">Copied to clipboard</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span>Copy script</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDownloadScript}
-                  className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download .js</span>
-                </button>
-
-                <a
-                  href="https://code.earthengine.google.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span>Open Earth Engine Code Editor</span>
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-
-              {!effectiveDateValidation.valid ? (
-                <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{effectiveDateValidation.reason}</span>
-                </div>
-              ) : !validation.valid ? (
-                <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{validation.reason}</span>
-                </div>
-              ) : (
-                <div className="relative">
-                  <textarea
-                    readOnly
-                    value={geeScript}
-                    rows={14}
-                    className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
-                  />
                 </div>
               )}
+              <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
+              <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
+              <p>The script prints the selected orbit group in the Console and filters both windows to the same relative orbit.</p>
             </div>
           </details>
 
