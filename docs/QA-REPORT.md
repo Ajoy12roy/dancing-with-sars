@@ -436,4 +436,9 @@ Owner-reported: the generated Sylhet script ran in the Earth Engine Code Editor 
 - **Accessibility & Contrast:** Rephrased generic "WCAG 2.1 AA" / "WCAG 2.2 AA" marketing claims in documentation to verified accessibility design system implementations (high-contrast tokens, keyboard focus outlines, live announcer, deterministic speech).
 - **Path Audit:** `python scripts/qa/check_doc_paths.py` confirmed 97/97 referenced repository paths exist on disk.
 
+## 14. Home Page Redesign
+
+The home page (`/`) below the hero was redesigned on branch `feature/home-redesign` into three clean, focused sections followed by an attribution strip: (1) **The Challenge We're Solving** with two columns ("Current challenges" with warning icons, and "Our platform" with check icons, 3 cards each); (2) **Powered by Open Radar Data** presenting 6 cards with rounded badges in green, blue, and orange; (3) **The Project in Numbers** featuring 4 large metric cards with circular icons displaying figures loaded directly from repository data files via `lib/home-metrics.ts` (10 benchmark cases, 37.19 km² Sylhet flood extent, about 74,000 estimated residents, and 10 NISAR acquisition dates); and (4) **AttributionStrip** displaying verified open data credits for Copernicus Sentinel-1, NASA-ISRO NISAR, Google Earth Engine, ASF DAAC, WorldPop 2020, OpenStreetMap, and non-endorsement disclaimers, accompanied by direct navigation links. All cards implement 8px border-radius, hairline borders, and low-alpha hover glows documented as a scoped home page exception in `DESIGN_SYSTEM.md`, with zero emoji, zero exclamation marks, strictly single `<h1>` hierarchy, and 0 errors across TypeScript, ESLint, Next.js build, and all 14 test suites.
+
+
 
