@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
+import { ServiceStatusPill } from '@/components/explore/ServiceStatusPill';
+import { statusPresentation } from '@/lib/service-status';
 import { shouldProbeService } from '@/lib/service-probe';
 import BeforeAfterViewer from '@/components/visualization/BeforeAfterViewer';
 import StatsPanel from '@/components/visualization/StatsPanel';
@@ -416,41 +418,11 @@ function ExploreContent() {
 
                 {/* Server Status indicator (when in Upload mode) */}
                 {activeTab === 'upload' && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-sans">
-                    {!isConnectedDeployment ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
-                        <span className="text-text-secondary">Service not enabled</span>
-                      </>
-                    ) : serverStatus === 'ready' ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
-                        <span className="text-teal font-medium">Connected</span>
-                      </>
-                    ) : serverStatus === 'waking' || serverStatus === 'idle' ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-hairline animate-pulse shrink-0" />
-                        <span className="text-text-secondary">Checking</span>
-                      </>
-                    ) : serverStatus === 'offline' ? (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                        <span className="text-text-secondary">Offline</span>
-                        <button
-                          type="button"
-                          onClick={() => pingHealth()}
-                          className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
-                        >
-                          Retry
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
-                        <span className="text-text-secondary">Checking</span>
-                      </>
-                    )}
-                  </div>
+                  <ServiceStatusPill
+                    serverStatus={serverStatus}
+                    serviceConfigured={isConnectedDeployment}
+                    onRetry={pingHealth}
+                  />
                 )}
               </div>
 
@@ -525,20 +497,21 @@ function ExploreContent() {
 
               {/* ── Card 3: Upload and analyse ── */}
               <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold font-headline text-ink">
-                    3. Upload and analyse
-                  </h2>
-                  <p className="text-text-secondary text-base mt-1 font-sans leading-relaxed">
-                    Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
-                  </p>
-                </div>
-
-                {!isConnectedDeployment && (
-                  <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-sm text-text-secondary font-sans" role="status">
-                    Live analysis of your own files is not enabled on this deployment.
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold font-headline text-ink">
+                      3. Upload and analyse
+                    </h2>
+                    <p className="text-text-secondary text-base mt-1 font-sans leading-relaxed">
+                      Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
+                    </p>
                   </div>
-                )}
+                  <ServiceStatusPill
+                    serverStatus={serverStatus}
+                    serviceConfigured={isConnectedDeployment}
+                    onRetry={pingHealth}
+                  />
+                </div>
 
                 {/* Analysis Configuration Bar */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
@@ -616,21 +589,28 @@ function ExploreContent() {
                       <button
                         type="button"
                         onClick={handleTryWithSampleFiles}
-                        disabled={!isConnectedDeployment || uploadLoading || sampleLoading}
+                        disabled={!isConnectedDeployment || serverStatus !== 'ready' || uploadLoading || sampleLoading}
                         className="min-h-[44px] px-4 py-2 text-sm font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={!isConnectedDeployment || !beforeFile || !afterFile || uploadLoading || sampleLoading}
-                      onClick={handleAnalyze}
-                      className="min-h-[44px] bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
-                    >
-                      Analyse
-                    </button>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
+                      {(!isConnectedDeployment || serverStatus !== 'ready') && (
+                        <span className="text-xs text-text-secondary font-sans sm:text-right max-w-xs">
+                          {statusPresentation(serverStatus, isConnectedDeployment).description}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        disabled={!isConnectedDeployment || serverStatus !== 'ready' || !beforeFile || !afterFile || uploadLoading || sampleLoading}
+                        onClick={handleAnalyze}
+                        className="min-h-[44px] bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer shrink-0"
+                      >
+                        Analyse change
+                      </button>
+                    </div>
                   </div>
 
                   <p className="text-sm text-text-secondary font-sans">
