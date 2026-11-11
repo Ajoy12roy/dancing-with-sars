@@ -619,6 +619,22 @@ export function getMidpointDateISO(startISO: string, endISO: string): string {
   return new Date(midTime).toISOString().slice(0, 10);
 }
 
+export const SENTINEL1_START_DATE = '2014-10-03';
+
+/**
+ * Computes a search window around a target date: start = date minus halfWindowDays,
+ * end = date plus halfWindowDays (default 12 days, 24 days total window span).
+ */
+export function windowAroundDate(
+  date: string,
+  halfWindowDays: number = 12
+): { start: string; end: string } {
+  return {
+    start: addDaysISO(date, -halfWindowDays),
+    end: addDaysISO(date, halfWindowDays),
+  };
+}
+
 /**
  * Expands a single target date to a search window with ±halfWindowDays (default 12 days, 24 days total).
  * Guarantees at least 2 Sentinel-1 orbital passes per window, preventing "0 scene(s)" catalogue search misses.
@@ -627,10 +643,63 @@ export function expandSingleDateToWindow(
   targetISO: string,
   halfWindowDays: number = 12
 ): { start: string; end: string } {
+  return windowAroundDate(targetISO, halfWindowDays);
+}
+
+/**
+ * Returns the midpoint target dates for a preset's baseline and comparison windows.
+ */
+export function presetTargetDates(preset: PresetAoi): { beforeDate: string; afterDate: string } {
   return {
-    start: addDaysISO(targetISO, -halfWindowDays),
-    end: addDaysISO(targetISO, halfWindowDays),
+    beforeDate: getMidpointDateISO(preset.dateA.start, preset.dateA.end),
+    afterDate: getMidpointDateISO(preset.dateB.start, preset.dateB.end),
   };
+}
+
+/**
+ * Validates single before and after target dates:
+ * - Dates must be on or after Sentinel-1 catalog start (2014-10-03)
+ * - Dates must not be in the future (relative to today)
+ * - Dates must be at least 25 days apart to ensure non-overlapping ±12-day windows.
+ */
+export function validateTargetDates(
+  beforeDate: string,
+  afterDate: string,
+  today: string = new Date().toISOString().slice(0, 10)
+): DateValidationResult {
+  if (!beforeDate || !afterDate) {
+    return { valid: false, reason: 'Provide both before and after dates.' };
+  }
+
+  if (beforeDate < SENTINEL1_START_DATE || afterDate < SENTINEL1_START_DATE) {
+    return {
+      valid: false,
+      reason: `Sentinel-1 data begins on ${SENTINEL1_START_DATE}. Choose dates on or after ${SENTINEL1_START_DATE}.`,
+    };
+  }
+
+  if (beforeDate > today || afterDate > today) {
+    return {
+      valid: false,
+      reason: 'Choose dates that are not in the future.',
+    };
+  }
+
+  const tA = Date.parse(beforeDate);
+  const tB = Date.parse(afterDate);
+  if (isNaN(tA) || isNaN(tB)) {
+    return { valid: false, reason: 'Invalid date format.' };
+  }
+
+  const diffDays = Math.round((tB - tA) / 86400000);
+  if (diffDays < 25) {
+    return {
+      valid: false,
+      reason: 'Choose two dates at least 25 days apart.',
+    };
+  }
+
+  return { valid: true };
 }
 
 /**

@@ -35,8 +35,10 @@ import {
   validateDateWindows,
   suggestWindowsForEvent,
   addDaysISO,
-  getMidpointDateISO,
   expandSingleDateToWindow,
+  windowAroundDate,
+  presetTargetDates,
+  validateTargetDates,
   getDefaultBeforeAfterTargets,
   create10kmBoxFromCenter,
   generateGeeScript,
@@ -616,6 +618,7 @@ export default function AoiMapPicker({
 
   // ── Manual Date Override & Date Window State ──
   const [hasUserManuallyEditedDates, setHasUserManuallyEditedDates] = useState<boolean>(false);
+  const [useExplicitDateRanges, setUseExplicitDateRanges] = useState<boolean>(false);
 
   const [dateWindowA, setDateWindowA] = useState<{ start: string; end: string }>(() => {
     if (selectedCaseId) {
@@ -623,7 +626,7 @@ export default function AoiMapPicker({
       if (initialPreset) return initialPreset.dateA;
     }
     const { beforeTarget } = getDefaultBeforeAfterTargets();
-    return expandSingleDateToWindow(beforeTarget, 12);
+    return windowAroundDate(beforeTarget, 12);
   });
   const [dateWindowB, setDateWindowB] = useState<{ start: string; end: string }>(() => {
     if (selectedCaseId) {
@@ -631,7 +634,25 @@ export default function AoiMapPicker({
       if (initialPreset) return initialPreset.dateB;
     }
     const { afterTarget } = getDefaultBeforeAfterTargets();
-    return expandSingleDateToWindow(afterTarget, 12);
+    return windowAroundDate(afterTarget, 12);
+  });
+
+  const [singleDateBefore, setSingleDateBefore] = useState<string>(() => {
+    if (selectedCaseId) {
+      const initialPreset = presetForCase(selectedCaseId);
+      if (initialPreset) return presetTargetDates(initialPreset).beforeDate;
+    }
+    const { beforeTarget } = getDefaultBeforeAfterTargets();
+    return beforeTarget;
+  });
+
+  const [singleDateAfter, setSingleDateAfter] = useState<string>(() => {
+    if (selectedCaseId) {
+      const initialPreset = presetForCase(selectedCaseId);
+      if (initialPreset) return presetTargetDates(initialPreset).afterDate;
+    }
+    const { afterTarget } = getDefaultBeforeAfterTargets();
+    return afterTarget;
   });
 
   // ── ASF Search & Pass Finder State ──
@@ -762,9 +783,17 @@ export default function AoiMapPicker({
   const dimensions = useMemo(() => computeBboxDimensions(bbox), [bbox]);
   const validation = useMemo(() => validateBbox(bbox), [bbox]);
   const scaleInfo = useMemo(() => computeExportScale(dimensions), [dimensions]);
+  const targetDateValidation = useMemo(
+    () => validateTargetDates(singleDateBefore, singleDateAfter),
+    [singleDateBefore, singleDateAfter]
+  );
   const dateValidation = useMemo(
     () => validateDateWindows(dateWindowA, dateWindowB),
     [dateWindowA, dateWindowB]
+  );
+  const effectiveDateValidation = useMemo(
+    () => (useExplicitDateRanges ? dateValidation : targetDateValidation),
+    [useExplicitDateRanges, dateValidation, targetDateValidation]
   );
 
   // ── Current Preset Detection ──
@@ -1148,10 +1177,15 @@ export default function AoiMapPicker({
 
   // ── Copy Script to Clipboard ──
   const handleCopyScript = () => {
+    if (!validation.valid || !effectiveDateValidation.valid) {
+      announce(effectiveDateValidation.reason || validation.reason || 'Invalid inputs for script generation.');
+      return;
+    }
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(geeScript).then(() => {
         setScriptCopied(true);
         setTimeout(() => setScriptCopied(false), 2500);
+        announce('Earth Engine script copied to clipboard.');
       });
     }
   };
@@ -1159,6 +1193,10 @@ export default function AoiMapPicker({
   // ── Download Script File ──
   const handleDownloadScript = useCallback(() => {
     if (typeof window === 'undefined') return;
+    if (!validation.valid || !effectiveDateValidation.valid) {
+      announce(effectiveDateValidation.reason || validation.reason || 'Invalid inputs for script generation.');
+      return;
+    }
     const slug = currentPreset ? currentPreset.id.replace(/-/g, '_') : 'custom';
     const blob = new Blob([geeScript], { type: 'text/javascript;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1170,18 +1208,9 @@ export default function AoiMapPicker({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     announce('Earth Engine export script downloaded.');
-  }, [currentPreset, geeScript, announce]);
+  }, [currentPreset, geeScript, announce, validation.valid, validation.reason, effectiveDateValidation.valid, effectiveDateValidation.reason]);
 
   // ── Derived Single Dates & Gap Calculations ──
-  const singleDateBefore = useMemo(
-    () => getMidpointDateISO(dateWindowA.start, dateWindowA.end),
-    [dateWindowA.start, dateWindowA.end]
-  );
-  const singleDateAfter = useMemo(
-    () => getMidpointDateISO(dateWindowB.start, dateWindowB.end),
-    [dateWindowB.start, dateWindowB.end]
-  );
-
   const targetGapDays = useMemo(() => {
     const tA = Date.parse(singleDateBefore);
     const tB = Date.parse(singleDateAfter);
@@ -1194,22 +1223,27 @@ export default function AoiMapPicker({
   }, [targetGapDays]);
 
   const handleBeforeDateChange = useCallback((val: string) => {
-    if (!val) return;
+    setSingleDateBefore(val);
     setHasUserManuallyEditedDates(true);
-    setDateWindowA(expandSingleDateToWindow(val, 12));
+    if (val) {
+      setDateWindowA(windowAroundDate(val, 12));
+    }
   }, []);
 
   const handleAfterDateChange = useCallback((val: string) => {
-    if (!val) return;
+    setSingleDateAfter(val);
     setHasUserManuallyEditedDates(true);
-    setDateWindowB(expandSingleDateToWindow(val, 12));
+    if (val) {
+      setDateWindowB(windowAroundDate(val, 12));
+    }
   }, []);
 
   const handleAutoSet4MonthGap = useCallback(() => {
     const referenceAfter = singleDateAfter || dateWindowB.start || '2024-09-15';
     const newBefore = addDaysISO(referenceAfter, -137);
     setHasUserManuallyEditedDates(true);
-    setDateWindowA(expandSingleDateToWindow(newBefore, 12));
+    setSingleDateBefore(newBefore);
+    setDateWindowA(windowAroundDate(newBefore, 12));
     announce(`Auto-set baseline date to ${newBefore} (4.5 months before ${referenceAfter}).`);
   }, [singleDateAfter, dateWindowB.start, announce]);
 
@@ -1833,12 +1867,20 @@ export default function AoiMapPicker({
             </div>
           )}
 
+          {/* Validation Banner for Dates */}
+          {!effectiveDateValidation.valid && (
+            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-start gap-2 bg-rust/5" role="alert">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{effectiveDateValidation.reason}</span>
+            </div>
+          )}
+
           {/* Primary 2-Date Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Before Date (Baseline) */}
+            {/* Before Date */}
             <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
               <label htmlFor="single-date-before" className="font-semibold text-ink text-sm font-sans block">
-                Before Date (Baseline)
+                Before date
               </label>
               <input
                 id="single-date-before"
@@ -1852,10 +1894,10 @@ export default function AoiMapPicker({
               </span>
             </div>
 
-            {/* After Date (Comparison) */}
+            {/* After Date */}
             <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
               <label htmlFor="single-date-after" className="font-semibold text-ink text-sm font-sans block">
-                After Date (Comparison)
+                After date
               </label>
               <input
                 id="single-date-after"
@@ -1870,29 +1912,31 @@ export default function AoiMapPicker({
             </div>
           </div>
 
-          {/* Helper Badge */}
+          {/* Helper Badge & Explicit Mode Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[2px] border border-hairline bg-surface-2 text-xs font-sans text-text-secondary">
             <span>
               Gap: ~{targetGapMonths} months ({targetGapDays} days) · Auto-searching ±12 days around each date for satellite passes
             </span>
-            {hasUserManuallyEditedDates && (
-              <span className="text-xs font-mono text-accent">Custom dates active</span>
-            )}
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none text-ink hover:text-accent transition-colors">
+              <input
+                type="checkbox"
+                checked={useExplicitDateRanges}
+                onChange={(e) => setUseExplicitDateRanges(e.target.checked)}
+                className="rounded-[2px] border-hairline text-accent focus:ring-accent"
+              />
+              <span>Use explicit start and end dates</span>
+            </label>
           </div>
 
-          {/* Collapsible 4-Date Range (Advanced) */}
-          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
-            <summary className="p-3 text-xs font-semibold text-text-secondary cursor-pointer select-none hover:text-ink flex items-center justify-between">
-              <span>Custom start/end range (Advanced)</span>
-              <ChevronDown className="w-3.5 h-3.5 text-text-secondary group-open:rotate-180 transition-transform" />
-            </summary>
-            <div className="p-4 border-t border-hairline bg-surface space-y-4">
+          {/* Collapsible 4-Date Range (Advanced / Explicit) */}
+          {useExplicitDateRanges && (
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-4">
               <p className="text-xs text-text-secondary font-sans">
-                Fine-tune the exact search start and end dates for both observation windows. Maximum duration per window is 60 days.
+                Fine-tune explicit start and end dates for both observation windows. Maximum duration per window is 60 days.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Advanced Window A */}
-                <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-3">
+                <div className="p-3 border border-hairline rounded-[2px] bg-surface space-y-3">
                   <span className="font-semibold text-ink text-xs font-sans block">
                     Baseline Window (Window A)
                   </span>
@@ -1909,7 +1953,7 @@ export default function AoiMapPicker({
                           setHasUserManuallyEditedDates(true);
                           setDateWindowA((prev) => ({ ...prev, start: e.target.value }));
                         }}
-                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
                       />
                     </div>
                     <div>
@@ -1924,14 +1968,14 @@ export default function AoiMapPicker({
                           setHasUserManuallyEditedDates(true);
                           setDateWindowA((prev) => ({ ...prev, end: e.target.value }));
                         }}
-                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Advanced Window B */}
-                <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-3">
+                <div className="p-3 border border-hairline rounded-[2px] bg-surface space-y-3">
                   <span className="font-semibold text-ink text-xs font-sans block">
                     Comparison Window (Window B)
                   </span>
@@ -1948,7 +1992,7 @@ export default function AoiMapPicker({
                           setHasUserManuallyEditedDates(true);
                           setDateWindowB((prev) => ({ ...prev, start: e.target.value }));
                         }}
-                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
                       />
                     </div>
                     <div>
@@ -1963,14 +2007,14 @@ export default function AoiMapPicker({
                           setHasUserManuallyEditedDates(true);
                           setDateWindowB((prev) => ({ ...prev, end: e.target.value }));
                         }}
-                        className="w-full bg-surface border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
                       />
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </details>
+          )}
 
           {!dateValidation.valid && (
             <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
@@ -2371,14 +2415,26 @@ export default function AoiMapPicker({
                 </a>
               </div>
 
-              <div className="relative">
-                <textarea
-                  readOnly
-                  value={geeScript}
-                  rows={14}
-                  className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
-                />
-              </div>
+              {!effectiveDateValidation.valid ? (
+                <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{effectiveDateValidation.reason}</span>
+                </div>
+              ) : !validation.valid ? (
+                <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{validation.reason}</span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <textarea
+                    readOnly
+                    value={geeScript}
+                    rows={14}
+                    className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
+                  />
+                </div>
+              )}
             </div>
           </details>
 

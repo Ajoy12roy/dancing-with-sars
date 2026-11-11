@@ -90,6 +90,10 @@ const {
   addDaysISO,
   getMidpointDateISO,
   expandSingleDateToWindow,
+  windowAroundDate,
+  presetTargetDates,
+  validateTargetDates,
+  SENTINEL1_START_DATE,
   getDefaultBeforeAfterTargets,
   create10kmBoxFromCenter,
 } = aoiModule;
@@ -219,8 +223,58 @@ const targets = getDefaultBeforeAfterTargets();
 const gapDays = Math.round((Date.parse(targets.afterTarget) - Date.parse(targets.beforeTarget)) / 86400000);
 assert.ok(gapDays >= 120 && gapDays <= 150, `Default gap must be 120-150 days (got ${gapDays})`);
 
+// ── Step 3 Single Date & Target Date Helpers & Validation Tests ──
+// windowAroundDate(date, 12)
+const wad = windowAroundDate('2024-05-15', 12);
+assert.equal(wad.start, '2024-05-03');
+assert.equal(wad.end, '2024-05-27');
+
+// presetTargetDates(preset)
+const sylhetPreset = PRESET_AOIS.find((p) => p.id === 'sylhet');
+assert.ok(sylhetPreset, 'Sylhet preset must exist');
+const sylhetTargets = presetTargetDates(sylhetPreset);
+assert.equal(sylhetTargets.beforeDate, '2022-05-05');
+assert.equal(sylhetTargets.afterDate, '2022-06-20');
+
+// validateTargetDates all branches:
+const fixedToday = '2026-11-11';
+
+// Branch 1: Missing / empty date
+const vEmpty = validateTargetDates('', '2024-05-01', fixedToday);
+assert.equal(vEmpty.valid, false);
+assert.equal(vEmpty.reason, 'Provide both before and after dates.');
+
+// Branch 2: Date before first Sentinel-1 date (2014-10-03)
+assert.equal(SENTINEL1_START_DATE, '2014-10-03');
+const vEarly = validateTargetDates('2014-09-30', '2015-05-01', fixedToday);
+assert.equal(vEarly.valid, false);
+assert.ok(vEarly.reason.includes('2014-10-03'));
+
+// Branch 3: Date in the future (relative to today)
+const vFuture = validateTargetDates('2024-05-01', '2027-01-01', fixedToday);
+assert.equal(vFuture.valid, false);
+assert.ok(vFuture.reason.includes('future'));
+
+// Branch 4: Overlapping / inverted dates
+const vInverted = validateTargetDates('2024-06-01', '2024-05-01', fixedToday);
+assert.equal(vInverted.valid, false);
+assert.equal(vInverted.reason, 'Choose two dates at least 25 days apart.');
+
+// Branch 5: Boundary case: 24 days apart (LESS than 25 days -> FAILS)
+const v24 = validateTargetDates('2024-05-01', '2024-05-25', fixedToday);
+assert.equal(v24.valid, false);
+assert.equal(v24.reason, 'Choose two dates at least 25 days apart.');
+
+// Branch 6: Boundary case: exactly 25 days apart (>= 25 days -> PASSES)
+const v25 = validateTargetDates('2024-05-01', '2024-05-26', fixedToday);
+assert.equal(v25.valid, true);
+
+// Branch 7: Standard valid dates (e.g. 137 days apart)
+const vStandard = validateTargetDates('2024-05-01', '2024-09-15', fixedToday);
+assert.equal(vStandard.valid, true);
+
 assert.ok(SEASONAL_WARNING_TEXT.includes('same season'));
-console.log('✓ Date validation, event suggestion, and 4.5 month / 24-day helpers verified');
+console.log('✓ Date validation, target dates, event suggestion, and 4.5 month / 24-day helpers verified');
 
 // ── 4. ASF Grouping and "Usable" Rule ──
 console.log('Test 4: ASF grouping and usability rule...');
