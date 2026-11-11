@@ -87,18 +87,28 @@ assert.equal(validRes.valid, true, 'Default auto-generated windows must pass dat
 console.log(`✓ Default targets: Before=${targets.beforeTarget}, After=${targets.afterTarget} (Gap: ${gapDays} days / ~${gapMonths.toFixed(1)} months)`);
 
 // 5. Presets audit: No 1-day windows, 24-day coverage guaranteed
-console.log('Test 5: Auditing all presets in PRESET_AOIS for 24-day window coverage...');
+console.log('Test 5: Auditing all presets in PRESET_AOIS for 24-day window coverage & PASS/ORBIT consistency...');
 for (const preset of PRESET_AOIS) {
-  if (preset.id === 'sylhet') continue; // Sylhet is locked golden preset
-
-  const daysA = Math.round((Date.parse(preset.dateA.end) - Date.parse(preset.dateA.start)) / 86400000);
-  const daysB = Math.round((Date.parse(preset.dateB.end) - Date.parse(preset.dateB.start)) / 86400000);
-
-  assert.ok(daysA >= 24, `Preset ${preset.id} dateA window must span at least 24 days (got ${daysA} days)`);
-  assert.ok(daysB >= 24, `Preset ${preset.id} dateB window must span at least 24 days (got ${daysB} days)`);
-
   const valid = validateDateWindows(preset.dateA, preset.dateB);
   assert.equal(valid.valid, true, `Preset ${preset.id} date windows must be valid`);
+
+  const startA = new Date(preset.dateA.start).getTime();
+  const endA = new Date(preset.dateA.end).getTime();
+  const startB = new Date(preset.dateB.start).getTime();
+  const endB = new Date(preset.dateB.end).getTime();
+
+  assert.ok(endA < startB, `Preset ${preset.id} windows must be non-overlapping`);
+
+  if (preset.id !== 'sylhet') {
+    const spanDaysA = Math.round((endA - startA) / 86400000);
+    const spanDaysB = Math.round((endB - startB) / 86400000);
+    assert.ok(spanDaysA >= 24, `Preset ${preset.id} dateA window must span at least 24 days (got ${spanDaysA} days)`);
+    assert.ok(spanDaysB >= 24, `Preset ${preset.id} dateB window must span at least 24 days (got ${spanDaysB} days)`);
+  }
+
+  const passSet = Boolean(preset.recommendedPass);
+  const orbitSet = Boolean(preset.recommendedOrbit);
+  assert.equal(passSet, orbitSet, `Preset ${preset.id} PASS and ORBIT must be either both set or both null`);
 }
 
 // Specifically verify Amazon preset

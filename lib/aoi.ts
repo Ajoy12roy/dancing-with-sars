@@ -116,8 +116,9 @@ export const PRESET_AOIS: PresetAoi[] = [
     dateA: { start: '2023-02-01', end: '2023-02-25' },
     dateB: { start: '2023-08-07', end: '2023-08-31' },
     recommendedPass: 'DESCENDING',
+    recommendedOrbit: 150,
     provenanceNote:
-      'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+      'The preset enforces a single orbit geometry (DESCENDING track 150) for both windows (2023-02-01 to 2023-02-25 and 2023-08-07 to 2023-08-31), whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
     mode: 'surface-water',
   },
   {
@@ -128,8 +129,9 @@ export const PRESET_AOIS: PresetAoi[] = [
     dateA: { start: '2019-02-01', end: '2019-02-25' },
     dateB: { start: '2024-02-04', end: '2024-02-28' },
     recommendedPass: 'ASCENDING',
+    recommendedOrbit: 114,
     provenanceNote:
-      'The preset enforces a single orbit geometry (ASCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+      'The preset enforces a single orbit geometry (ASCENDING track 114) for both windows (2019-02-01 to 2019-02-25 and 2024-02-04 to 2024-02-28), whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
     mode: 'river-erosion',
   },
   {
@@ -140,8 +142,9 @@ export const PRESET_AOIS: PresetAoi[] = [
     dateA: { start: '2022-08-20', end: '2022-09-13' },
     dateB: { start: '2023-01-01', end: '2023-01-25' },
     recommendedPass: 'DESCENDING',
+    recommendedOrbit: 83,
     provenanceNote:
-      'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the reference script does not restrict the orbit; results are therefore comparable but not identical.',
+      'The preset comparison windows (2022-08-20 to 2022-09-13 and 2023-01-01 to 2023-01-25) and single orbit geometry (DESCENDING track 83) ensure usable Sentinel-1 coverage, whereas the original precomputed case used 15-day windows (2021-01-01 to 2021-01-15 and 2023-01-01 to 2023-01-15); export windows differ accordingly.',
     mode: 'deforestation',
   },
   {
@@ -151,9 +154,10 @@ export const PRESET_AOIS: PresetAoi[] = [
     bbox: { west: 90.23272, south: 23.31002, east: 90.42765, north: 23.49005 },
     dateA: { start: '2017-01-15', end: '2017-02-08' },
     dateB: { start: '2024-01-15', end: '2024-02-08' },
-    recommendedPass: 'DESCENDING',
+    recommendedPass: 'ASCENDING',
+    recommendedOrbit: 114,
     provenanceNote:
-      'The preset enforces a single orbit geometry (DESCENDING) for both windows, whereas the precomputed case does not restrict the orbit; results are therefore comparable but not identical.',
+      'The preset comparison windows (2017-01-15 to 2017-02-08 and 2024-01-15 to 2024-02-08) and single orbit geometry (ASCENDING track 114) ensure focused 25-day Sentinel-1 baseline coverage, whereas the original precomputed case used 60-day windows (2017-01-15 to 2017-03-15 and 2024-01-15 to 2024-03-15); export windows differ accordingly.',
     mode: 'river-erosion',
   },
 ];
