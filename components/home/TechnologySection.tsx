@@ -29,14 +29,14 @@ export function TechnologySection({ metrics: propMetrics }: TechnologySectionPro
   return (
     <section className="home-section" aria-labelledby="tech-heading">
       {/* Section Header */}
-      <div className="mb-8 md:mb-10 text-left">
+      <div className="mb-8 md:mb-10 text-center flex flex-col items-center mx-auto">
         <h2
           id="tech-heading"
-          className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold text-text-primary tracking-tight leading-snug"
+          className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold text-text-primary tracking-tight leading-snug text-center mx-auto"
         >
           Powered by <span className="home-heading-accent">Open Radar Data</span>
         </h2>
-        <p className="mt-2 text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
+        <p className="mt-2 text-sm sm:text-base text-text-secondary max-w-2xl text-center mx-auto leading-relaxed">
           Sentinel-1, NISAR and population data, processed with documented and tested methods.
         </p>
       </div>

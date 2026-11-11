@@ -12,14 +12,14 @@ export function ChallengeSection({ metrics: propMetrics }: ChallengeSectionProps
   return (
     <section className="home-section" aria-labelledby="challenge-heading">
       {/* Section Header */}
-      <div className="mb-8 md:mb-10 text-left">
+      <div className="mb-8 md:mb-10 text-center flex flex-col items-center mx-auto">
         <h2
           id="challenge-heading"
-          className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold text-text-primary tracking-tight leading-snug"
+          className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold text-text-primary tracking-tight leading-snug text-center mx-auto"
         >
           The Challenge We&apos;re <span className="home-heading-accent">Solving</span>
         </h2>
-        <p className="mt-2 text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
+        <p className="mt-2 text-sm sm:text-base text-text-secondary max-w-2xl text-center mx-auto leading-relaxed">
           Surface change is difficult to observe, measure and explain. Radar can observe it through cloud.
         </p>
       </div>
