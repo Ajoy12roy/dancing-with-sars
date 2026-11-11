@@ -11,19 +11,19 @@ export function AttributionStrip() {
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-xs font-body font-medium">
           <Link
             href="/explore"
-            className="text-teal hover:underline transition-colors"
+            className="text-teal hover:underline transition-colors rounded-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
           >
             Explore the analysis &rarr;
           </Link>
           <Link
             href="/how-it-works"
-            className="text-teal hover:underline transition-colors"
+            className="text-teal hover:underline transition-colors rounded-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
           >
             How it works &rarr;
           </Link>
           <Link
             href="/data-sources"
-            className="text-teal hover:underline transition-colors"
+            className="text-teal hover:underline transition-colors rounded-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
           >
             Data sources &rarr;
           </Link>
