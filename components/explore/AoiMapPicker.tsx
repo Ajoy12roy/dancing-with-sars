@@ -573,11 +573,13 @@ export interface AoiMapPickerProps {
   onSelectCaseStudy?: (caseId: string) => void;
   selectedCaseId?: string;
   onPresetChange?: (presetId: string) => void;
+  children?: React.ReactNode;
 }
 
 export default function AoiMapPicker({
   selectedCaseId,
   onPresetChange,
+  children,
 }: AoiMapPickerProps = {}) {
   const { effectiveOffline } = useNetworkMode();
   const { announce } = useAccessibility();
@@ -600,6 +602,7 @@ export default function AoiMapPicker({
   const [noPresetNotice, setNoPresetNotice] = useState<string | null>(null);
   const [customAreaLabel, setCustomAreaLabel] = useState<string | null>(null);
 
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   // Recenter counter to force MapController to re-fit bounds
   const [recenterCount, setRecenterCount] = useState<number>(1);
 
@@ -1143,7 +1146,7 @@ export default function AoiMapPicker({
   };
 
   // ── Find Acquisitions via ASF Search ──
-  const handleFindAcquisitions = async () => {
+  const executeAsfSearch = async (targetKind: 's1' | 'nisar') => {
     if (!validation.valid || !dateValidation.valid) return;
 
     setAsfLoading(true);
@@ -1152,6 +1155,7 @@ export default function AoiMapPicker({
     setAsfGroups([]);
     setAsfNisarGranules([]);
     setAsfSearched(true);
+    setAsfMode(targetKind);
 
     const params = new URLSearchParams({
       west: String(bbox.west),
@@ -1162,7 +1166,7 @@ export default function AoiMapPicker({
       beforeEnd: dateWindowA.end,
       afterStart: dateWindowB.start,
       afterEnd: dateWindowB.end,
-      kind: asfMode,
+      kind: targetKind,
     });
 
     try {
@@ -1179,29 +1183,32 @@ export default function AoiMapPicker({
         setAsfError(`Unable to complete satellite catalogue search: ${data.error}`);
       } else {
         setAsfSearchedParams({ bbox, dateA: dateWindowA, dateB: dateWindowB });
-        if (asfMode === 's1' && Array.isArray(data.groups)) {
-            setAsfGroups(data.groups);
-            // Auto-select first usable group if none selected or current is invalid
-            const firstUsable = data.groups.find(
-              (g: AsfPassGroup) => g.usable && g.flightDirection !== 'UNKNOWN'
-            );
-            if (firstUsable) {
-              setSelectedTrackPass({
-                pass: firstUsable.flightDirection as 'ASCENDING' | 'DESCENDING',
-                orbit: firstUsable.relativeOrbit,
-              });
-            }
-          } else if (asfMode === 'nisar' && Array.isArray(data.granules)) {
-            setAsfNisarGranules(data.granules);
+        if (targetKind === 's1' && Array.isArray(data.groups)) {
+          setAsfGroups(data.groups);
+          // Auto-select first usable group if none selected or current is invalid
+          const firstUsable = data.groups.find(
+            (g: AsfPassGroup) => g.usable && g.flightDirection !== 'UNKNOWN'
+          );
+          if (firstUsable) {
+            setSelectedTrackPass({
+              pass: firstUsable.flightDirection as 'ASCENDING' | 'DESCENDING',
+              orbit: firstUsable.relativeOrbit,
+            });
           }
+        } else if (targetKind === 'nisar' && Array.isArray(data.granules)) {
+          setAsfNisarGranules(data.granules);
         }
-      } catch (err: unknown) {
+      }
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setAsfError(`Unable to complete satellite catalogue search: ${msg}`);
     } finally {
       setAsfLoading(false);
     }
   };
+
+  const handleSearchSentinel1 = () => executeAsfSearch('s1');
+  const handleSearchNisar = () => executeAsfSearch('nisar');
 
   // ── Copy Script to Clipboard ──
   const handleCopyScript = () => {
@@ -1308,6 +1315,32 @@ export default function AoiMapPicker({
               {noPresetNotice}
             </div>
           )}
+
+          {/* Preset chips */}
+          <div className="space-y-1.5">
+            <span className="block text-xs font-medium text-text-secondary font-sans uppercase tracking-wider">
+              Preset areas
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {PRESET_AOIS.map((preset) => {
+                const isSelected = currentPreset?.id === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectPreset(preset)}
+                    className={`min-h-[36px] px-3.5 py-1.5 text-xs font-medium rounded-[2px] border transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-accent text-text-on-accent border-accent font-semibold'
+                        : 'bg-surface-2 border-hairline text-ink hover:border-ink hover:bg-surface'
+                    }`}
+                  >
+                    {preset.name.split(' (')[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
             {/* Preset select */}
@@ -1577,16 +1610,373 @@ export default function AoiMapPicker({
             </div>
           </div>
 
-          {/* Collapsed Manual Coordinate Entry (Optional) directly under map */}
-          <details className="border-t border-hairline bg-surface-2 group">
-            <summary
-              tabIndex={0}
-              className="p-3 text-sm font-semibold text-text-secondary font-sans cursor-pointer select-none hover:text-ink focus:outline-none focus:ring-1 focus:ring-accent flex items-center justify-between"
+
+        </div>
+
+        {/* Validation Banner if invalid */}
+        {!validation.valid && (
+          <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{validation.reason}</span>
+          </div>
+        )}
+
+        {/* Date Selection Section: Simplified 2-Date Picker + Collapsible Advanced 4-Date Range */}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider font-sans">
+              Acquisition dates
+            </h3>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleAutoSet4MonthGap}
+                className="text-sm text-accent hover:underline cursor-pointer font-sans"
+                title="Automatically set Before date 4.5 months (137 days) prior to After date"
+              >
+                Auto-set 4.5 month gap
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowEventHelper((v) => !v)}
+                className="text-sm text-accent hover:underline flex items-center gap-1 cursor-pointer font-sans"
+              >
+                {showEventHelper ? (
+                  <>
+                    Hide event helper <ChevronUp className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <>
+                    Suggest windows around event date <ChevronDown className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsible Event Date Suggestion Helper */}
+          {showEventHelper && (
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2 text-sm">
+              <p className="text-text-secondary font-sans">
+                Enter an event date to configure 12-day pre-event baseline and post-event comparison windows:
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={eventDateInput}
+                  onChange={(e) => setEventDateInput(e.target.value)}
+                  className="bg-surface border border-hairline rounded-[2px] px-3 py-1.5 text-base text-ink font-data min-h-[40px]"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyEventSuggestion}
+                  className="min-h-[40px] px-3.5 py-1.5 bg-accent text-text-on-accent font-semibold rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer text-sm"
+                >
+                  Apply suggestion
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Validation Banner for Dates */}
+          {!effectiveDateValidation.valid && (
+            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-start gap-2 bg-rust/5" role="alert">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{effectiveDateValidation.reason}</span>
+            </div>
+          )}
+
+          {/* Primary 2-Date Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Before Date */}
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
+              <label htmlFor="single-date-before" className="font-semibold text-ink text-sm font-sans block">
+                Before date
+              </label>
+              <input
+                id="single-date-before"
+                type="date"
+                value={singleDateBefore}
+                onChange={(e) => handleBeforeDateChange(e.target.value)}
+                className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px] focus:outline-none focus:border-accent"
+              />
+              <span className="text-xs text-text-secondary font-sans block">
+                Pre-event or baseline observation date
+              </span>
+            </div>
+
+            {/* After Date */}
+            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
+              <label htmlFor="single-date-after" className="font-semibold text-ink text-sm font-sans block">
+                After date
+              </label>
+              <input
+                id="single-date-after"
+                type="date"
+                value={singleDateAfter}
+                onChange={(e) => handleAfterDateChange(e.target.value)}
+                className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px] focus:outline-none focus:border-accent"
+              />
+              <span className="text-xs text-text-secondary font-sans block">
+                Post-event or comparison observation date
+              </span>
+            </div>
+          </div>
+
+          {/* Helper Badge & Explicit Mode Toggle */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[2px] border border-hairline bg-surface-2 text-xs font-sans text-text-secondary">
+            <span>
+              Gap: ~{targetGapMonths} months ({targetGapDays} days) · Auto-searching ±12 days around each date for satellite passes
+            </span>
+</div>
+
+                    {!dateValidation.valid && (
+            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{dateValidation.reason}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Find Sentinel-1 Passes */}
+        <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              disabled={effectiveOffline || asfLoading || !validation.valid || !dateValidation.valid}
+              onClick={handleSearchSentinel1}
+              className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
             >
-              <span>Manual coordinate entry (optional)</span>
+              {asfLoading && asfMode === 's1' ? 'Searching ASF archives...' : 'Find Sentinel-1 passes'}
+            </button>
+
+            <div className="text-sm text-text-secondary font-sans">
+              {asfLoading && asfMode === 's1' ? (
+                <span className="text-text-secondary">Searching ASF satellite archives...</span>
+              ) : (
+                <div className="space-y-1">
+                  <p className={s1Availability.state === 'usable' ? 'text-ink font-medium' : 'text-text-secondary'}>
+                    {s1Availability.headline}
+                  </p>
+                  {s1Availability.details && (
+                    <p className="text-xs text-text-secondary">{s1Availability.details}</p>
+                  )}
+                  {(s1Availability.state === 'no_before' ||
+                    s1Availability.state === 'no_after' ||
+                    s1Availability.state === 'no_either' ||
+                    s1Availability.state === 'no_common_geometry') && (
+                    <p className="text-xs text-text-secondary pt-0.5">
+                      The export script below remains viewable but may return no images for these windows.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {effectiveOffline && (
+            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-sm text-text-secondary flex items-start gap-2">
+              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-ink">Offline mode notice</p>
+                <p className="mt-0.5">
+                  Satellite acquisition lookup requires a network connection.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {asfOfflineNotice && (
+            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-sm text-text-secondary flex items-start gap-2">
+              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-ink">Offline mode notice</p>
+                <p className="mt-0.5">{asfOfflineNotice}</p>
+              </div>
+            </div>
+          )}
+
+          {asfError && (
+            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{asfError}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Card 2: Export the images from Google Earth Engine ── */}
+      <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold font-headline text-ink">
+            2. Export the images from Google Earth Engine
+          </h2>
+          <p className="text-base text-text-secondary mt-1 font-sans leading-relaxed">
+            Generate a Google Earth Engine script to export co-registered Sentinel-1 GeoTIFF pairs. The script enforces single-orbit geometry and optimal spatial resolution for analysis.
+          </p>
+          {asfMode === 'nisar' && (
+            <p className="text-xs text-text-secondary mt-1 font-sans">
+              The Earth Engine export below uses Sentinel-1 data.
+            </p>
+          )}
+        </div>
+
+        {/* Above script: single line metadata */}
+        <div className="text-sm font-sans text-text-secondary truncate">
+          Area: {activeAreaLabel} | Box: {bbox.west}, {bbox.south}, {bbox.east}, {bbox.north} | Before: {dateWindowA.start} to {dateWindowA.end} | After: {dateWindowB.start} to {dateWindowB.end}
+        </div>
+
+        {asfSearched &&
+          !isAsfOutOfDate &&
+          (s1Availability.state === 'no_before' ||
+            s1Availability.state === 'no_after' ||
+            s1Availability.state === 'no_either' ||
+            s1Availability.state === 'no_common_geometry') && (
+            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
+              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <span>
+                No matching Sentinel-1 pass was confirmed for both windows; this script remains viewable but may return no images in Earth Engine.
+              </span>
+            </div>
+          )}
+
+        {/* Script: textarea or validation error */}
+        {!effectiveDateValidation.valid ? (
+          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{effectiveDateValidation.reason}</span>
+          </div>
+        ) : !validation.valid ? (
+          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{validation.reason}</span>
+          </div>
+        ) : (
+          <div className="relative">
+            <textarea
+              readOnly
+              value={geeScript}
+              rows={14}
+              aria-label="Generated Google Earth Engine script"
+              className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
+            />
+          </div>
+        )}
+
+        {/* Below script: ONLY three buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCopyScript}
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
+          >
+            {scriptCopied ? (
+              <>
+                <Check className="w-4 h-4 text-text-on-accent" />
+                <span>Copied to clipboard</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Copy script</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadScript}
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download script</span>
+          </button>
+
+          <a
+            href="https://code.earthengine.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <span>Open Earth Engine Code Editor</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
+
+        {/* Collapsed Details Blocks */}
+        <div className="space-y-4">
+          {/* Details 2: How to run the script */}
+          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+            <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
+              <span>How to run the script</span>
               <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
             </summary>
-            <div className="p-4 border-t border-hairline bg-surface space-y-4">
+            <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans">
+              <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary leading-relaxed">
+                <li>Copy the export script above and open the Google Earth Engine Code Editor.</li>
+                <li>Paste the script into the center editor pane and click <strong>Run</strong>.</li>
+                <li>In the <strong>Tasks</strong> tab in the upper-right pane, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code> to export the GeoTIFFs to Google Drive.</li>
+              </ol>
+              <div className="pt-2">
+                <Link
+                  href="/how-it-works#earth-engine-export"
+                  className="text-teal hover:underline text-sm font-medium inline-flex items-center gap-1"
+                >
+                  <span>Full guide</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      {/* ── Card 3: Upload and analyse (passed as children from page) ── */}
+      {children}
+
+      {/* ── Advanced options disclosure ── */}
+      <section className="space-y-4 pt-2">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            aria-expanded={showAdvanced}
+            aria-controls="advanced-options-panel"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="min-h-[44px] px-4 py-2 border border-hairline bg-surface hover:bg-surface-2 rounded-[2px] text-sm font-medium text-ink transition-colors cursor-pointer flex items-center gap-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >
+            <span>Advanced options</span>
+            <ChevronDown
+              className={`w-4 h-4 text-text-secondary transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+              aria-hidden="true"
+            />
+          </button>
+          <span className="text-xs text-text-secondary font-sans hidden sm:inline">
+            Coordinates, explicit date windows, orbit acquisitions, NISAR, and script notes
+          </span>
+        </div>
+
+        {showAdvanced && (
+          <div
+            id="advanced-options-panel"
+            className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6"
+          >
+            <div>
+              <h3 className="text-base font-semibold font-headline text-ink">
+                Advanced options
+              </h3>
+              <p className="text-xs text-text-secondary font-sans mt-0.5">
+                Fine-tune bounding box coordinates, specify explicit date ranges, review orbit acquisitions, search NISAR, and inspect script parameters.
+              </p>
+            </div>
+
+            {/* 1. Coordinate inputs & Nudges */}
+            <div className="space-y-4 border-t border-hairline pt-4">
+              <h4 className="text-sm font-semibold text-ink font-sans">
+                1. Geographic coordinates and dimensions
+              </h4>
+
               {/* Dimensions */}
               <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-2">
                 <div className="flex items-center justify-between">
@@ -1828,645 +2218,320 @@ export default function AoiMapPicker({
                   </button>
                 </div>
               </div>
-            </div>
-          </details>
-        </div>
-
-        {/* Validation Banner if invalid */}
-        {!validation.valid && (
-          <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{validation.reason}</span>
-          </div>
-        )}
-
-        {/* Date Selection Section: Simplified 2-Date Picker + Collapsible Advanced 4-Date Range */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider font-sans">
-              Acquisition dates
-            </h3>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleAutoSet4MonthGap}
-                className="text-sm text-accent hover:underline cursor-pointer font-sans"
-                title="Automatically set Before date 4.5 months (137 days) prior to After date"
-              >
-                Auto-set 4.5 month gap
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowEventHelper((v) => !v)}
-                className="text-sm text-accent hover:underline flex items-center gap-1 cursor-pointer font-sans"
-              >
-                {showEventHelper ? (
-                  <>
-                    Hide event helper <ChevronUp className="w-3.5 h-3.5" />
-                  </>
-                ) : (
-                  <>
-                    Suggest windows around event date <ChevronDown className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Collapsible Event Date Suggestion Helper */}
-          {showEventHelper && (
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-3 space-y-2 text-sm">
-              <p className="text-text-secondary font-sans">
-                Enter an event date to configure 12-day pre-event baseline and post-event comparison windows:
-              </p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={eventDateInput}
-                  onChange={(e) => setEventDateInput(e.target.value)}
-                  className="bg-surface border border-hairline rounded-[2px] px-3 py-1.5 text-base text-ink font-data min-h-[40px]"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyEventSuggestion}
-                  className="min-h-[40px] px-3.5 py-1.5 bg-accent text-text-on-accent font-semibold rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer text-sm"
-                >
-                  Apply suggestion
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Validation Banner for Dates */}
-          {!effectiveDateValidation.valid && (
-            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-start gap-2 bg-rust/5" role="alert">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{effectiveDateValidation.reason}</span>
-            </div>
-          )}
-
-          {/* Primary 2-Date Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Before Date */}
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
-              <label htmlFor="single-date-before" className="font-semibold text-ink text-sm font-sans block">
-                Before date
-              </label>
-              <input
-                id="single-date-before"
-                type="date"
-                value={singleDateBefore}
-                onChange={(e) => handleBeforeDateChange(e.target.value)}
-                className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px] focus:outline-none focus:border-accent"
-              />
-              <span className="text-xs text-text-secondary font-sans block">
-                Pre-event or baseline observation date
-              </span>
+            
             </div>
 
-            {/* After Date */}
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-2">
-              <label htmlFor="single-date-after" className="font-semibold text-ink text-sm font-sans block">
-                After date
-              </label>
-              <input
-                id="single-date-after"
-                type="date"
-                value={singleDateAfter}
-                onChange={(e) => handleAfterDateChange(e.target.value)}
-                className="w-full bg-surface border border-hairline rounded-[2px] px-3 py-2 font-data text-ink text-base min-h-[44px] focus:outline-none focus:border-accent"
-              />
-              <span className="text-xs text-text-secondary font-sans block">
-                Post-event or comparison observation date
-              </span>
-            </div>
-          </div>
-
-          {/* Helper Badge & Explicit Mode Toggle */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[2px] border border-hairline bg-surface-2 text-xs font-sans text-text-secondary">
-            <span>
-              Gap: ~{targetGapMonths} months ({targetGapDays} days) · Auto-searching ±12 days around each date for satellite passes
-            </span>
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none text-ink hover:text-accent transition-colors">
-              <input
-                type="checkbox"
-                checked={useExplicitDateRanges}
-                onChange={(e) => setUseExplicitDateRanges(e.target.checked)}
-                className="rounded-[2px] border-hairline text-accent focus:ring-accent"
-              />
-              <span>Use explicit start and end dates</span>
-            </label>
-          </div>
-
-          {/* Collapsible 4-Date Range (Advanced / Explicit) */}
-          {useExplicitDateRanges && (
-            <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-4">
-              <p className="text-xs text-text-secondary font-sans">
-                Fine-tune explicit start and end dates for both observation windows. Maximum duration per window is 60 days.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Advanced Window A */}
-                <div className="p-3 border border-hairline rounded-[2px] bg-surface space-y-3">
-                  <span className="font-semibold text-ink text-xs font-sans block">
-                    Baseline Window (Window A)
-                  </span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="date-window-a-start" className="text-xs font-medium text-text-secondary block mb-1">
-                        Start date
-                      </label>
-                      <input
-                        id="date-window-a-start"
-                        type="date"
-                        value={dateWindowA.start}
-                        onChange={(e) => {
-                          setHasUserManuallyEditedDates(true);
-                          setDateWindowA((prev) => ({ ...prev, start: e.target.value }));
-                        }}
-                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="date-window-a-end" className="text-xs font-medium text-text-secondary block mb-1">
-                        End date
-                      </label>
-                      <input
-                        id="date-window-a-end"
-                        type="date"
-                        value={dateWindowA.end}
-                        onChange={(e) => {
-                          setHasUserManuallyEditedDates(true);
-                          setDateWindowA((prev) => ({ ...prev, end: e.target.value }));
-                        }}
-                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Advanced Window B */}
-                <div className="p-3 border border-hairline rounded-[2px] bg-surface space-y-3">
-                  <span className="font-semibold text-ink text-xs font-sans block">
-                    Comparison Window (Window B)
-                  </span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="date-window-b-start" className="text-xs font-medium text-text-secondary block mb-1">
-                        Start date
-                      </label>
-                      <input
-                        id="date-window-b-start"
-                        type="date"
-                        value={dateWindowB.start}
-                        onChange={(e) => {
-                          setHasUserManuallyEditedDates(true);
-                          setDateWindowB((prev) => ({ ...prev, start: e.target.value }));
-                        }}
-                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="date-window-b-end" className="text-xs font-medium text-text-secondary block mb-1">
-                        End date
-                      </label>
-                      <input
-                        id="date-window-b-end"
-                        type="date"
-                        value={dateWindowB.end}
-                        onChange={(e) => {
-                          setHasUserManuallyEditedDates(true);
-                          setDateWindowB((prev) => ({ ...prev, end: e.target.value }));
-                        }}
-                        className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!dateValidation.valid && (
-            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{dateValidation.reason}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Find Matching Acquisitions (Compact: button + one-line summary + collapsible table) */}
-        <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-text-secondary">Dataset:</label>
-                <div className="flex flex-col">
-                  <div className="inline-flex rounded-[2px] border border-hairline bg-surface p-0.5 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAsfMode('s1');
-                        setAsfSearched(false);
-                      }}
-                      className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
-                        asfMode === 's1'
-                          ? 'bg-accent text-text-on-accent font-semibold'
-                          : 'text-text-secondary hover:text-ink'
-                      }`}
-                    >
-                      Sentinel-1 C-band
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAsfMode('nisar');
-                        setAsfSearched(false);
-                      }}
-                      className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
-                        asfMode === 'nisar'
-                          ? 'bg-accent text-text-on-accent font-semibold'
-                          : 'text-text-secondary hover:text-ink'
-                      }`}
-                    >
-                      NISAR L-band
-                    </button>
-                  </div>
-                  {asfMode === 'nisar' && (
-                    <p className="text-xs text-text-secondary font-sans mt-1">
-                      The Earth Engine export below uses Sentinel-1 data.
-                    </p>
-                  )}
-                </div>
+            {/* 2. Date window overrides */}
+            <div className="space-y-3 border-t border-hairline pt-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-ink font-sans">
+                  2. Explicit date window overrides
+                </h4>
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-ink hover:text-accent font-sans">
+                  <input
+                    type="checkbox"
+                    checked={useExplicitDateRanges}
+                    onChange={(e) => setUseExplicitDateRanges(e.target.checked)}
+                    className="rounded-[2px] border-hairline text-accent focus:ring-accent"
+                  />
+                  <span>Use explicit start and end dates</span>
+                </label>
               </div>
 
-              <button
-                type="button"
-                disabled={effectiveOffline || asfLoading || !validation.valid || !dateValidation.valid}
-                onClick={handleFindAcquisitions}
-                className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2"
-              >
-                {asfLoading
-                  ? 'Searching ASF archives...'
-                  : asfMode === 's1'
-                  ? 'Find Sentinel-1 passes'
-                  : 'Find NISAR passes'}
-              </button>
-            </div>
-
-            <div className="text-sm text-text-secondary font-sans">
-              {asfLoading ? (
-                <span className="text-text-secondary">Searching ASF satellite archives...</span>
-              ) : asfMode === 's1' ? (
-                <div className="space-y-1">
-                  <p className={s1Availability.state === 'usable' ? 'text-ink font-medium' : 'text-text-secondary'}>
-                    {s1Availability.headline}
+              {useExplicitDateRanges ? (
+                <div className="border border-hairline rounded-[2px] bg-surface-2 p-4 space-y-4">
+                  <p className="text-xs text-text-secondary font-sans">
+                    Fine-tune explicit start and end dates for both observation windows. Maximum duration per window is 60 days.
                   </p>
-                  {s1Availability.details && (
-                    <p className="text-xs text-text-secondary">{s1Availability.details}</p>
-                  )}
-                  {(s1Availability.state === 'no_before' ||
-                    s1Availability.state === 'no_after' ||
-                    s1Availability.state === 'no_either' ||
-                    s1Availability.state === 'no_common_geometry') && (
-                    <p className="text-xs text-text-secondary pt-0.5">
-                      The export script below remains viewable but may return no images for these windows.
-                    </p>
-                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Advanced Window A */}
+                    <div className="p-3 border border-hairline rounded-[2px] bg-surface space-y-3">
+                      <span className="font-semibold text-ink text-xs font-sans block">
+                        Baseline Window (Window A)
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="adv-date-window-a-start" className="text-xs font-medium text-text-secondary block mb-1">
+                            Start date
+                          </label>
+                          <input
+                            id="adv-date-window-a-start"
+                            type="date"
+                            value={dateWindowA.start}
+                            onChange={(e) => {
+                              setHasUserManuallyEditedDates(true);
+                              setDateWindowA((prev) => ({ ...prev, start: e.target.value }));
+                            }}
+                            className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="adv-date-window-a-end" className="text-xs font-medium text-text-secondary block mb-1">
+                            End date
+                          </label>
+                          <input
+                            id="adv-date-window-a-end"
+                            type="date"
+                            value={dateWindowA.end}
+                            onChange={(e) => {
+                              setHasUserManuallyEditedDates(true);
+                              setDateWindowA((prev) => ({ ...prev, end: e.target.value }));
+                            }}
+                            className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Advanced Window B */}
+                    <div className="p-3 border border-hairline rounded-[2px] bg-surface space-y-3">
+                      <span className="font-semibold text-ink text-xs font-sans block">
+                        Comparison Window (Window B)
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="adv-date-window-b-start" className="text-xs font-medium text-text-secondary block mb-1">
+                            Start date
+                          </label>
+                          <input
+                            id="adv-date-window-b-start"
+                            type="date"
+                            value={dateWindowB.start}
+                            onChange={(e) => {
+                              setHasUserManuallyEditedDates(true);
+                              setDateWindowB((prev) => ({ ...prev, start: e.target.value }));
+                            }}
+                            className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="adv-date-window-b-end" className="text-xs font-medium text-text-secondary block mb-1">
+                            End date
+                          </label>
+                          <input
+                            id="adv-date-window-b-end"
+                            type="date"
+                            value={dateWindowB.end}
+                            onChange={(e) => {
+                              setHasUserManuallyEditedDates(true);
+                              setDateWindowB((prev) => ({ ...prev, end: e.target.value }));
+                            }}
+                            className="w-full bg-surface-2 border border-hairline rounded-[2px] px-2.5 py-1.5 font-data text-ink text-sm min-h-[38px]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <p className="text-xs text-text-secondary font-sans">
+                  Target dates above automatically expand into 12-day observation windows. Check the option above to specify explicit date ranges.
+                </p>
+              )}
+            </div>
+
+            {/* 3. Sentinel-1 acquisition breakdown */}
+            <div className="space-y-3 border-t border-hairline pt-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-ink font-sans">
+                  3. Sentinel-1 acquisition breakdown
+                </h4>
+                {selectedTrackPass && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTrackPass(null)}
+                    className="text-text-secondary hover:text-ink text-xs underline cursor-pointer"
+                  >
+                    Clear orbit constraint
+                  </button>
+                )}
+              </div>
+
+              {asfGroups.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="border border-hairline rounded-[2px] overflow-hidden">
+                    <table className="w-full text-xs text-left border-collapse">
+                      <thead>
+                        <tr className="bg-surface-2 border-b border-hairline text-text-secondary">
+                          <th className="py-2 px-3 w-8">Select</th>
+                          <th className="py-2 px-3">Flight direction</th>
+                          <th className="py-2 px-3 font-data">Relative orbit track</th>
+                          <th className="py-2 px-3 font-data">Before window</th>
+                          <th className="py-2 px-3 font-data">After window</th>
+                          <th className="py-2 px-3">Usability status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-hairline bg-surface font-sans">
+                        {asfGroups.map((grp) => {
+                          const isSelected =
+                            selectedTrackPass?.pass === grp.flightDirection &&
+                            selectedTrackPass?.orbit === grp.relativeOrbit;
+
+                          const handleSelectGroup = () => {
+                            if (grp.flightDirection === 'ASCENDING' || grp.flightDirection === 'DESCENDING') {
+                              setSelectedTrackPass({
+                                pass: grp.flightDirection,
+                                orbit: grp.relativeOrbit,
+                              });
+                            }
+                          };
+
+                          return (
+                            <tr
+                              key={grp.id}
+                              onClick={handleSelectGroup}
+                              className={`cursor-pointer transition-colors ${
+                                isSelected ? 'bg-surface-2' : 'hover:bg-surface-2/60'
+                              }`}
+                            >
+                              <td className="py-2 px-3 text-center">
+                                <input
+                                  type="radio"
+                                  name="selected-track-advanced"
+                                  checked={isSelected}
+                                  onChange={handleSelectGroup}
+                                  className="accent-accent cursor-pointer"
+                                />
+                              </td>
+                              <td className="py-2 px-3 font-medium">
+                                {grp.flightDirection}
+                              </td>
+                              <td className="py-2 px-3 font-data font-semibold">
+                                Track {grp.relativeOrbit}
+                              </td>
+                              <td className="py-2 px-3 font-data text-text-secondary">
+                                {grp.beforeCount} scene(s)
+                              </td>
+                              <td className="py-2 px-3 font-data text-text-secondary">
+                                {grp.afterCount} scene(s)
+                              </td>
+                              <td className="py-2 px-3">
+                                {grp.usable ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-xs font-semibold">
+                                    <Check className="w-3 h-3" /> Ready in both windows
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-xs">
+                                    Incomplete (missing window)
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="text-xs text-text-secondary pt-1">
+                    Active selection: {selectedTrackPass ? `${selectedTrackPass.pass} Track ${selectedTrackPass.orbit}` : 'None (auto-selection)'}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-text-secondary font-sans">
+                  No orbit acquisitions loaded yet. Click &quot;Find Sentinel-1 passes&quot; in the main flow above to query the ASF archive.
+                </p>
+              )}
+            </div>
+
+            {/* 4. NISAR L-band search */}
+            <div className="space-y-3 border-t border-hairline pt-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-ink font-sans">
+                  4. NISAR L-band search
+                </h4>
+                <button
+                  type="button"
+                  disabled={effectiveOffline || asfLoading || !validation.valid || !dateValidation.valid}
+                  onClick={handleSearchNisar}
+                  className="px-3 py-1.5 text-xs font-semibold bg-surface-2 hover:bg-surface border border-hairline text-ink rounded-[2px] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {asfLoading && asfMode === 'nisar' ? 'Searching NISAR...' : 'Search NISAR passes'}
+                </button>
+              </div>
+
+              {asfMode === 'nisar' && asfSearched && (
+                <div className="p-2.5 rounded-[2px] border border-hairline bg-surface-2 text-xs font-sans space-y-1">
                   <p className={nisarAvailability.state === 'found' ? 'text-ink font-medium' : 'text-text-secondary'}>
                     {nisarAvailability.message}
                   </p>
-                  <p className="text-xs text-text-secondary">{nisarAvailability.note}</p>
+                  <p className="text-text-secondary">{nisarAvailability.note}</p>
                 </div>
               )}
-            </div>
-          </div>
 
-          {effectiveOffline && (
-            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-sm text-text-secondary flex items-start gap-2">
-              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-ink">Offline mode notice</p>
-                <p className="mt-0.5">
-                  Satellite acquisition lookup requires a network connection.
+              {asfNisarGranules.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-ink">
+                      Found {asfNisarGranules.length} NISAR acquisition(s):
+                    </span>
+                    <a
+                      href={`https://search.asf.alaska.edu/#/?dataset=NISAR&polygon=${bbox.west},${bbox.south},${bbox.east},${bbox.north}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:underline text-xs flex items-center gap-1"
+                    >
+                      Open ASF Vertex <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <div className="border border-hairline rounded-[2px] overflow-hidden max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs text-left border-collapse font-data">
+                      <thead>
+                        <tr className="bg-surface-2 border-b border-hairline text-text-secondary font-sans">
+                          <th className="py-1.5 px-3">Scene name</th>
+                          <th className="py-1.5 px-3">Start time</th>
+                          <th className="py-1.5 px-3">Direction</th>
+                          <th className="py-1.5 px-3">Track</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-hairline bg-surface">
+                        {asfNisarGranules.map((g, i) => (
+                          <tr key={i} className="hover:bg-surface-2/60">
+                            <td className="py-1.5 px-3 truncate max-w-xs">{g.sceneName || 'NISAR Granule'}</td>
+                            <td className="py-1.5 px-3 text-text-secondary">{g.startTime?.slice(0, 10) || '—'}</td>
+                            <td className="py-1.5 px-3 font-sans">{g.flightDirection || '—'}</td>
+                            <td className="py-1.5 px-3">{g.pathNumber || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-text-secondary font-sans">
+                  Query the ASF DAAC for NASA-ISRO SAR (NISAR) L-band observations over this bounding box and date range.
                 </p>
-              </div>
+              )}
             </div>
-          )}
 
-          {asfOfflineNotice && (
-            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-sm text-text-secondary flex items-start gap-2">
-              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-ink">Offline mode notice</p>
-                <p className="mt-0.5">{asfOfflineNotice}</p>
-              </div>
-            </div>
-          )}
-
-          {asfError && (
-            <div className="p-3 border border-rust text-rust rounded-[2px] text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{asfError}</span>
-            </div>
-          )}
-
-          {/* Collapsible Acquisitions Table */}
-          {((asfMode === 's1' && asfGroups.length > 0) || (asfMode === 'nisar' && asfNisarGranules.length > 0)) && (
-            <details className="border border-hairline rounded-[2px] bg-surface group mt-2">
-              <summary className="p-3 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
-                <span>Show all acquisitions</span>
-                <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
-              </summary>
-              <div className="p-3 border-t border-hairline space-y-3">
-                {asfMode === 's1' && asfGroups.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="border border-hairline rounded-[2px] overflow-hidden">
-                      <table className="w-full text-sm text-left border-collapse">
-                        <thead>
-                          <tr className="bg-surface-2 border-b border-hairline text-text-secondary">
-                            <th className="py-2 px-3 w-8">Select</th>
-                            <th className="py-2 px-3">Flight direction</th>
-                            <th className="py-2 px-3 font-data">Relative orbit track</th>
-                            <th className="py-2 px-3 font-data">Before window</th>
-                            <th className="py-2 px-3 font-data">After window</th>
-                            <th className="py-2 px-3">Usability status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-hairline bg-surface font-sans">
-                          {asfGroups.map((grp) => {
-                            const isSelected =
-                              selectedTrackPass?.pass === grp.flightDirection &&
-                              selectedTrackPass?.orbit === grp.relativeOrbit;
-
-                            const handleSelectGroup = () => {
-                              if (grp.flightDirection === 'ASCENDING' || grp.flightDirection === 'DESCENDING') {
-                                setSelectedTrackPass({
-                                  pass: grp.flightDirection,
-                                  orbit: grp.relativeOrbit,
-                                });
-                              }
-                            };
-
-                            return (
-                              <tr
-                                key={grp.id}
-                                onClick={handleSelectGroup}
-                                className={`cursor-pointer transition-colors ${
-                                  isSelected ? 'bg-surface-2' : 'hover:bg-surface-2/60'
-                                }`}
-                              >
-                                <td className="py-2 px-3 text-center">
-                                  <input
-                                    type="radio"
-                                    name="selected-track"
-                                    checked={isSelected}
-                                    onChange={handleSelectGroup}
-                                    className="accent-accent cursor-pointer"
-                                  />
-                                </td>
-                                <td className="py-2 px-3 font-medium">
-                                  {grp.flightDirection}
-                                </td>
-                                <td className="py-2 px-3 font-data font-semibold">
-                                  Track {grp.relativeOrbit}
-                                </td>
-                                <td className="py-2 px-3 font-data text-text-secondary">
-                                  {grp.beforeCount} scene(s)
-                                </td>
-                                <td className="py-2 px-3 font-data text-text-secondary">
-                                  {grp.afterCount} scene(s)
-                                </td>
-                                <td className="py-2 px-3">
-                                  {grp.usable ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-teal/15 text-teal text-xs font-semibold">
-                                      <Check className="w-3 h-3" /> Ready in both windows
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] bg-surface-2 border border-hairline text-text-secondary text-xs">
-                                      Incomplete (missing window)
-                                    </span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-text-secondary">
-                        Active selection: {selectedTrackPass ? `${selectedTrackPass.pass} Track ${selectedTrackPass.orbit}` : 'None (auto-selection)'}
-                      </span>
-                      {selectedTrackPass && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTrackPass(null)}
-                          className="text-text-secondary hover:text-ink text-xs underline cursor-pointer"
-                        >
-                          Clear orbit constraint
-                        </button>
-                      )}
-                    </div>
+            {/* 5. Script notes */}
+            <div className="space-y-3 border-t border-hairline pt-4">
+              <h4 className="text-sm font-semibold text-ink font-sans">
+                5. Notes on generated Earth Engine script
+              </h4>
+              <div className="p-3 border border-hairline rounded-[2px] bg-surface-2 space-y-2 font-sans text-xs text-text-secondary">
+                {currentPreset?.provenanceNote && (
+                  <div>
+                    <span className="font-semibold text-ink block">Orbit geometry provenance</span>
+                    <p className="leading-relaxed mt-0.5">{currentPreset.provenanceNote}</p>
                   </div>
                 )}
-
-                {asfMode === 'nisar' && asfNisarGranules.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-ink">
-                        Found {asfNisarGranules.length} NISAR acquisition(s):
-                      </span>
-                      <a
-                        href={`https://search.asf.alaska.edu/#/?dataset=NISAR&polygon=${bbox.west},${bbox.south},${bbox.east},${bbox.north}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-accent hover:underline text-xs flex items-center gap-1"
-                      >
-                        Open ASF Vertex <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-
-                    <div className="border border-hairline rounded-[2px] overflow-hidden max-h-48 overflow-y-auto">
-                      <table className="w-full text-xs text-left border-collapse font-data">
-                        <thead>
-                          <tr className="bg-surface-2 border-b border-hairline text-text-secondary font-sans">
-                            <th className="py-1.5 px-3">Scene name</th>
-                            <th className="py-1.5 px-3">Start time</th>
-                            <th className="py-1.5 px-3">Direction</th>
-                            <th className="py-1.5 px-3">Track</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-hairline bg-surface">
-                          {asfNisarGranules.map((g, i) => (
-                            <tr key={i} className="hover:bg-surface-2/60">
-                              <td className="py-1.5 px-3 truncate max-w-xs">{g.sceneName || 'NISAR Granule'}</td>
-                              <td className="py-1.5 px-3 text-text-secondary">{g.startTime?.slice(0, 10) || '—'}</td>
-                              <td className="py-1.5 px-3 font-sans">{g.flightDirection || '—'}</td>
-                              <td className="py-1.5 px-3">{g.pathNumber || '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <span className="font-semibold text-ink block">Window configuration</span>
+                  <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-ink block">Spatial resolution and estimate</span>
+                  <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-ink block">Orbit filtering</span>
+                  <p>The script prints the selected orbit group in the Console and filters both windows to the same relative orbit.</p>
+                </div>
               </div>
-            </details>
-          )}
-        </div>
-      </section>
-
-      {/* ── Card 2: Export the images from Google Earth Engine ── */}
-      <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold font-headline text-ink">
-            2. Export the images from Google Earth Engine
-          </h2>
-          <p className="text-base text-text-secondary mt-1 font-sans leading-relaxed">
-            Generate a Google Earth Engine script to export co-registered Sentinel-1 GeoTIFF pairs. The script enforces single-orbit geometry and optimal spatial resolution for analysis.
-          </p>
-          {asfMode === 'nisar' && (
-            <p className="text-xs text-text-secondary mt-1 font-sans">
-              The Earth Engine export below uses Sentinel-1 data.
-            </p>
-          )}
-        </div>
-
-        {/* Above script: single line metadata */}
-        <div className="text-sm font-sans text-text-secondary truncate">
-          Area: {activeAreaLabel} | Box: {bbox.west}, {bbox.south}, {bbox.east}, {bbox.north} | Before: {dateWindowA.start} to {dateWindowA.end} | After: {dateWindowB.start} to {dateWindowB.end}
-        </div>
-
-        {asfSearched &&
-          !isAsfOutOfDate &&
-          (s1Availability.state === 'no_before' ||
-            s1Availability.state === 'no_after' ||
-            s1Availability.state === 'no_either' ||
-            s1Availability.state === 'no_common_geometry') && (
-            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
-              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-              <span>
-                No matching Sentinel-1 pass was confirmed for both windows; this script remains viewable but may return no images in Earth Engine.
-              </span>
             </div>
-          )}
-
-        {/* Script: textarea or validation error */}
-        {!effectiveDateValidation.valid ? (
-          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{effectiveDateValidation.reason}</span>
-          </div>
-        ) : !validation.valid ? (
-          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{validation.reason}</span>
-          </div>
-        ) : (
-          <div className="relative">
-            <textarea
-              readOnly
-              value={geeScript}
-              rows={14}
-              aria-label="Generated Google Earth Engine script"
-              className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
-            />
           </div>
         )}
-
-        {/* Below script: ONLY three buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleCopyScript}
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
-          >
-            {scriptCopied ? (
-              <>
-                <Check className="w-4 h-4 text-text-on-accent" />
-                <span>Copied to clipboard</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Copy script</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDownloadScript}
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download script</span>
-          </button>
-
-          <a
-            href="https://code.earthengine.google.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-          >
-            <span>Open Earth Engine Code Editor</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </div>
-
-        {/* Collapsed Details Blocks */}
-        <div className="space-y-4">
-          {/* Details 1: Notes on this script */}
-          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
-            <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
-              <span>Notes on this script</span>
-              <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
-            </summary>
-            <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans text-sm text-text-secondary">
-              {currentPreset?.provenanceNote && (
-                <div>
-                  <p className="font-medium text-ink">Orbit geometry provenance</p>
-                  <p className="text-xs text-text-secondary leading-relaxed mt-0.5">
-                    {currentPreset.provenanceNote}
-                  </p>
-                </div>
-              )}
-              <p>Baseline window: {baselineDays} days. Comparison window: {comparisonDays} days.</p>
-              <p>Selected spatial resolution: {scaleInfo.scale} m ({scaleInfo.pixelsX} × {scaleInfo.pixelsY} px, ~{scaleInfo.uncompressedMb} MB uncompressed).</p>
-              <p>The script prints the selected orbit group in the Console and filters both windows to the same relative orbit.</p>
-            </div>
-          </details>
-
-          {/* Details 2: How to run the script */}
-          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
-            <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
-              <span>How to run the script</span>
-              <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
-            </summary>
-            <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans">
-              <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary leading-relaxed">
-                <li>Copy the export script above and open the Google Earth Engine Code Editor.</li>
-                <li>Paste the script into the center editor pane and click <strong>Run</strong>.</li>
-                <li>In the <strong>Tasks</strong> tab in the upper-right pane, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code> to export the GeoTIFFs to Google Drive.</li>
-              </ol>
-              <div className="pt-2">
-                <Link
-                  href="/how-it-works#earth-engine-export"
-                  className="text-teal hover:underline text-sm font-medium inline-flex items-center gap-1"
-                >
-                  <span>Full guide</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          </details>
-        </div>
       </section>
     </div>
   );

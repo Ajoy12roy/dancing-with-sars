@@ -348,12 +348,12 @@ function ExploreContent() {
   const displayTitle =
     activeTab === 'demo'
       ? currentCaseStudy?.title || activeDemoAoi?.name || 'Precomputed Case Studies'
-      : 'Custom SAR Analysis';
+      : 'Custom analysis';
 
   const displayDescription =
     activeTab === 'demo'
       ? currentCaseStudy?.description || currentCaseStudy?.summary || activeDemoAoi?.description || 'Sentinel-1 radar backscatter variation analysis'
-      : 'Upload co-registered Before and After SAR GeoTIFF imagery to detect ground surface change.';
+      : 'Pick an area on the map to generate an Earth Engine export script, or upload your own co-registered GeoTIFFs to run change detection.';
 
   return (
     <div className="min-h-screen bg-paper text-ink p-4 sm:p-6">
@@ -493,10 +493,9 @@ function ExploreContent() {
                 onPresetChange={(presetId) => {
                   handleAoiSelect(presetId);
                 }}
-              />
-
-              {/* ── Card 3: Upload and analyse ── */}
-              <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
+              >
+                {/* ── Card 3: Upload and analyse ── */}
+                <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-semibold font-headline text-ink">
@@ -618,8 +617,9 @@ function ExploreContent() {
                   </p>
                 </div>
               </section>
-            </div>
-          )}
+            </AoiMapPicker>
+          </div>
+        )}
 
           {/* ── Demo Loading / Error States ── */}
           {activeTab === 'demo' && demoLoading && (
