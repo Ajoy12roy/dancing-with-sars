@@ -205,6 +205,17 @@
   --tp-btn-accent: #2C5C61;
   --tp-btn-on-accent: #F1F0EC;
   --tp-btn-bg: #F1F0EC;
+
+  /* Home Page Accent & Tone Tokens */
+  --home-accent-green: #1B6E3E;
+  --home-accent-blue: #0B5C9E;
+  --home-accent-orange: #A84D05;
+  --home-accent-warn: #A8462E;
+  --home-badge-green-bg: #E2F0E7;
+  --home-badge-blue-bg: #E1EEF8;
+  --home-badge-orange-bg: #F8EFE4;
+  --home-card-bg: var(--color-surface);
+  --home-card-border: var(--color-border);
 }
 
 :root[data-theme="dark"] {
@@ -298,6 +309,17 @@
   --tp-btn-accent: #19E66F;
   --tp-btn-on-accent: #090B11;
   --tp-btn-bg: #090C12;
+
+  /* Home Page Accent & Tone Tokens */
+  --home-accent-green: #19E66F;
+  --home-accent-blue: #4DA3FF;
+  --home-accent-orange: #FFB020;
+  --home-accent-warn: #FF5A47;
+  --home-badge-green-bg: #102B1B;
+  --home-badge-blue-bg: #11283F;
+  --home-badge-orange-bg: #352512;
+  --home-card-bg: var(--color-surface);
+  --home-card-border: var(--color-border);
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────── */
@@ -745,5 +767,137 @@ html[data-theme="dark"] .tp-tone-auto .tp-wm-light,
 [data-theme="dark"] .tp-tone-auto .tp-wm-light {
   display: none;
 }
+
+/* ========================================================================
+   Home Page Redesign Classes (Step 3)
+   ======================================================================== */
+
+.home-section {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.home-heading-accent {
+  color: var(--color-teal);
+}
+
+.home-card {
+  border: 1px solid var(--home-card-border);
+  border-radius: 8px;
+  background-color: var(--home-card-bg);
+  padding: 1.25rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.home-card:hover {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-teal) 22%, transparent);
+}
+
+.home-card-warn {
+  border: 1px solid var(--home-card-border);
+  border-radius: 8px;
+  background-color: var(--home-card-bg);
+  padding: 1.25rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.home-card-warn:hover {
+  border-color: var(--home-accent-warn);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--home-accent-warn) 22%, transparent);
+}
+
+.home-card-ok {
+  border: 1px solid var(--home-card-border);
+  border-radius: 8px;
+  background-color: var(--home-card-bg);
+  padding: 1.25rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.home-card-ok:hover {
+  border-color: var(--home-accent-green);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--home-accent-green) 22%, transparent);
+}
+
+.home-card-green:hover {
+  border-color: var(--home-accent-green);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--home-accent-green) 22%, transparent);
+}
+
+.home-card-blue:hover {
+  border-color: var(--home-accent-blue);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--home-accent-blue) 22%, transparent);
+}
+
+.home-card-orange:hover {
+  border-color: var(--home-accent-orange);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--home-accent-orange) 22%, transparent);
+}
+
+.home-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  line-height: 1.25;
+}
+
+.home-badge-green {
+  background-color: var(--home-badge-green-bg);
+  color: var(--home-accent-green);
+  border: 1px solid color-mix(in srgb, var(--home-accent-green) 35%, transparent);
+}
+
+.home-badge-blue {
+  background-color: var(--home-badge-blue-bg);
+  color: var(--home-accent-blue);
+  border: 1px solid color-mix(in srgb, var(--home-accent-blue) 35%, transparent);
+}
+
+.home-badge-orange {
+  background-color: var(--home-badge-orange-bg);
+  color: var(--home-accent-orange);
+  border: 1px solid color-mix(in srgb, var(--home-accent-orange) 35%, transparent);
+}
+
+.home-metric {
+  border: 1px solid var(--home-card-border);
+  border-radius: 8px;
+  background-color: var(--home-card-bg);
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.home-metric:hover {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-teal) 22%, transparent);
+}
+
+.home-metric-number {
+  font-family: var(--font-data);
+  font-size: clamp(1.875rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-ink);
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-card,
+  .home-card-warn,
+  .home-card-ok,
+  .home-metric {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
 
 
