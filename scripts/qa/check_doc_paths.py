@@ -17,6 +17,7 @@ DOC_FILES = [
     REPO_ROOT / "docs" / "CLAIMS-AUDIT.md",
     REPO_ROOT / "docs" / "SUBMISSION.md",
     REPO_ROOT / "docs" / "DEMO-SCRIPT.md",
+    REPO_ROOT / "docs" / "PRESET-AUDIT.md",
 ]
 
 EXTENSIONS = {

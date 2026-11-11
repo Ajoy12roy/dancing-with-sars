@@ -6,6 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { Plus, Minus } from 'lucide-react';
+import { useNetworkMode } from '@/context';
 
 // Ensure all default marker assets and layer controls resolve locally, not from unpkg or any CDN
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
@@ -479,12 +480,12 @@ export default function MapComponent({
   const center: [number, number] = [(south + north) / 2, (west + east) / 2];
 
   // Default to radar mode if offline
-  const isClientOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
-  const [internalMode, setInternalMode] = useState<BasemapMode>(() => (isClientOffline ? 'radar' : 'street'));
-  const basemapMode = propBasemapMode !== undefined ? propBasemapMode : internalMode;
+  const { effectiveOffline } = useNetworkMode();
+  const [internalMode, setInternalMode] = useState<BasemapMode>(() => (effectiveOffline ? 'radar' : 'street'));
+  const basemapMode = effectiveOffline ? 'radar' : (propBasemapMode !== undefined ? propBasemapMode : internalMode);
 
-  const [internalOfflineNotice, setInternalOfflineNotice] = useState(isClientOffline);
-  const showOfflineNotice = propShowOfflineNotice !== undefined ? propShowOfflineNotice : internalOfflineNotice;
+  const [internalOfflineNotice, setInternalOfflineNotice] = useState(effectiveOffline);
+  const showOfflineNotice = effectiveOffline || (propShowOfflineNotice !== undefined ? propShowOfflineNotice : internalOfflineNotice);
 
   const tileErrorsRef = useRef<number[]>([]);
 

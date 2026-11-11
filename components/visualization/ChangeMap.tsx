@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { ChangeData } from '@/hooks/useChangeData';
 import { AreaOfInterest } from '@/types';
-import { useAnalysisMode } from '@/context';
+import { useAnalysisMode, useNetworkMode } from '@/context';
 import type { BasemapMode } from './MapComponent';
 import { DataPanel } from '@/components/ui/DataPanel';
 
@@ -26,33 +26,34 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 
 export function ChangeMap({ data, aoi }: ChangeMapProps) {
   const { mode: contextMode, modeInfo } = useAnalysisMode();
+  const { effectiveOffline } = useNetworkMode();
   const activeMode = data?.mode || aoi?.mode || contextMode;
 
-  const isClientOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
-  const [basemapMode, setBasemapMode] = useState<BasemapMode>(() => (isClientOffline ? 'radar' : 'street'));
-  const [showOfflineNotice, setShowOfflineNotice] = useState(isClientOffline);
+  const [userBasemapMode, setUserBasemapMode] = useState<BasemapMode>('street');
+  const basemapMode: BasemapMode = effectiveOffline ? 'radar' : userBasemapMode;
+  const [offlineNoticeRequested, setOfflineNoticeRequested] = useState(false);
+  const showOfflineNotice = effectiveOffline || offlineNoticeRequested;
 
   const handleAutoSwitchOffline = useCallback(() => {
-    setBasemapMode('radar');
-    setShowOfflineNotice(true);
+    setUserBasemapMode('radar');
+    setOfflineNoticeRequested(true);
   }, []);
 
   const handleManualModeChange = (mode: BasemapMode) => {
-    setBasemapMode(mode);
+    if (mode === 'street' && effectiveOffline) {
+      return;
+    }
+    setUserBasemapMode(mode);
     if (mode === 'street') {
-      setShowOfflineNotice(false);
+      setOfflineNoticeRequested(false);
     } else {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        setShowOfflineNotice(true);
-      } else {
-        setShowOfflineNotice(false);
-      }
+      setOfflineNoticeRequested(effectiveOffline);
     }
   };
 
   useEffect(() => {
     const handleOnline = () => {
-      setShowOfflineNotice(false);
+      setOfflineNoticeRequested(false);
     };
     const handleOffline = () => {
       handleAutoSwitchOffline();
@@ -119,13 +120,17 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
             <button
               id="changemap-basemap-street"
               type="button"
+              disabled={effectiveOffline}
               onClick={() => handleManualModeChange('street')}
-              className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors cursor-pointer ${
-                basemapMode === 'street'
-                  ? 'bg-surface text-ink font-semibold border border-hairline'
-                  : 'text-text-secondary hover:text-ink border border-transparent'
+              className={`px-2.5 py-1 text-xs rounded-sm font-sans transition-colors ${
+                effectiveOffline
+                  ? 'opacity-40 cursor-not-allowed text-text-secondary border border-transparent'
+                  : basemapMode === 'street'
+                  ? 'bg-surface text-ink font-semibold border border-hairline cursor-pointer'
+                  : 'text-text-secondary hover:text-ink border border-transparent cursor-pointer'
               }`}
               aria-pressed={basemapMode === 'street'}
+              title={effectiveOffline ? 'Street map requires a network connection.' : undefined}
             >
               Street map
             </button>
@@ -149,7 +154,7 @@ export function ChangeMap({ data, aoi }: ChangeMapProps) {
             aoiId={data.aoiId || aoi?.id}
             opacity={0.85}
             basemapMode={basemapMode}
-            onBasemapModeChange={setBasemapMode}
+            onBasemapModeChange={handleManualModeChange}
             showOfflineNotice={showOfflineNotice}
             onAutoSwitchOffline={handleAutoSwitchOffline}
             scrollZoom={false}

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
+import { shouldProbeService } from '@/lib/service-probe';
 import BeforeAfterViewer from '@/components/visualization/BeforeAfterViewer';
 import StatsPanel from '@/components/visualization/StatsPanel';
 import CategoryBreakdownChart from '@/components/visualization/CategoryBreakdownChart';
@@ -25,6 +27,15 @@ import {
 } from '@/lib/case-studies';
 import { getSensitivityForCase } from '@/lib/sensitivity';
 import type { AreaOfInterest, AnalysisMode } from '@/types';
+
+const AoiMapPicker = dynamic(() => import('@/components/explore/AoiMapPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full p-6 text-center text-xs font-data text-text-secondary border border-hairline bg-surface-2 rounded-[2px]">
+      Loading Area Picker & Map...
+    </div>
+  ),
+});
 
 function parseModeParam(param: string | null): AnalysisMode | null {
   if (!param) return null;
@@ -100,12 +111,19 @@ function ExploreContent() {
     pingHealth,
   } = useUploadChangeData();
 
-  // Ping /health once when upload panel becomes visible
+  const isConnectedDeployment = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return Boolean(apiUrl);
+    }
+    return shouldProbeService(window.location.hostname, apiUrl);
+  }, [apiUrl]);
+
+  // Ping /health at most once when upload panel becomes visible, only if probe is allowed
   useEffect(() => {
-    if (activeTab === 'upload' && apiUrl && serverStatus === 'idle') {
+    if (activeTab === 'upload' && isConnectedDeployment && serverStatus === 'idle') {
       pingHealth();
     }
-  }, [activeTab, apiUrl, serverStatus, pingHealth]);
+  }, [activeTab, isConnectedDeployment, serverStatus, pingHealth]);
 
   const handleResetUpload = () => {
     setBeforeFile(null);
@@ -343,7 +361,7 @@ function ExploreContent() {
           {/* ── Row 1: Centered Case Study Title and Description (12 cols) ── */}
           <div className="col-span-12 text-center space-y-2 pb-2">
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-headline font-semibold text-text-primary">
                 {displayTitle}
               </h1>
               {activeTab === 'demo' && (displayData?.sensitivity || currentCaseStudy?.sensitivity) && (
@@ -353,14 +371,6 @@ function ExploreContent() {
             <p className="text-text-secondary text-sm sm:text-base max-w-3xl mx-auto font-sans leading-relaxed">
               {displayDescription}
             </p>
-            <details className="text-xs text-text-secondary max-w-2xl mx-auto group">
-              <summary className="font-data text-[11px] text-teal hover:text-ink cursor-pointer select-none py-1 focus:outline-none focus-visible:underline">
-                Technical details
-              </summary>
-              <div className="pt-1.5 border-t border-hairline/60 text-[11px] text-text-secondary font-sans leading-relaxed text-left">
-                Processes Sentinel-1 C-band Synthetic Aperture Radar rasters using calibrated decibel thresholding, spatial filtering, and multi-threshold sensitivity sweeps. All calculated metrics and classifications are deterministic.
-              </div>
-            </details>
           </div>
 
           {/* ── Row 2: Two-Sided Controls (Left: Quick Demo & Upload, Right: Case Study Selector) ── */}
@@ -404,31 +414,40 @@ function ExploreContent() {
                   </button>
                 )}
 
-                {/* Server Status indicator (when in Upload mode and API URL configured) */}
-                {activeTab === 'upload' && apiUrl && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-data">
-                    {serverStatus === 'ready' && (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
-                        <span className="text-teal font-medium">Server ready</span>
-                      </>
-                    )}
-                    {serverStatus === 'waking' && (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rust animate-pulse shrink-0" />
-                        <span className="text-text-secondary">Server waking up</span>
-                      </>
-                    )}
-                    {serverStatus === 'offline' && (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
-                        <span className="text-rust">Server offline</span>
-                      </>
-                    )}
-                    {serverStatus === 'idle' && (
+                {/* Server Status indicator (when in Upload mode) */}
+                {activeTab === 'upload' && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-hairline rounded-[2px] bg-surface-2 text-xs font-sans">
+                    {!isConnectedDeployment ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
-                        <span className="text-text-secondary">Connecting...</span>
+                        <span className="text-text-secondary">Service not enabled</span>
+                      </>
+                    ) : serverStatus === 'ready' ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal shrink-0" />
+                        <span className="text-teal font-medium">Connected</span>
+                      </>
+                    ) : serverStatus === 'waking' || serverStatus === 'idle' ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-hairline animate-pulse shrink-0" />
+                        <span className="text-text-secondary">Checking</span>
+                      </>
+                    ) : serverStatus === 'offline' ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rust shrink-0" />
+                        <span className="text-text-secondary">Offline</span>
+                        <button
+                          type="button"
+                          onClick={() => pingHealth()}
+                          className="ml-1 text-ink underline hover:text-accent font-medium cursor-pointer"
+                        >
+                          Retry
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-hairline shrink-0" />
+                        <span className="text-text-secondary">Checking</span>
                       </>
                     )}
                   </div>
@@ -445,9 +464,6 @@ function ExploreContent() {
                   value={selectedAoi}
                   onChange={(e) => {
                     handleAoiSelect(e.target.value);
-                    if (activeTab !== 'demo') {
-                      setActiveTab('demo');
-                    }
                   }}
                   className="bg-surface border border-hairline text-ink rounded-[2px] py-1.5 px-3 text-xs font-data focus:outline-none focus:border-accent cursor-pointer flex-1 sm:flex-initial max-w-full sm:max-w-xs md:max-w-md truncate"
                 >
@@ -460,30 +476,6 @@ function ExploreContent() {
               </div>
             </div>
           </div>
-
-          {/* ── Notice when Live Processing API URL is not configured ── */}
-          {activeTab === 'upload' && !apiUrl && (
-            <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rust" />
-                <h2 className="text-base font-bold font-headline text-ink">
-                  Live Processing Not Configured
-                </h2>
-              </div>
-              <p className="text-text-secondary text-sm font-sans">
-                Live processing is not configured; precomputed areas still work.
-              </p>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('demo')}
-                  className="px-4 py-2 text-xs font-semibold bg-accent text-text-on-accent rounded-[2px] border border-accent hover:bg-accent-hover transition-colors cursor-pointer"
-                >
-                  View Precomputed Case Studies
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* ── Upload Mode Form / Progress States ── */}
           {activeTab === 'upload' && uploadError && (
@@ -517,114 +509,135 @@ function ExploreContent() {
             </div>
           )}
 
-          {activeTab === 'upload' && apiUrl && !uploadLoading && !uploadData && (
-            <div className="col-span-12 border border-hairline bg-surface p-6 rounded-[2px] space-y-6">
-              <div>
-                <h2 className="text-xl font-bold font-headline text-ink">
-                  Upload SAR GeoTIFF Files
-                </h2>
-                <p className="text-text-secondary text-sm mt-1 font-sans">
-                  Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
-                </p>
-              </div>
+          {activeTab === 'upload' && !uploadLoading && !uploadData && (
+            <div className="col-span-12 space-y-6">
+              {/* Area Picker & Earth Engine Export Script Generator (Card 1 and Card 2) */}
+              <AoiMapPicker
+                onSelectCaseStudy={(caseId) => {
+                  setActiveTab('demo');
+                  handleAoiSelect(caseId);
+                }}
+                selectedCaseId={selectedAoi}
+                onPresetChange={(presetId) => {
+                  handleAoiSelect(presetId);
+                }}
+              />
 
-              {/* Analysis Configuration Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
+              {/* ── Card 3: Upload and analyse ── */}
+              <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
                 <div>
-                  <label htmlFor="upload-mode-select" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
-                    Analysis type
-                  </label>
-                  <select
-                    id="upload-mode-select"
-                    value={mode}
-                    onChange={(e) => handleModeSelect(e.target.value as AnalysisMode)}
-                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm focus:outline-none focus:border-accent cursor-pointer"
-                  >
-                    <option value="flood">Flood</option>
-                    <option value="river-erosion">River erosion</option>
-                    <option value="deforestation">Deforestation</option>
-                    <option value="surface-water">Surface water</option>
-                  </select>
+                  <h2 className="text-xl font-semibold font-headline text-ink">
+                    3. Upload and analyse
+                  </h2>
+                  <p className="text-text-secondary text-base mt-1 font-sans leading-relaxed">
+                    Upload co-registered Before and After SAR imagery (.tif or .tiff, up to 60 MB each) to compute radar backscatter changes.
+                  </p>
                 </div>
-                <div>
-                  <label htmlFor="upload-date-a" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
-                    Before date (optional)
-                  </label>
-                  <input
-                    type="date"
-                    id="upload-date-a"
-                    value={uploadDateA}
-                    onChange={(e) => setUploadDateA(e.target.value)}
-                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
+
+                {!isConnectedDeployment && (
+                  <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-sm text-text-secondary font-sans" role="status">
+                    Live analysis of your own files is not enabled on this deployment.
+                  </div>
+                )}
+
+                {/* Analysis Configuration Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-hairline bg-surface-2 p-4 rounded-[2px]">
+                  <div>
+                    <label htmlFor="upload-mode-select" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
+                      Analysis type
+                    </label>
+                    <select
+                      id="upload-mode-select"
+                      value={mode}
+                      onChange={(e) => handleModeSelect(e.target.value as AnalysisMode)}
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-base min-h-[44px] focus:outline-none focus:border-accent cursor-pointer"
+                    >
+                      <option value="flood">Flood</option>
+                      <option value="river-erosion">River erosion</option>
+                      <option value="deforestation">Deforestation</option>
+                      <option value="surface-water">Surface water</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="upload-date-a" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
+                      Before date (optional)
+                    </label>
+                    <input
+                      type="date"
+                      id="upload-date-a"
+                      value={uploadDateA}
+                      onChange={(e) => setUploadDateA(e.target.value)}
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-base min-h-[44px] font-data focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="upload-date-b" className="block text-sm font-medium text-text-secondary mb-1 font-sans">
+                      After date (optional)
+                    </label>
+                    <input
+                      type="date"
+                      id="upload-date-b"
+                      value={uploadDateB}
+                      onChange={(e) => setUploadDateB(e.target.value)}
+                      className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-base min-h-[44px] font-data focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+
+                {/* File Drop Zones */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FileDropZone
+                    label="Before image (.tif / .tiff, max 60 MB)"
+                    file={beforeFile}
+                    onFileSelect={(f) => setBeforeFile(f)}
+                    onFileRemove={() => setBeforeFile(null)}
+                    disabled={uploadLoading || sampleLoading}
+                  />
+                  <FileDropZone
+                    label="After image (.tif / .tiff, max 60 MB)"
+                    file={afterFile}
+                    onFileSelect={(f) => setAfterFile(f)}
+                    onFileRemove={() => setAfterFile(null)}
+                    disabled={uploadLoading || sampleLoading}
                   />
                 </div>
-                <div>
-                  <label htmlFor="upload-date-b" className="block text-xs font-medium text-text-secondary mb-1 font-sans">
-                    After date (optional)
-                  </label>
-                  <input
-                    type="date"
-                    id="upload-date-b"
-                    value={uploadDateB}
-                    onChange={(e) => setUploadDateB(e.target.value)}
-                    className="w-full bg-surface border border-hairline text-ink rounded-[2px] py-2 px-3 text-sm font-data focus:outline-none focus:border-accent"
-                  />
-                </div>
-              </div>
 
-              {/* File Drop Zones */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FileDropZone
-                  label="Before image (.tif / .tiff, max 60 MB)"
-                  file={beforeFile}
-                  onFileSelect={(f) => setBeforeFile(f)}
-                  onFileRemove={() => setBeforeFile(null)}
-                  disabled={uploadLoading || sampleLoading}
-                />
-                <FileDropZone
-                  label="After image (.tif / .tiff, max 60 MB)"
-                  file={afterFile}
-                  onFileSelect={(f) => setAfterFile(f)}
-                  onFileRemove={() => setAfterFile(null)}
-                  disabled={uploadLoading || sampleLoading}
-                />
-              </div>
+                {/* Sample buttons & Submit Action */}
+                <div className="pt-4 border-t border-hairline space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadSampleFiles}
+                        className="min-h-[44px] px-4 py-2 text-sm font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface"
+                      >
+                        Download sample files
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleTryWithSampleFiles}
+                        disabled={!isConnectedDeployment || uploadLoading || sampleLoading}
+                        className="min-h-[44px] px-4 py-2 text-sm font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
+                      </button>
+                    </div>
 
-              {/* Sample buttons & Submit Action */}
-              <div className="pt-4 border-t border-hairline space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={handleDownloadSampleFiles}
-                      className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface"
+                      disabled={!isConnectedDeployment || !beforeFile || !afterFile || uploadLoading || sampleLoading}
+                      onClick={handleAnalyze}
+                      className="min-h-[44px] bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
                     >
-                      Download sample files
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleTryWithSampleFiles}
-                      disabled={uploadLoading || sampleLoading}
-                      className="px-3 py-1.5 text-xs font-medium border border-hairline text-teal hover:border-teal rounded-[2px] transition-colors cursor-pointer bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {sampleLoading ? 'Loading samples...' : 'Try with sample files'}
+                      Analyse
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={!beforeFile || !afterFile || uploadLoading || sampleLoading}
-                    onClick={handleAnalyze}
-                    className="bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer"
-                  >
-                    Analyze
-                  </button>
+                  <p className="text-sm text-text-secondary font-sans">
+                    Use clipped GeoTIFFs (about 10–20 km wide, both dates on the same grid). Full raw Sentinel-1 scenes are too large.
+                  </p>
                 </div>
-
-                <p className="text-xs text-text-secondary font-sans">
-                  Use clipped GeoTIFFs (about 10-20 km wide, both dates on the same grid). Full raw Sentinel-1 scenes are too large.
-                </p>
-              </div>
+              </section>
             </div>
           )}
 
@@ -848,7 +861,7 @@ export default function ExplorePage() {
     <Suspense
       fallback={
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse space-y-4">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-headline text-ink tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-headline font-semibold text-text-primary">
             Explore SAR Observations
           </h1>
           <div className="h-8 bg-surface-2 border border-hairline w-64 rounded-[2px]" />

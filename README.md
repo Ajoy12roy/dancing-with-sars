@@ -160,6 +160,30 @@ A count-conserving demographic exposure overlay combining Sentinel-1 radar chang
 
 ---
 
+## Area Picker & Earth Engine Script Generator (Optional Custom Workflow)
+
+To enable users to analyze custom geographic areas beyond the 10 precomputed benchmarks, TerraPulse provides an optional interactive workflow on [`/explore`](http://localhost:3000/explore):
+
+1. **Interactive AOI Selection**:
+   - Leaflet map view with click-to-recenter and bounding box visualization.
+   - Constrained to 2–30 km side lengths and a maximum area of $900\text{ km}^2$ to guarantee that exported rasters remain within the memory and performance envelopes of the local processing engine.
+   - Fully keyboard-accessible numeric coordinate inputs (North, South, East, West) with $\pm 0.01^\circ$ precision nudge buttons, $10\%$ directional shifts, and proportional scale controls.
+2. **Instant Offline Presets & Geocoding**:
+   - Five one-click presets (Sylhet Flood, Tanguar Haor, Jamuna River, Padma-Naria Bank Erosion, and Western Siberia Wildfire) pre-fill valid coordinates, dates, and orbit tracks for immediate testing with zero network connectivity.
+   - Search bar backed by OpenStreetMap Nominatim (`/api/geocode`) with rate limiting ($\le 1\text{ req/sec}$) and explicit attribution (`© OpenStreetMap contributors`).
+3. **Satellite Pass Finder (ASF Search API)**:
+   - Queries Alaska Satellite Facility DAAC archives via `/api/asf-search` for Sentinel-1 GRD IW and NISAR L-band granules covering both before and after windows.
+   - Groups acquisitions by orbital flight direction (`ASCENDING` / `DESCENDING`) and relative orbit track number, highlighting valid geometry pairs that prevent false positive changes caused by differing look angles.
+4. **Parameterized Earth Engine Script Generator**:
+   - Generates a ready-to-run Google Earth Engine (GEE) JavaScript export script matching [`scripts/gee/export_sylhet.js`](scripts/gee/export_sylhet.js).
+   - Dynamically calculates the optimal spatial resolution (multiple of 10 m keeping raster dimensions $\le 1500\text{ px}$) to prevent memory exhaustion and keep raw GeoTIFF sizes near 10–20 MB (well under the 60 MB uploader ceiling).
+   - Enforces single-geometry rules (`PASS` and `ORBIT`), clips to the exact AOI polygon, and exports co-registered `image_a` and `image_b` GeoTIFFs to Google Drive.
+5. **Boundaries & Future Work**:
+   - *Boundaries*: Earth Engine execution requires the user's own Google Earth Engine account; exported GeoTIFFs must be downloaded from Google Drive and uploaded into TerraPulse for local change detection.
+   - *Future Work*: Direct Earth Engine API OAuth integration for automated server-side export orchestration, and Cloud-Optimized GeoTIFF (COG) streaming via STAC catalogs.
+
+---
+
 ## AI Usage Disclosure
 
 TerraPulse maintains complete transparency regarding the use of Artificial Intelligence:
@@ -335,7 +359,7 @@ The web application is engineered for zero-dependency offline resilience during 
 
 ## Accessibility
 
-TerraPulse was built following WCAG 2.2 AA guidelines to ensure radar observations and hazard insights are accessible to everyone:
+WCAG 2.2 AA is a design target; no formal accessibility audit has been done.
 - **Live Screen Reader Announcer**: An app-wide announcer (`aria-live="polite"` and `aria-live="assertive"`) vocalizes critical state transitions—such as case study selection, analysis progress and completion, upload validation errors, and AI interpretation updates—without requiring visual monitoring.
 - **Keyboard Navigation & High-Contrast Outlines**: Every interactive element, tab, case chip, and slider is reachable via Tab/Shift+Tab and activatable with Space/Enter. Focus indicators use high-contrast solid outlines (`outline: 2px solid var(--color-accent)`) rather than diffuse shadows, complying with DESIGN_SYSTEM.md tokens. A "Skip to main content" link is the first focusable element on every page.
 - **Operable Comparison Slider**: The before/after split slider is fully operable by keyboard (`role="slider"`, ArrowLeft/ArrowDown to decrease, ArrowRight/ArrowUp to increase, Home for 0%, End for 100%).
@@ -352,7 +376,7 @@ TerraPulse features an interactive character guide, **Chiku**, mounted across ke
 - **Explain This View & Full/Short Narration**: A dedicated **Explain this view** button in the guide panel provides an on-demand vocal breakdown of the currently selected case or active page orientation. Users can choose between **Full Narration** (headline area, honest threshold setting disclaimer, tested perturbation range, mathematical sensitivity class, radar filtering methodology, and data-derived reliability notes) and **Short Narration** (headline plus sensitivity class).
 - **Threshold Default Disclaimer**: Full narration explicitly communicates algorithmic honesty: *"The headline result uses a <label> of <centre>: <meaning>. This is a fixed default setting, not a value proven to be the best."* It never claims an arbitrary threshold is "best" or "validated".
 - **Immediate Stop Control**: A visible **Stop** button in the header bar allows users to halt any ongoing speech immediately.
-- **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), generating audio locally on your device with zero cloud API latency, zero external network calls, and no model generation (scripts are pure deterministic functions).
+- **Browser Speech Synthesis**: Voice narration utilizes the native Web Speech API (`window.speechSynthesis`), with priority for installed local English voices (availability offline depends on the voices installed on the device), zero cloud API latency, zero external network calls, and no model generation (scripts are pure deterministic functions).
 - **Off by Default & Gesture Activation**: Voice narration is strictly **OFF by default** to preserve accessibility etiquette and respect quiet environments. Modern browsers block speech synthesis until an explicit user gesture occurs; speech starts only after pressing **Voice on**, **Test voice**, or **Explain this view**. For returning users with voice saved as enabled in `localStorage`, speech unlocks on the first click or keypress.
 - **Status Line & Test Voice Button**: The Chiku panel features an in-panel plain-text status line (`Voice off`, `Voice ready (<voice name>)`, `Speaking...`, `Blocked by browser: press Voice on`, `No voice found on this device`, `Voice error: <error>`), alongside a **Test voice** button to verify playback immediately.
 - **Diagnostic Debug Panel**: Enabling `localStorage.setItem('chikuDebug', '1')` activates a real-time debug panel attached to Chiku, recording the last 12 events, priority rankings, scheduling decisions (spoken, queued, replaced, discarded-stale), selected voices, and speech synthesis states.

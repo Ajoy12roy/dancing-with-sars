@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import type { ChangeData } from './useChangeData';
+import { shouldProbeService } from '@/lib/service-probe';
 
 export interface UploadAnalyzeOptions {
   mode?: string;
@@ -46,30 +47,37 @@ export function useUploadChangeData(): UseUploadChangeDataReturn {
   const apiUrl = (process.env.NEXT_PUBLIC_PROCESSING_API_URL || '').trim().replace(/\/+$/, '');
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Non-blocking ping to wake the server
+  // Single non-blocking health request when upload panel opens or user triggers check
   const pingHealth = useCallback(async () => {
-    if (!apiUrl) {
-      setServerStatus('offline');
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (!shouldProbeService(hostname, apiUrl)) {
+        setServerStatus('idle');
+        return;
+      }
+    } else if (!apiUrl) {
+      setServerStatus('idle');
       return;
     }
+
     setServerStatus('waking');
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 90000); // 90 seconds timeout
+    const perAttemptTimeout = setTimeout(() => controller.abort(), 8000);
 
     try {
       const response = await fetch(`${apiUrl}/health`, {
         method: 'GET',
         signal: controller.signal,
       });
+      clearTimeout(perAttemptTimeout);
       if (response.ok) {
         setServerStatus('ready');
       } else {
         setServerStatus('offline');
       }
     } catch {
+      clearTimeout(perAttemptTimeout);
       setServerStatus('offline');
-    } finally {
-      clearTimeout(timeout);
     }
   }, [apiUrl]);
 

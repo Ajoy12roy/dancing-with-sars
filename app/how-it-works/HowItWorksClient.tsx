@@ -636,7 +636,7 @@ export function HowItWorksClient() {
             </h2>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed mb-6">
-            TerraPulse was built following WCAG 2.2 AA guidelines so that satellite radar observations and scientific analysis remain operable and understandable for all researchers, responders, and citizens:
+            WCAG 2.2 AA is a design target; no formal accessibility audit has been done.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-text-secondary">
             <div className="space-y-2">
@@ -849,6 +849,86 @@ export function HowItWorksClient() {
                     Surface classifications reflect radar backscatter relative to a threshold and have not been compared with ground observations. No result is claimed as validated unless explicitly cross-referenced with a published reference dataset.
                   </p>
                 </div>
+              </div>
+            </div>
+          </GraticuleFrame>
+        </section>
+
+        {/* Google Earth Engine Export Guide */}
+        <section id="earth-engine-export">
+          <GraticuleFrame>
+            <div className="p-6 md:p-8 bg-surface rounded-[2px] space-y-6">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-block w-2 h-2 rounded-none bg-teal" />
+                <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
+                  Google Earth Engine Export Guide
+                </h2>
+              </div>
+              <p className="text-sm md:text-base text-text-secondary leading-relaxed">
+                TerraPulse generates reproducible Google Earth Engine export scripts to extract co-registered Sentinel-1 radar pairs. This guide explains the orbit geometry requirements, seasonal comparability guidelines, export scale calculation, and execution procedure.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="border border-hairline p-5 rounded-[2px] bg-surface-2 space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    1. Single Orbit Geometry Requirement
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    Synthetic Aperture Radar is a side-looking instrument. Topographic features, buildings, and tree canopies create geometric parallax including foreshortening, layover, and radar shadows. Comparing scenes from mixed flight directions (such as ascending versus descending passes) or different relative orbit tracks causes false apparent backscatter changes. TerraPulse enforces single-orbit geometry for both baseline and comparison windows to guarantee identical incidence angles and viewing geometry.
+                  </p>
+                </div>
+
+                <div className="border border-hairline p-5 rounded-[2px] bg-surface-2 space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    2. Seasonal Window Comparability
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    Radar backscatter responds strongly to dielectric constant shifts caused by soil moisture, standing water, and vegetation biomass. In agricultural and wetland areas, crop growth cycles and dry-season moisture differences can mimic surface changes. For riverbank erosion or forest monitoring, select date windows from the same calendar months across different years to isolate structural changes from seasonal phenology.
+                  </p>
+                </div>
+
+                <div className="border border-hairline p-5 rounded-[2px] bg-surface-2 space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    3. Scale Selection &amp; Pixel Budget
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    Export scale is computed dynamically using the smallest multiple of 10 meters such that the largest dimension does not exceed 1,500 pixels. This keeps exported GeoTIFF pairs within 10 to 20 MB, preventing memory exhaustion and ensuring rapid deterministic execution in the analysis service.
+                  </p>
+                </div>
+
+                <div className="border border-hairline p-5 rounded-[2px] bg-surface-2 space-y-2">
+                  <h3 className="font-headline font-semibold text-base text-text-primary">
+                    4. Execution Steps in Google Earth Engine
+                  </h3>
+                  <ol className="list-decimal pl-5 text-sm text-text-secondary space-y-1.5 leading-relaxed">
+                    <li>Copy the generated script from the Area Picker export card.</li>
+                    <li>Open the Google Earth Engine Code Editor (code.earthengine.google.com).</li>
+                    <li>Paste the script into the center editor pane and click Run.</li>
+                    <li>Inspect the rendered layers on the interactive map to verify geometry.</li>
+                    <li>Navigate to the Tasks tab in the upper-right pane.</li>
+                    <li>Click Run next to each export task to save image_a and image_b to Google Drive.</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Subsection: Run the analysis service locally */}
+              <div className="border-t border-hairline pt-6 space-y-3">
+                <h3 className="font-headline font-semibold text-lg text-text-primary">
+                  Run the analysis service locally
+                </h3>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  To analyse custom GeoTIFF pairs locally on your machine, start the FastAPI companion service from the repository:
+                </p>
+                <div className="bg-surface-2 border border-hairline p-4 rounded-[2px] font-data text-xs text-ink space-y-2">
+                  <p className="text-text-secondary"># 1. Install prerequisites (Python 3.10+):</p>
+                  <p className="text-teal font-semibold">cd python-service</p>
+                  <p className="text-teal font-semibold">pip install -r requirements.txt</p>
+                  <p className="text-text-secondary mt-2"># 2. Start the local analysis server on port 8000:</p>
+                  <p className="text-teal font-semibold">uvicorn api:app --reload --port 8000</p>
+                </div>
+                <p className="text-xs text-text-secondary font-sans">
+                  The web application connects to <code className="font-data text-ink">http://localhost:8000</code> to process uploaded GeoTIFF files and stream real-time metrics.
+                </p>
               </div>
             </div>
           </GraticuleFrame>

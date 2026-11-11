@@ -9,7 +9,7 @@ import localFont from 'next/font/local';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ChikuLayoutWrapper } from '@/components/chiku/ChikuLayoutWrapper';
-import { AnalysisModeProvider, AccessibilityProvider } from '@/context';
+import { AnalysisModeProvider, AccessibilityProvider, NetworkModeProvider } from '@/context';
 import './globals.css';
 
 const sourceSerif = localFont({
@@ -140,10 +140,12 @@ export default function RootLayout({
         </a>
         <AccessibilityProvider>
           <AnalysisModeProvider>
-            <Navbar />
-            <main id="main-content" className="flex-1">{children}</main>
-            <Footer />
-            <ChikuLayoutWrapper />
+            <NetworkModeProvider>
+              <Navbar />
+              <main id="main-content" className="flex-1">{children}</main>
+              <Footer />
+              <ChikuLayoutWrapper />
+            </NetworkModeProvider>
           </AnalysisModeProvider>
         </AccessibilityProvider>
       </body>

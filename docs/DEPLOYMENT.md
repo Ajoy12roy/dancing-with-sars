@@ -86,3 +86,28 @@ SAR GeoTIFF images are routinely tens to hundreds of megabytes (exceeding Vercel
 Route handlers that interface with external APIs specify route segment duration configuration:
 - `app/api/ai-insight/route.ts`: `export const maxDuration = 30;` (Gemini API calls with strict 12-second timeout, well within the Vercel Hobby plan limit of 300 seconds).
 - `app/api/analyze-upload/route.ts`: `export const maxDuration = 30;` (Local-only upload route, disabled on Vercel via HTTP 503).
+
+---
+
+## 7. Companion Processing Service Connectivity & CORS Setup
+
+If uploaded GeoTIFF analysis displays `"Unable to connect to the processing server"` or `"The processing service is not reachable"`, verify the following platform configurations:
+
+1. **Vercel Frontend Configuration (`NEXT_PUBLIC_PROCESSING_API_URL`)**:
+   - In Vercel Project Settings -> **Environment Variables**, ensure `NEXT_PUBLIC_PROCESSING_API_URL` is set for **both Production and Preview** environments.
+   - The value must be the public HTTPS URL of the hosted container (e.g. on Render, Cloud Run, or AWS), with no trailing slash and without pointing to `localhost`.
+   - Re-deploy the frontend after modifying `NEXT_PUBLIC_*` variables so that the client-side bundle receives the updated value.
+
+2. **Container Service CORS Configuration (`ALLOWED_ORIGINS`)**:
+   - The FastAPI backend in `python-service/api.py` restricts cross-origin browser requests via `CORSMiddleware` using `ALLOWED_ORIGINS`.
+   - On the container hosting provider (Render, Cloud Run, etc.), set the `ALLOWED_ORIGINS` environment variable to include the deployed frontend origin:
+     - Production origin: `https://dancing-with-sars.vercel.app`
+     - Local development: `http://localhost:3000`
+     - Wildcard / Preview deployments: comma-separated list of origins, or adjust `ALLOWED_ORIGINS` to match your Vercel preview domains.
+   - If `ALLOWED_ORIGINS` is missing on the container, the backend defaults strictly to `http://localhost:3000`, causing browsers to block requests with a CORS preflight error (`Failed to fetch`).
+
+3. **Free-Tier Cold-Start Wake-Up Delay**:
+   - Hosting providers such as Render spin down inactive free-tier containers after 15 minutes.
+   - Container spin-up can require 50 to 90 seconds.
+   - The client status check automatically polls with exponential backoff for up to 90 seconds, displaying `"The processing service is starting. This can take up to one minute."` before showing an offline notice and a Retry button.
+
