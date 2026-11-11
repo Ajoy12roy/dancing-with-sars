@@ -42,6 +42,8 @@ import {
   create10kmBoxFromCenter,
   selectionAfterUserAreaChange,
   generateGeeScript,
+  availabilitySummary,
+  nisarAvailabilitySummary,
   resizeBounds,
   HandleType,
   AsfPassGroup,
@@ -663,13 +665,11 @@ export default function AoiMapPicker({
   const [asfNisarGranules, setAsfNisarGranules] = useState<AsfGranule[]>([]);
   const [asfError, setAsfError] = useState<string | null>(null);
   const [asfOfflineNotice, setAsfOfflineNotice] = useState<string | null>(null);
-  const [asfTotalCount, setAsfTotalCount] = useState<number | null>(null);
   const [asfSearched, setAsfSearched] = useState<boolean>(false);
-  const [asfZeroResultKind, setAsfZeroResultKind] = useState<'s1' | 'nisar' | null>(null);
-  const [asfNisar2026Context, setAsfNisar2026Context] = useState<{
-    found: number;
-    firstDate?: string;
-    lastDate?: string;
+  const [asfSearchedParams, setAsfSearchedParams] = useState<{
+    bbox: BoundingBox;
+    dateA: { start: string; end: string };
+    dateB: { start: string; end: string };
   } | null>(null);
 
   // Selected Track / Pass Filter
@@ -708,6 +708,39 @@ export default function AoiMapPicker({
     const cLon = Number(((bbox.west + bbox.east) / 2).toFixed(3));
     return `Custom area (${cLat}, ${cLon})`;
   }, [currentPreset, customAreaLabel, bbox]);
+
+  const isAsfOutOfDate = useMemo(() => {
+    if (!asfSearched || !asfSearchedParams) return false;
+    return (
+      Math.abs(asfSearchedParams.bbox.west - bbox.west) > 0.0001 ||
+      Math.abs(asfSearchedParams.bbox.east - bbox.east) > 0.0001 ||
+      Math.abs(asfSearchedParams.bbox.south - bbox.south) > 0.0001 ||
+      Math.abs(asfSearchedParams.bbox.north - bbox.north) > 0.0001 ||
+      asfSearchedParams.dateA.start !== dateWindowA.start ||
+      asfSearchedParams.dateA.end !== dateWindowA.end ||
+      asfSearchedParams.dateB.start !== dateWindowB.start ||
+      asfSearchedParams.dateB.end !== dateWindowB.end
+    );
+  }, [asfSearched, asfSearchedParams, bbox, dateWindowA, dateWindowB]);
+
+  const s1Availability = useMemo(() => {
+    return availabilitySummary({
+      searched: asfSearched,
+      outOfDate: isAsfOutOfDate,
+      groups: asfGroups,
+      beforeWindow: dateWindowA,
+      afterWindow: dateWindowB,
+      selectedPass: selectedTrackPass,
+    });
+  }, [asfSearched, isAsfOutOfDate, asfGroups, dateWindowA, dateWindowB, selectedTrackPass]);
+
+  const nisarAvailability = useMemo(() => {
+    return nisarAvailabilitySummary({
+      searched: asfSearched,
+      granuleCount: asfNisarGranules.length,
+      latestWindowEndDate: dateWindowB.end,
+    });
+  }, [asfSearched, asfNisarGranules.length, dateWindowB.end]);
 
   const applyUserAreaChange = useCallback(
     (newBbox: BoundingBox, placeName?: string | null) => {
@@ -1002,10 +1035,8 @@ export default function AoiMapPicker({
       setAsfNisarGranules([]);
       setAsfError(null);
       setAsfOfflineNotice(null);
-      setAsfTotalCount(null);
       setAsfSearched(false);
-      setAsfZeroResultKind(null);
-      setAsfNisar2026Context(null);
+      setAsfSearchedParams(null);
       setRecenterCount((c) => c + 1);
     } else {
       setNoPresetNotice('No area preset is available for this case. Draw an area on the map.');
@@ -1032,10 +1063,8 @@ export default function AoiMapPicker({
     setAsfNisarGranules([]);
     setAsfError(null);
     setAsfOfflineNotice(null);
-    setAsfTotalCount(null);
     setAsfSearched(false);
-    setAsfZeroResultKind(null);
-    setAsfNisar2026Context(null);
+    setAsfSearchedParams(null);
     setRecenterCount((c) => c + 1);
     const dims = computeBboxDimensions(preset.bbox);
     announce(`Loaded preset ${preset.name.split(' (')[0]}. Area: ${dims.widthKm} by ${dims.heightKm} kilometers.`);
@@ -1123,8 +1152,6 @@ export default function AoiMapPicker({
     setAsfGroups([]);
     setAsfNisarGranules([]);
     setAsfSearched(true);
-    setAsfZeroResultKind(null);
-    setAsfNisar2026Context(null);
 
     const params = new URLSearchParams({
       west: String(bbox.west),
@@ -1151,15 +1178,8 @@ export default function AoiMapPicker({
       } else if (data.error) {
         setAsfError(`Unable to complete satellite catalogue search: ${data.error}`);
       } else {
-        const count = data.count ?? 0;
-        setAsfTotalCount(count);
-        if (count === 0) {
-          setAsfZeroResultKind(asfMode);
-          if (asfMode === 'nisar' && data.nisar2026Context) {
-            setAsfNisar2026Context(data.nisar2026Context);
-          }
-        } else {
-          if (asfMode === 's1' && Array.isArray(data.groups)) {
+        setAsfSearchedParams({ bbox, dateA: dateWindowA, dateB: dateWindowB });
+        if (asfMode === 's1' && Array.isArray(data.groups)) {
             setAsfGroups(data.groups);
             // Auto-select first usable group if none selected or current is invalid
             const firstUsable = data.groups.find(
@@ -1175,8 +1195,7 @@ export default function AoiMapPicker({
             setAsfNisarGranules(data.granules);
           }
         }
-      }
-    } catch (err: unknown) {
+      } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setAsfError(`Unable to complete satellite catalogue search: ${msg}`);
     } finally {
@@ -2050,7 +2069,6 @@ export default function AoiMapPicker({
                       onClick={() => {
                         setAsfMode('s1');
                         setAsfSearched(false);
-                        setAsfZeroResultKind(null);
                       }}
                       className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
                         asfMode === 's1'
@@ -2065,7 +2083,6 @@ export default function AoiMapPicker({
                       onClick={() => {
                         setAsfMode('nisar');
                         setAsfSearched(false);
-                        setAsfZeroResultKind(null);
                       }}
                       className={`px-3 py-1 rounded-[2px] font-medium transition-colors cursor-pointer ${
                         asfMode === 'nisar'
@@ -2101,29 +2118,30 @@ export default function AoiMapPicker({
             <div className="text-sm text-text-secondary font-sans">
               {asfLoading ? (
                 <span className="text-text-secondary">Searching ASF satellite archives...</span>
-              ) : asfMode === 's1' && asfGroups.length > 0 ? (
-                <span className="text-ink font-medium">
-                  {asfGroups.filter((g) => g.usable).length} usable orbit {asfGroups.filter((g) => g.usable).length === 1 ? 'group' : 'groups'} found ({asfTotalCount} total scenes).
-                </span>
-              ) : asfMode === 'nisar' && asfNisarGranules.length > 0 ? (
-                <span className="text-ink font-medium">
-                  {asfNisarGranules.length} NISAR acquisition(s) found.
-                </span>
-              ) : asfSearched && asfZeroResultKind ? (
-                <div className="p-3 border border-hairline bg-surface rounded-[2px] space-y-1.5 text-text-secondary">
-                  <p>
-                    No {asfZeroResultKind === 's1' ? 'Sentinel-1' : 'NISAR'} acquisitions were found in the ASF catalogue for this area between {dateWindowA.start} and {dateWindowB.end}. Widen the date windows or change the area.
+              ) : asfMode === 's1' ? (
+                <div className="space-y-1">
+                  <p className={s1Availability.state === 'usable' ? 'text-ink font-medium' : 'text-text-secondary'}>
+                    {s1Availability.headline}
                   </p>
-                  {asfZeroResultKind === 'nisar' && asfNisar2026Context && (
-                    <p className="text-xs text-text-secondary pt-1 border-t border-hairline">
-                      {asfNisar2026Context.found > 0
-                        ? `NISAR acquisitions exist for this area between ${asfNisar2026Context.firstDate} and ${asfNisar2026Context.lastDate} (${asfNisar2026Context.found} found).`
-                        : 'no NISAR acquisitions found for this area in 2026.'}
+                  {s1Availability.details && (
+                    <p className="text-xs text-text-secondary">{s1Availability.details}</p>
+                  )}
+                  {(s1Availability.state === 'no_before' ||
+                    s1Availability.state === 'no_after' ||
+                    s1Availability.state === 'no_either' ||
+                    s1Availability.state === 'no_common_geometry') && (
+                    <p className="text-xs text-text-secondary pt-0.5">
+                      The export script below remains viewable but may return no images for these windows.
                     </p>
                   )}
                 </div>
               ) : (
-                <span>Query matching satellite passes via the Alaska Satellite Facility.</span>
+                <div className="space-y-1">
+                  <p className={nisarAvailability.state === 'found' ? 'text-ink font-medium' : 'text-text-secondary'}>
+                    {nisarAvailability.message}
+                  </p>
+                  <p className="text-xs text-text-secondary">{nisarAvailability.note}</p>
+                </div>
               )}
             </div>
           </div>
@@ -2324,6 +2342,20 @@ export default function AoiMapPicker({
         <div className="text-sm font-sans text-text-secondary truncate">
           Area: {activeAreaLabel} | Box: {bbox.west}, {bbox.south}, {bbox.east}, {bbox.north} | Before: {dateWindowA.start} to {dateWindowA.end} | After: {dateWindowB.start} to {dateWindowB.end}
         </div>
+
+        {asfSearched &&
+          !isAsfOutOfDate &&
+          (s1Availability.state === 'no_before' ||
+            s1Availability.state === 'no_after' ||
+            s1Availability.state === 'no_either' ||
+            s1Availability.state === 'no_common_geometry') && (
+            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
+              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <span>
+                No matching Sentinel-1 pass was confirmed for both windows; this script remains viewable but may return no images in Earth Engine.
+              </span>
+            </div>
+          )}
 
         {/* Script: textarea or validation error */}
         {!effectiveDateValidation.valid ? (

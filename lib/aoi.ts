@@ -1132,3 +1132,168 @@ var imageB = s1Collection
 ${exportTasksCode}
 `;
 }
+
+// ── Availability Summary & NISAR Messages ──
+
+export interface AvailabilitySummaryParams {
+  searched: boolean;
+  outOfDate?: boolean;
+  groups: AsfPassGroup[];
+  beforeWindow: DateWindow;
+  afterWindow: DateWindow;
+  selectedPass?: { pass: 'ASCENDING' | 'DESCENDING'; orbit: number } | null;
+}
+
+export interface AvailabilitySummaryResult {
+  state:
+    | 'not_checked'
+    | 'out_of_date'
+    | 'no_before'
+    | 'no_after'
+    | 'no_either'
+    | 'no_common_geometry'
+    | 'usable';
+  headline: string;
+  details?: string;
+  usableGroup?: AsfPassGroup | null;
+}
+
+/**
+ * Pure function that evaluates the availability status of Sentinel-1 acquisitions
+ * across before and after date windows for a selected area.
+ */
+export function availabilitySummary(params: AvailabilitySummaryParams): AvailabilitySummaryResult {
+  if (!params.searched) {
+    return {
+      state: 'not_checked',
+      headline: 'Not checked yet',
+    };
+  }
+
+  if (params.outOfDate) {
+    return {
+      state: 'out_of_date',
+      headline: 'Results are out of date; search again',
+    };
+  }
+
+  const { groups, beforeWindow, afterWindow, selectedPass } = params;
+  const totalBefore = groups.reduce((acc, g) => acc + (g.beforeCount || 0), 0);
+  const totalAfter = groups.reduce((acc, g) => acc + (g.afterCount || 0), 0);
+
+  if (totalBefore === 0 && totalAfter === 0) {
+    return {
+      state: 'no_either',
+      headline: `No Sentinel-1 acquisitions found in either window (${beforeWindow.start} to ${beforeWindow.end}, and ${afterWindow.start} to ${afterWindow.end}) for this area.`,
+    };
+  }
+
+  if (totalBefore === 0) {
+    return {
+      state: 'no_before',
+      headline: `No Sentinel-1 acquisitions found in the before window (${beforeWindow.start} to ${beforeWindow.end}) for this area.`,
+    };
+  }
+
+  if (totalAfter === 0) {
+    return {
+      state: 'no_after',
+      headline: `No Sentinel-1 acquisitions found in the after window (${afterWindow.start} to ${afterWindow.end}) for this area.`,
+    };
+  }
+
+  const usableGroups = groups.filter((g) => g.usable);
+  if (usableGroups.length === 0) {
+    const beforeList = groups
+      .filter((g) => g.beforeCount > 0)
+      .map((g) => `${g.flightDirection} track ${g.relativeOrbit} (${g.beforeCount})`)
+      .join(', ');
+    const afterList = groups
+      .filter((g) => g.afterCount > 0)
+      .map((g) => `${g.flightDirection} track ${g.relativeOrbit} (${g.afterCount})`)
+      .join(', ');
+
+    return {
+      state: 'no_common_geometry',
+      headline: 'No single orbit geometry has images in both windows.',
+      details: `Before window groups: ${beforeList || 'None'}. After window groups: ${afterList || 'None'}.`,
+    };
+  }
+
+  const chosen =
+    (selectedPass
+      ? usableGroups.find(
+          (g) => g.flightDirection === selectedPass.pass && g.relativeOrbit === selectedPass.orbit
+        )
+      : undefined) || usableGroups[0];
+
+  if (!chosen) {
+    return {
+      state: 'no_common_geometry',
+      headline: 'No single orbit geometry has images in both windows.',
+    };
+  }
+
+  return {
+    state: 'usable',
+    headline: `Usable orbit geometry: ${chosen.flightDirection} track ${chosen.relativeOrbit} (${chosen.beforeCount} before, ${chosen.afterCount} after)`,
+    usableGroup: chosen,
+  };
+}
+
+export const NISAR_EARLIEST_BETA_DATE = '2025-10-01';
+export const NISAR_EARLIEST_PROVISIONAL_DATE = '2025-10-28';
+export const NISAR_EARLIEST_PRODUCT_DATE = '2025-10-01';
+
+export interface NisarAvailabilityParams {
+  searched: boolean;
+  granuleCount: number;
+  latestWindowEndDate: string;
+  earliestProductDate?: string;
+}
+
+export interface NisarAvailabilityResult {
+  state: 'not_checked' | 'before_mission_start' | 'zero_results' | 'found';
+  message: string;
+  note: string;
+}
+
+/**
+ * Pure function that formats availability messages for NISAR L-band queries,
+ * referencing documented mission start dates from docs/nisar-coverage.md.
+ */
+export function nisarAvailabilitySummary(params: NisarAvailabilityParams): NisarAvailabilityResult {
+  const earliestDate = params.earliestProductDate || NISAR_EARLIEST_PRODUCT_DATE;
+  const note = 'The NISAR list shows available ASF downloads and is not used by the script generator or file uploader.';
+
+  if (!params.searched) {
+    return {
+      state: 'not_checked',
+      message: 'Not checked yet',
+      note,
+    };
+  }
+
+  if (params.latestWindowEndDate < earliestDate) {
+    return {
+      state: 'before_mission_start',
+      message: `NISAR L-band products on ASF start on ${earliestDate}; no products can exist in the selected windows.`,
+      note,
+    };
+  }
+
+  if (params.granuleCount === 0) {
+    return {
+      state: 'zero_results',
+      message: 'No NISAR products were found for this area and these dates.',
+      note,
+    };
+  }
+
+  return {
+    state: 'found',
+    message: `Found ${params.granuleCount} NISAR acquisition(s).`,
+    note,
+  };
+}
+
