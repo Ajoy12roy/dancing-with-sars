@@ -789,48 +789,13 @@ export function generateGeeScript(options: GeeScriptOptions): string {
     );
   }) || (prefix && prefix !== 'sylhet' && prefix !== 'terrapulse_aoi' ? PRESET_AOIS.find((p) => p.id === prefix) : undefined);
 
-  const cleanPrefix = (prefix || (matchingPreset?.id === 'sylhet' ? 'terrapulse_aoi' : matchingPreset?.id) || 'terrapulse_aoi')
+  const cleanPrefix = (
+    prefix ||
+    (matchingPreset?.id === 'sylhet' ? 'terrapulse_aoi' : matchingPreset?.id) ||
+    'terrapulse_aoi'
+  )
     .replace(/[^a-zA-Z0-9_-]/g, '_')
     .toLowerCase();
-
-  let scriptTitle = title;
-  let scriptAoi = aoiName;
-  let baselineNote = baselineLabel;
-  let comparisonNote = comparisonLabel;
-
-  if (!scriptTitle || !scriptAoi || !baselineNote || !comparisonNote) {
-    if (matchingPreset?.id === 'sylhet' || (!matchingPreset && norm.west === 91.8 && norm.south === 24.85 && norm.east === 91.95 && norm.north === 24.98) || prefix === 'sylhet') {
-      scriptTitle = scriptTitle || 'Sylhet Flood Inundation';
-      scriptAoi = scriptAoi || 'Sylhet Division, Bangladesh (Surma River Basin)';
-      baselineNote = baselineNote || 'Pre-monsoon / dry baseline';
-      comparisonNote = comparisonNote || 'Peak monsoon flood';
-    } else if (matchingPreset?.id === 'tanguar') {
-      scriptTitle = scriptTitle || 'Tanguar Haor Wetland Dynamics';
-      scriptAoi = scriptAoi || 'Tanguar Haor, Sunamganj, Bangladesh (Freshwater Wetland)';
-      baselineNote = baselineNote || 'Dry season / winter baseline';
-      comparisonNote = comparisonNote || 'Monsoon high water comparison';
-    } else if (matchingPreset?.id === 'jamuna') {
-      scriptTitle = scriptTitle || 'Jamuna River Braided Channel Morphology';
-      scriptAoi = scriptAoi || 'Jamuna River, Sirajganj, Bangladesh (Braided Sandbars)';
-      baselineNote = baselineNote || 'Baseline channel morphology';
-      comparisonNote = comparisonNote || 'Comparison channel morphology';
-    } else if (matchingPreset?.id === 'amazon') {
-      scriptTitle = scriptTitle || 'Amazon Rainforest Canopy Loss';
-      scriptAoi = scriptAoi || 'Amazon Rainforest, Rond\u00f4nia, Brazil';
-      baselineNote = baselineNote || 'Baseline canopy cover';
-      comparisonNote = comparisonNote || 'Comparison canopy cover';
-    } else if (matchingPreset?.id === 'padma-naria') {
-      scriptTitle = scriptTitle || 'Padma River / Naria Bank Erosion';
-      scriptAoi = scriptAoi || 'Padma River / Naria, Shariatpur, Bangladesh';
-      baselineNote = baselineNote || 'Baseline pre-erosion bank line';
-      comparisonNote = comparisonNote || 'Comparison post-erosion bank line';
-    } else {
-      scriptTitle = scriptTitle || 'Custom Area SAR Analysis';
-      scriptAoi = scriptAoi || `Custom Area (${norm.west}, ${norm.south}, ${norm.east}, ${norm.north})`;
-      baselineNote = baselineNote || 'Baseline observation';
-      comparisonNote = comparisonNote || 'Comparison observation';
-    }
-  }
 
   const isGolden =
     Math.abs(norm.west - 91.8) < 0.0001 &&
@@ -843,62 +808,61 @@ export function generateGeeScript(options: GeeScriptOptions): string {
     endDateB === '2022-06-22' &&
     pass === 'DESCENDING' &&
     relativeOrbit === 77 &&
-    (prefix === 'terrapulse_aoi' || prefix === 'sylhet');
+    (prefix === 'terrapulse_aoi' || prefix === 'sylhet' || !prefix);
 
-  const aoiRectangleCode = (matchingPreset?.id === 'sylhet' || isGolden)
-    ? `var aoi = ee.Geometry.Rectangle([
+  let scriptTitle = title;
+  let scriptAoi = aoiName;
+  let baselineNote = baselineLabel;
+  let comparisonNote = comparisonLabel;
+
+  if (matchingPreset?.id === 'sylhet' || isGolden) {
+    scriptTitle = scriptTitle || 'Sylhet Flood Inundation';
+    scriptAoi = scriptAoi || 'Sylhet Division, Bangladesh (Surma River Basin)';
+    baselineNote = baselineNote || 'Pre-monsoon / dry baseline';
+    comparisonNote = comparisonNote || 'Peak monsoon flood';
+  } else if (matchingPreset?.id === 'tanguar') {
+    scriptTitle = scriptTitle || 'Tanguar Haor Wetland Dynamics';
+    scriptAoi = scriptAoi || 'Tanguar Haor, Sunamganj, Bangladesh (Freshwater Wetland)';
+    baselineNote = baselineNote || 'Dry season / winter baseline';
+    comparisonNote = comparisonNote || 'Monsoon high water comparison';
+  } else if (matchingPreset?.id === 'jamuna') {
+    scriptTitle = scriptTitle || 'Jamuna River Braided Channel Morphology';
+    scriptAoi = scriptAoi || 'Jamuna River, Sirajganj, Bangladesh (Braided Sandbars)';
+    baselineNote = baselineNote || 'Baseline channel morphology';
+    comparisonNote = comparisonNote || 'Comparison channel morphology';
+  } else if (matchingPreset?.id === 'amazon') {
+    scriptTitle = scriptTitle || 'Amazon Rainforest Canopy Loss';
+    scriptAoi = scriptAoi || 'Amazon Rainforest, Rond\u00f4nia, Brazil';
+    baselineNote = baselineNote || 'Baseline canopy cover';
+    comparisonNote = comparisonNote || 'Comparison canopy cover';
+  } else if (matchingPreset?.id === 'padma-naria') {
+    scriptTitle = scriptTitle || 'Padma River / Naria Bank Erosion';
+    scriptAoi = scriptAoi || 'Padma River / Naria, Shariatpur, Bangladesh';
+    baselineNote = baselineNote || 'Baseline pre-erosion bank line';
+    comparisonNote = comparisonNote || 'Comparison post-erosion bank line';
+  } else {
+    scriptTitle = scriptTitle || 'Custom Area SAR Analysis';
+    scriptAoi = scriptAoi || `Custom Area (${norm.west}, ${norm.south}, ${norm.east}, ${norm.north})`;
+    baselineNote = baselineNote || 'Baseline observation';
+    comparisonNote = comparisonNote || 'Comparison observation';
+  }
+
+  const aoiRectangleCode = `var aoi = ee.Geometry.Rectangle([
   ${norm.west}, // west
   ${norm.south}, // south
   ${norm.east}, // east
   ${norm.north} // north
-]);`
-    : `var aoi = ee.Geometry.Rectangle([${norm.west}, ${norm.south}, ${norm.east}, ${norm.north}], null, false);`;
+]);`;
 
-  const dateRangesCode = isGolden
-    ? `// Baseline (Image A - Pre-monsoon / dry baseline)
-var startDateA = '2022-05-01';
-var endDateA = '2022-05-10';
-
-// Comparison (Image B - Peak monsoon flood)
-var startDateB = '2022-06-18';
-var endDateB = '2022-06-22';`
-    : `// Baseline (Image A - ${baselineNote})
+  const dateRangesCode = `// Baseline (Image A - ${baselineNote})
 var startDateA = '${startDateA}';
 var endDateA = '${endDateA}';
-var beforeStart = '${startDateA}';
-var beforeEnd = '${endDateA}';
 
 // Comparison (Image B - ${comparisonNote})
 var startDateB = '${startDateB}';
-var endDateB = '${endDateB}';
-var afterStart = '${startDateB}';
-var afterEnd = '${endDateB}';`;
+var endDateB = '${endDateB}';`;
 
-  let exportTasksCode: string;
-  if (isGolden) {
-    exportTasksCode = `Export.image.toDrive({
-  image: imageA,
-  description: 'terrapulse_aoi_image_a',
-  folder: 'dancing-with-sars-terrapulse_aoi',
-  fileNamePrefix: 'image_a',
-  region: aoi,
-  scale: scale,
-  crs: crs,
-  maxPixels: 1e9
-});
-
-Export.image.toDrive({
-  image: imageB,
-  description: 'terrapulse_aoi_image_b',
-  folder: 'dancing-with-sars-terrapulse_aoi',
-  fileNamePrefix: 'image_b',
-  region: aoi,
-  scale: scale,
-  crs: crs,
-  maxPixels: 1e9
-});`;
-  } else if (matchingPreset || (prefix && prefix !== 'custom_aoi' && prefix !== '')) {
-    exportTasksCode = `Export.image.toDrive({
+  const exportTasksCode = `Export.image.toDrive({
   image: imageA,
   description: '${cleanPrefix}_image_a',
   folder: 'dancing-with-sars-${cleanPrefix}',
@@ -919,34 +883,6 @@ Export.image.toDrive({
   crs: crs,
   maxPixels: 1e9
 });`;
-  } else {
-    const latStr = Math.abs(norm.south).toFixed(2).replace('.', '_');
-    const lonStr = Math.abs(norm.west).toFixed(2).replace('.', '_');
-    const customSlug = `custom_${latStr}_${lonStr}`;
-    const exportPrefix = `s1_${customSlug}`;
-
-    exportTasksCode = `Export.image.toDrive({
-  image: imageA,
-  description: '${exportPrefix}_before',
-  folder: 'dancing-with-sars-${customSlug}',
-  fileNamePrefix: '${exportPrefix}_before',
-  region: aoi,
-  scale: scale,
-  crs: crs,
-  maxPixels: 1e9
-});
-
-Export.image.toDrive({
-  image: imageB,
-  description: '${exportPrefix}_after',
-  folder: 'dancing-with-sars-${customSlug}',
-  fileNamePrefix: '${exportPrefix}_after',
-  region: aoi,
-  scale: scale,
-  crs: crs,
-  maxPixels: 1e9
-});`;
-  }
 
   return `/**
  * Google Earth Engine Export Script: ${scriptTitle}
