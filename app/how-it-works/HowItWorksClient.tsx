@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { GraticuleFrame } from '@/components/layout/GraticuleFrame';
+import { OverviewVideo } from '@/components/how-it-works/OverviewVideo';
 
 export function HowItWorksClient() {
   const shouldReduceMotion = useReducedMotion();
@@ -44,16 +45,23 @@ export function HowItWorksClient() {
           variants={itemVariants}
           className="text-3xl md:text-4xl font-headline font-semibold text-text-primary"
         >
-          How It Works
+          How TerraPulse works
         </motion.h1>
         <motion.p
           variants={itemVariants}
           className="mt-3 text-base md:text-lg text-text-secondary max-w-3xl leading-relaxed"
         >
-          The physical principles, algorithmic steps, calibrated thresholds, and mathematical formulas
-          implemented in our Python SAR processing pipeline.
+          A 30-second overview, then the process in four plain steps.
         </motion.p>
       </motion.div>
+
+      {/* 30-second Overview Video */}
+      <section className="mb-14">
+        <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary mb-4">
+          Watch the overview
+        </h2>
+        <OverviewVideo videoId="KXagoM8xsFo" title="TerraPulse overview, 30 seconds" />
+      </section>
 
       <div className="space-y-12">
         {/* Core Processing Foundation */}
