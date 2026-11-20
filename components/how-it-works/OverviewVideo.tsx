@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Play, ExternalLink } from 'lucide-react';
 import { useNetworkMode } from '@/context';
 import { buildYouTubeEmbedUrl } from '@/lib/video';
@@ -11,6 +11,24 @@ export const VIDEO_CREDIT_LINE =
 export const VIDEO_TRANSCRIPT =
   'Optical satellites see only clouds in monsoon. Radar sees through them. River erosion takes an estimated 8,700 hectares a year in Bangladesh. Using Sentinel-1 and NASA-ISRO NISAR radar, TerraPulse shows what changed between two dates, like floodwater across Sylhet, with sensitivity ranges. Observations, not forecasts. Open source, for researchers, planners and communities. TerraPulse: Earth insights, a safer tomorrow.';
 
+function subscribeOnline(callback: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('online', callback);
+  window.addEventListener('offline', callback);
+  return () => {
+    window.removeEventListener('online', callback);
+    window.removeEventListener('offline', callback);
+  };
+}
+
+function getOnlineSnapshot() {
+  return typeof navigator !== 'undefined' ? navigator.onLine : true;
+}
+
+function getOnlineServerSnapshot() {
+  return true;
+}
+
 interface OverviewVideoProps {
   videoId: string;
   title: string;
@@ -19,24 +37,11 @@ interface OverviewVideoProps {
 export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [posterError, setPosterError] = useState(false);
-  const [isClientOnline, setIsClientOnline] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const { effectiveOffline } = useNetworkMode();
+  const isBrowserOnline = useSyncExternalStore(subscribeOnline, getOnlineSnapshot, getOnlineServerSnapshot);
 
-  useEffect(() => {
-    setIsClientOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
-    const handleOnline = () => setIsClientOnline(true);
-    const handleOffline = () => setIsClientOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const isOffline = effectiveOffline || !isClientOnline;
+  const isOffline = effectiveOffline || !isBrowserOnline;
   const embedUrl = buildYouTubeEmbedUrl(videoId);
 
   const handlePlay = () => {
