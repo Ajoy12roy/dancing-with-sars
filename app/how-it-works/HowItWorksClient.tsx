@@ -134,10 +134,21 @@ export function HowItWorksClient() {
         </div>
       </section>
 
+      {/* Technical details anchor & heading */}
+      <div className="border-t border-hairline pt-10 mb-8">
+        <h2
+          id="technical-details"
+          className="text-2xl md:text-3xl font-headline font-semibold text-text-primary scroll-mt-8"
+        >
+          Technical details
+        </h2>
+      </div>
+
       <div className="space-y-12">
         {/* Core Processing Foundation */}
-        <GraticuleFrame>
-          <div className="p-6 md:p-8 bg-surface rounded-[2px]">
+        <section id="radar-fundamentals" className="scroll-mt-8">
+          <GraticuleFrame>
+            <div className="p-6 md:p-8 bg-surface rounded-[2px]">
             <div className="flex items-center gap-2 mb-3">
               <span className="inline-block w-2 h-2 rounded-none bg-teal" />
               <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
@@ -631,9 +642,10 @@ export function HowItWorksClient() {
             </div>
           </div>
         </GraticuleFrame>
+        </section>
 
         {/* Limitations Section */}
-        <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
+        <div id="physical-mechanisms" className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8 scroll-mt-8">
           <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">
             <span className="inline-block w-2.5 h-2.5 bg-rust" />
             <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
@@ -707,7 +719,7 @@ export function HowItWorksClient() {
         </div>
 
         {/* Accessibility Section */}
-        <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
+        <div id="accessibility" className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8 scroll-mt-8">
           <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">
             <span className="inline-block w-2.5 h-2.5 bg-teal" />
             <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
