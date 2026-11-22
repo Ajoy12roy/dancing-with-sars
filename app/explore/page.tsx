@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
+import type { ChangeData } from '@/hooks/useChangeData';
 import { ServiceStatusPill } from '@/components/explore/ServiceStatusPill';
 import { statusPresentation } from '@/lib/service-status';
 import { shouldProbeService } from '@/lib/service-probe';
@@ -99,6 +100,7 @@ function ExploreContent() {
   const [uploadDateA, setUploadDateA] = useState<string>('');
   const [uploadDateB, setUploadDateB] = useState<string>('');
   const [sampleLoading, setSampleLoading] = useState<boolean>(false);
+  const [liveData, setLiveData] = useState<ChangeData | null>(null);
 
   const {
     data: uploadData,
@@ -112,6 +114,23 @@ function ExploreContent() {
     reset: resetUpload,
     pingHealth,
   } = useUploadChangeData();
+
+  const currentUploadData = liveData || uploadData;
+
+  const handleLiveAnalysisComplete = useCallback(
+    (data: ChangeData) => {
+      setLiveData(data);
+      emitEvent({
+        type: 'analysis-ready',
+        message: 'Live area analysis complete.',
+        data: {
+          affectedAreaKm2: data.affectedAreaKm2,
+          percentChanged: data.percentChanged,
+        },
+      });
+    },
+    [emitEvent]
+  );
 
   const isConnectedDeployment = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -132,6 +151,7 @@ function ExploreContent() {
     setAfterFile(null);
     setUploadDateA('');
     setUploadDateB('');
+    setLiveData(null);
     resetUpload();
   };
 
@@ -287,38 +307,38 @@ function ExploreContent() {
 
 
   // Build upload AOI representation for ChangeMap / BeforeAfterViewer
-  const uploadAoi: AreaOfInterest | null = uploadData
+  const uploadAoi: AreaOfInterest | null = currentUploadData
     ? {
-        id: uploadData.aoiId,
-        mode: uploadData.mode || mode,
-        name: uploadData.name || 'Uploaded SAR Imagery',
+        id: currentUploadData.aoiId,
+        mode: currentUploadData.mode || mode,
+        name: currentUploadData.name || 'Uploaded SAR Imagery',
         description: 'User-uploaded SAR GeoTIFF change detection analysis',
         country: 'Custom',
-        bounds: uploadData.bounds || { north: 0, south: 0, east: 0, west: 0 },
-        center: uploadData.center || [0, 0],
-        zoom: uploadData.zoom || 10,
+        bounds: currentUploadData.bounds || { north: 0, south: 0, east: 0, west: 0 },
+        center: currentUploadData.center || [0, 0],
+        zoom: currentUploadData.zoom || 10,
         sceneBefore: {
-          id: `${uploadData.aoiId}-before`,
-          aoiId: uploadData.aoiId,
-          date: uploadData.dateBefore || 'Before Scene',
+          id: `${currentUploadData.aoiId}-before`,
+          aoiId: currentUploadData.aoiId,
+          date: currentUploadData.dateBefore || 'Before Scene',
           satellite: 'Sentinel-1',
           polarization: 'VV',
-          previewUrl: uploadData.beforeImage,
-          bounds: uploadData.bounds || { north: 0, south: 0, east: 0, west: 0 },
+          previewUrl: currentUploadData.beforeImage,
+          bounds: currentUploadData.bounds || { north: 0, south: 0, east: 0, west: 0 },
         },
         sceneAfter: {
-          id: `${uploadData.aoiId}-after`,
-          aoiId: uploadData.aoiId,
-          date: uploadData.dateAfter || 'After Scene',
+          id: `${currentUploadData.aoiId}-after`,
+          aoiId: currentUploadData.aoiId,
+          date: currentUploadData.dateAfter || 'After Scene',
           satellite: 'Sentinel-1',
           polarization: 'VV',
-          previewUrl: uploadData.afterImage,
-          bounds: uploadData.bounds || { north: 0, south: 0, east: 0, west: 0 },
+          previewUrl: currentUploadData.afterImage,
+          bounds: currentUploadData.bounds || { north: 0, south: 0, east: 0, west: 0 },
         },
       }
     : null;
 
-  const displayData = activeTab === 'demo' ? demoData : uploadData;
+  const displayData = activeTab === 'demo' ? demoData : currentUploadData;
   const activeAoi = activeTab === 'demo' ? activeDemoAoi : uploadAoi;
 
   // Wrap items passed to CategoryBreakdownChart in useMemo keyed on the underlying result
@@ -406,7 +426,7 @@ function ExploreContent() {
                 </div>
 
                 {/* Reset Upload button (when in Upload mode with data) */}
-                {activeTab === 'upload' && uploadData && (
+                {activeTab === 'upload' && currentUploadData && (
                   <button
                     type="button"
                     onClick={handleResetUpload}
@@ -481,7 +501,7 @@ function ExploreContent() {
             </div>
           )}
 
-          {activeTab === 'upload' && !uploadLoading && !uploadData && (
+          {activeTab === 'upload' && !uploadLoading && !currentUploadData && (
             <div className="col-span-12 space-y-6">
               {/* Area Picker & Earth Engine Export Script Generator (Card 1 and Card 2) */}
               <AoiMapPicker
@@ -493,6 +513,8 @@ function ExploreContent() {
                 onPresetChange={(presetId) => {
                   handleAoiSelect(presetId);
                 }}
+                mode={mode}
+                onLiveAnalysisComplete={handleLiveAnalysisComplete}
               >
                 {/* ── Card 3: Upload and analyse ── */}
                 <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
@@ -828,6 +850,19 @@ function ExploreContent() {
               <div className="col-span-12">
                 <NisarCard />
               </div>
+
+              {/* ── Observation Provenance Block (Live Area Analysis) ── */}
+              {displayData?.provenance && (
+                <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
+                  <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
+                  <p>
+                    Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
+                    {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
+                    {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
+                    {' '}Each window is a median composite.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

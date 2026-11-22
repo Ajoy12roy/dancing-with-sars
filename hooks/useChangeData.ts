@@ -7,6 +7,17 @@ export interface ChartDataPoint {
 
 import type { AnalysisMode, DateRange, ResultBounds, ResultCategory, ResultDates, ResultMetrics, ResultParams, SensitivityData } from '@/types';
 
+export interface LiveProvenance {
+  orbitDirection: 'ASCENDING' | 'DESCENDING' | string;
+  orbitNumber: number;
+  beforeCount: number;
+  afterCount: number;
+  beforeDates: [string, string];
+  afterDates: [string, string];
+  scale: number;
+  box: [number, number, number, number];
+}
+
 export interface ChangeData {
   aoiId: string;
   name: string;
@@ -34,6 +45,7 @@ export interface ChangeData {
   afterRange?: DateRange;
   honestyNote?: string;
   sensitivity?: SensitivityData;
+  provenance?: LiveProvenance;
 }
 
 export { useUploadChangeData } from './useUploadChangeData';

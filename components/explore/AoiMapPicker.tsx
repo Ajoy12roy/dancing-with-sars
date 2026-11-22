@@ -22,7 +22,9 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from 'lucide-react';
+import type { ChangeData } from '@/hooks/useChangeData';
 import { useNetworkMode, useAccessibility } from '@/context';
 
 import {
@@ -573,16 +575,63 @@ export interface AoiMapPickerProps {
   onSelectCaseStudy?: (caseId: string) => void;
   selectedCaseId?: string;
   onPresetChange?: (presetId: string) => void;
+  onLiveAnalysisComplete?: (data: ChangeData) => void;
+  mode?: string;
   children?: React.ReactNode;
 }
 
 export default function AoiMapPicker({
   selectedCaseId,
   onPresetChange,
+  onLiveAnalysisComplete,
+  mode = 'flood',
   children,
 }: AoiMapPickerProps = {}) {
   const { effectiveOffline } = useNetworkMode();
   const { announce } = useAccessibility();
+
+  // ── Live Analysis State ──
+  const [liveStatus, setLiveStatus] = useState<'idle' | 'starting' | 'polling' | 'done' | 'error'>('idle');
+  const [liveStage, setLiveStage] = useState<string>('Selecting orbit geometry');
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const [liveTimer, setLiveTimer] = useState<number>(0);
+  const [eeStatus, setEeStatus] = useState<{ installed: boolean; initialized: boolean; project: string | null } | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Probe Earth Engine readiness once on mount (when online)
+  useEffect(() => {
+    let mounted = true;
+    if (!effectiveOffline) {
+      fetch('/api/live-analyze?action=status')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (mounted && data) {
+            setEeStatus(data);
+          }
+        })
+        .catch(() => {
+          if (mounted) {
+            setEeStatus({ installed: false, initialized: false, project: null });
+          }
+        });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [effectiveOffline]);
+
+  // Clean up active abort controllers and timers on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
 
   // ── AOI Bounding Box State ──
   const [bbox, setBbox] = useState<BoundingBox>(() => {
@@ -1249,6 +1298,146 @@ export default function AoiMapPicker({
     announce('Earth Engine export script downloaded.');
   }, [activeAreaLabel, bbox.west, bbox.south, geeScript, announce, validation.valid, validation.reason, effectiveDateValidation.valid, effectiveDateValidation.reason]);
 
+  // ── Live Area Analysis Handlers ──
+  const handleStartLiveAnalysis = useCallback(async () => {
+    if (effectiveOffline || !effectiveDateValidation.valid || !validation.valid) return;
+    setLiveStatus('starting');
+    setLiveStage('Selecting orbit geometry');
+    setLiveError(null);
+    setLiveTimer(0);
+    announce('Starting live area analysis');
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const startTime = Date.now();
+    timerIntervalRef.current = setInterval(() => {
+      setLiveTimer(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    try {
+      const postRes = await fetch('/api/live-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          box: [bbox.west, bbox.south, bbox.east, bbox.north],
+          beforeWindow: { start: dateWindowA.start, end: dateWindowA.end },
+          afterWindow: { start: dateWindowB.start, end: dateWindowB.end },
+          mode: mode || 'flood',
+        }),
+        signal: controller.signal,
+      });
+
+      const postJson = await postRes.json().catch(() => ({}));
+      if (!postRes.ok) {
+        throw new Error(postJson.error || 'Failed to start live analysis.');
+      }
+
+      const jobId = postJson.id;
+      setLiveStatus('polling');
+
+      let lastStage = 'Selecting orbit geometry';
+      while (!controller.signal.aborted) {
+        await new Promise((r) => setTimeout(r, 2000));
+        if (controller.signal.aborted) break;
+
+        const pollRes = await fetch(`/api/live-analyze?id=${encodeURIComponent(jobId)}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        const pollJson = await pollRes.json().catch(() => ({}));
+
+        if (!pollRes.ok) {
+          throw new Error(pollJson.error || 'Failed to check analysis progress.');
+        }
+
+        if (pollJson.status === 'error') {
+          const errMsg = pollJson.error?.message || 'Live analysis failed.';
+          throw new Error(errMsg);
+        }
+
+        if (pollJson.stage && pollJson.stage !== lastStage) {
+          lastStage = pollJson.stage;
+          setLiveStage(pollJson.stage);
+          announce(pollJson.stage);
+        }
+
+        if (pollJson.status === 'done') {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          setLiveStatus('done');
+          announce('Live area analysis complete.');
+
+          const resData = pollJson.result || {};
+          const resImages = pollJson.images || {};
+          const unifiedData: ChangeData = {
+            aoiId: resData.aoiId || 'live',
+            name: customAreaLabel || activeAreaLabel || 'Custom Area (Live GEE)',
+            dateBefore: resData.dateBefore || resData.dates?.a || dateWindowA.start,
+            dateAfter: resData.dateAfter || resData.dates?.b || dateWindowB.start,
+            percentChanged: typeof resData.percentChanged === 'number' ? resData.percentChanged : 0,
+            affectedAreaKm2: typeof resData.affectedAreaKm2 === 'number' ? resData.affectedAreaKm2 : 0,
+            confidence: typeof resData.confidence === 'number' ? resData.confidence : 0,
+            beforeImage: resImages.before || '',
+            afterImage: resImages.after || '',
+            changeMapImage: resImages.change_map || '',
+            bounds: resData.bounds || bbox,
+            center: resData.center || [(bbox.south + bbox.north) / 2, (bbox.west + bbox.east) / 2],
+            zoom: resData.zoom || 11,
+            mode: resData.mode || mode || 'flood',
+            signalStrength: resData.signalStrength,
+            totalAreaKm2: resData.totalAreaKm2,
+            dates: resData.dates,
+            categories: resData.categories,
+            metrics: resData.metrics,
+            params: resData.params,
+            warnings: resData.warnings,
+            provenance: pollJson.provenance,
+          };
+
+          onLiveAnalysisComplete?.(unifiedData);
+          break;
+        }
+      }
+    } catch (err: unknown) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (controller.signal.aborted) {
+        setLiveStatus('idle');
+        announce('Analysis cancelled.');
+        return;
+      }
+      const msg = err instanceof Error ? err.message : 'Analysis failed.';
+      setLiveStatus('error');
+      setLiveError(msg);
+      announce(`Analysis failed: ${msg}`);
+    }
+  }, [
+    effectiveOffline,
+    effectiveDateValidation.valid,
+    validation.valid,
+    bbox,
+    dateWindowA,
+    dateWindowB,
+    mode,
+    customAreaLabel,
+    activeAreaLabel,
+    onLiveAnalysisComplete,
+    announce,
+  ]);
+
+  const handleCancelLiveAnalysis = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    setLiveStatus('idle');
+    setLiveError(null);
+    announce('Analysis cancelled.');
+  }, [announce]);
+
   // ── Derived Single Dates & Gap Calculations ──
   const targetGapDays = useMemo(() => {
     const tA = Date.parse(singleDateBefore);
@@ -1807,131 +1996,270 @@ export default function AoiMapPicker({
         </div>
       </section>
 
-      {/* ── Card 2: Export the images from Google Earth Engine ── */}
+      {/* ── Card 2: Analyse this area (Live Earth Engine Analysis) ── */}
       <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold font-headline text-ink">
-            2. Export the images from Google Earth Engine
-          </h2>
-          <p className="text-base text-text-secondary mt-1 font-sans leading-relaxed">
-            Generate a Google Earth Engine script to export co-registered Sentinel-1 GeoTIFF pairs. The script enforces single-orbit geometry and optimal spatial resolution for analysis.
-          </p>
-          {asfMode === 'nisar' && (
-            <p className="text-xs text-text-secondary mt-1 font-sans">
-              The Earth Engine export below uses Sentinel-1 data.
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold font-headline text-ink">
+              2. Analyse this area
+            </h2>
+            <p className="text-base text-text-secondary mt-1 font-sans leading-relaxed">
+              Automatically query Sentinel-1 radar imagery for your selected area and date windows via Google Earth Engine, download co-registered pairs, and detect backscatter changes.
             </p>
-          )}
-        </div>
-
-        {/* Above script: single line metadata */}
-        <div className="text-sm font-sans text-text-secondary truncate">
-          Area: {activeAreaLabel} | Box: {bbox.west}, {bbox.south}, {bbox.east}, {bbox.north} | Before: {dateWindowA.start} to {dateWindowA.end} | After: {dateWindowB.start} to {dateWindowB.end}
-        </div>
-
-        {asfSearched &&
-          !isAsfOutOfDate &&
-          (s1Availability.state === 'no_before' ||
-            s1Availability.state === 'no_after' ||
-            s1Availability.state === 'no_either' ||
-            s1Availability.state === 'no_common_geometry') && (
-            <div className="p-3 border border-hairline bg-surface rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
-              <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+          </div>
+          {eeStatus && (
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-data border border-hairline bg-surface-2 rounded-[2px] text-text-secondary">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  eeStatus.initialized ? 'bg-teal' : 'bg-rust'
+                }`}
+              />
               <span>
-                No matching Sentinel-1 pass was confirmed for both windows; this script remains viewable but may return no images in Earth Engine.
+                Earth Engine: {eeStatus.initialized ? 'Ready' : 'Not configured'}
               </span>
             </div>
           )}
+        </div>
 
-        {/* Script: textarea or validation error */}
-        {!effectiveDateValidation.valid ? (
-          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{effectiveDateValidation.reason}</span>
-          </div>
-        ) : !validation.valid ? (
-          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{validation.reason}</span>
-          </div>
-        ) : (
-          <div className="relative">
-            <textarea
-              readOnly
-              value={geeScript}
-              rows={14}
-              aria-label="Generated Google Earth Engine script"
-              className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
-            />
+        {/* Notifications and Diagnostics */}
+        {effectiveOffline && (
+          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
+            <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <span>
+              Offline mode: live analysis requires network access to query Google Earth Engine and the local processing service.
+            </span>
           </div>
         )}
 
-        {/* Below script: ONLY three buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleCopyScript}
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
-          >
-            {scriptCopied ? (
-              <>
-                <Check className="w-4 h-4 text-text-on-accent" />
-                <span>Copied to clipboard</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Copy script</span>
-              </>
-            )}
-          </button>
+        {eeStatus && !eeStatus.initialized && !effectiveOffline && (
+          <div className="p-3 border border-hairline bg-surface-2 rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
+            <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <span>
+              Earth Engine is not set up on this computer. Run <code>earthengine authenticate</code> and set <code>EARTHENGINE_PROJECT</code> to enable live analysis, or prepare images manually below.
+            </span>
+          </div>
+        )}
 
-          <button
-            type="button"
-            onClick={handleDownloadScript}
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download script</span>
-          </button>
+        {liveError && (
+          <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start justify-between gap-3" role="alert">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{liveError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLiveError(null);
+                setLiveStatus('idle');
+              }}
+              className="px-2.5 py-1 text-xs font-medium border border-rust rounded-[2px] hover:bg-rust hover:text-text-on-accent transition-colors shrink-0 cursor-pointer"
+            >
+              Try again
+            </button>
+          </div>
+        )}
 
-          <a
-            href="https://code.earthengine.google.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
-          >
-            <span>Open Earth Engine Code Editor</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </div>
-
-        {/* Collapsed Details Blocks */}
-        <div className="space-y-4">
-          {/* Details 2: How to run the script */}
-          <details className="border border-hairline rounded-[2px] bg-surface-2 group">
-            <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
-              <span>How to run the script</span>
-              <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
-            </summary>
-            <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans">
-              <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary leading-relaxed">
-                <li>Copy the export script above and open the Google Earth Engine Code Editor.</li>
-                <li>Paste the script into the center editor pane and click <strong>Run</strong>.</li>
-                <li>In the <strong>Tasks</strong> tab in the upper-right pane, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code> to export the GeoTIFFs to Google Drive.</li>
-              </ol>
-              <div className="pt-2">
-                <Link
-                  href="/how-it-works#earth-engine-export"
-                  className="text-teal hover:underline text-sm font-medium inline-flex items-center gap-1"
+        {/* Live Analysis Progress */}
+        {(liveStatus === 'starting' || liveStatus === 'polling') && (
+          <div className="p-4 border border-hairline bg-surface-2 rounded-[2px] space-y-3">
+            <div className="flex items-center justify-between text-sm font-sans">
+              <div className="flex items-center gap-2 text-ink font-medium">
+                <Loader2 className="w-4 h-4 animate-spin text-teal" />
+                <span>{liveStage}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="font-data text-xs text-text-secondary">
+                  Elapsed: {liveTimer}s
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCancelLiveAnalysis}
+                  className="px-3 py-1 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] bg-surface transition-colors cursor-pointer"
                 >
-                  <span>Full guide</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </Link>
+                  Cancel
+                </button>
               </div>
             </div>
-          </details>
-        </div>
+
+            {/* Stages step indicator */}
+            <div className="grid grid-cols-3 gap-2 pt-1 text-xs font-sans">
+              <div
+                className={`p-2 border rounded-[2px] text-center ${
+                  liveStage === 'Selecting orbit geometry'
+                    ? 'border-accent bg-surface font-semibold text-accent'
+                    : 'border-hairline text-text-secondary bg-surface-2'
+                }`}
+              >
+                1. Select orbit
+              </div>
+              <div
+                className={`p-2 border rounded-[2px] text-center ${
+                  liveStage === 'Downloading Sentinel-1 imagery'
+                    ? 'border-accent bg-surface font-semibold text-accent'
+                    : 'border-hairline text-text-secondary bg-surface-2'
+                }`}
+              >
+                2. Download scenes
+              </div>
+              <div
+                className={`p-2 border rounded-[2px] text-center ${
+                  liveStage === 'Analyzing radar change'
+                    ? 'border-accent bg-surface font-semibold text-accent'
+                    : 'border-hairline text-text-secondary bg-surface-2'
+                }`}
+              >
+                3. Detect changes
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Primary Action Button */}
+        {liveStatus !== 'starting' && liveStatus !== 'polling' && (
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+            <div className="text-xs text-text-secondary font-sans max-w-md">
+              Downloads Sentinel-1 GRD IW imagery, composites each window with a spatial median, and runs the change-detection pipeline without manual file export.
+            </div>
+            <button
+              type="button"
+              disabled={
+                effectiveOffline ||
+                !effectiveDateValidation.valid ||
+                !validation.valid ||
+                (eeStatus !== null && !eeStatus.initialized)
+              }
+              onClick={handleStartLiveAnalysis}
+              className="min-h-[44px] bg-accent text-text-on-accent font-semibold border border-accent hover:bg-accent-hover disabled:bg-transparent disabled:text-text-secondary disabled:border-hairline disabled:cursor-not-allowed rounded-[2px] px-6 py-2.5 text-sm transition-colors cursor-pointer shrink-0 flex items-center gap-2"
+            >
+              <span>Analyse this area</span>
+            </button>
+          </div>
+        )}
       </section>
+
+      {/* ── Collapsed Manual Export Script Section ── */}
+      <details className="border border-hairline bg-surface rounded-[2px] p-5 sm:p-6 group">
+        <summary className="text-base font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span>Prepare images manually (export script)</span>
+            <p className="text-xs font-normal text-text-secondary font-sans">
+              Alternative workflow: export GeoTIFFs using the Google Earth Engine Code Editor and upload them manually.
+            </p>
+          </div>
+          <ChevronDown className="w-5 h-5 text-text-secondary group-open:rotate-180 transition-transform shrink-0 ml-4" />
+        </summary>
+
+        <div className="pt-6 border-t border-hairline mt-5 space-y-6">
+          {/* Above script: single line metadata */}
+          <div className="text-sm font-sans text-text-secondary truncate">
+            Area: {activeAreaLabel} | Box: {bbox.west}, {bbox.south}, {bbox.east}, {bbox.north} | Before: {dateWindowA.start} to {dateWindowA.end} | After: {dateWindowB.start} to {dateWindowB.end}
+          </div>
+
+          {asfSearched &&
+            !isAsfOutOfDate &&
+            (s1Availability.state === 'no_before' ||
+              s1Availability.state === 'no_after' ||
+              s1Availability.state === 'no_either' ||
+              s1Availability.state === 'no_common_geometry') && (
+              <div className="p-3 border border-hairline bg-surface rounded-[2px] text-xs text-text-secondary flex items-start gap-2">
+                <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                <span>
+                  No matching Sentinel-1 pass was confirmed for both windows; this script remains viewable but may return no images in Earth Engine.
+                </span>
+              </div>
+            )}
+
+          {/* Script: textarea or validation error */}
+          {!effectiveDateValidation.valid ? (
+            <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{effectiveDateValidation.reason}</span>
+            </div>
+          ) : !validation.valid ? (
+            <div className="p-4 border border-rust text-rust rounded-[2px] bg-surface text-sm font-sans flex items-start gap-2" role="alert">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{validation.reason}</span>
+            </div>
+          ) : (
+            <div className="relative">
+              <textarea
+                readOnly
+                value={geeScript}
+                rows={14}
+                aria-label="Generated Google Earth Engine script"
+                className="w-full bg-surface-2 text-ink font-mono text-xs sm:text-[13px] p-3 rounded-[2px] border border-hairline focus:outline-none resize-y leading-relaxed select-all"
+              />
+            </div>
+          )}
+
+          {/* Below script: ONLY three buttons */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCopyScript}
+              className="min-h-[44px] px-4 py-2 text-sm font-semibold bg-accent text-text-on-accent rounded-[2px] hover:bg-accent-hover transition-colors cursor-pointer flex items-center gap-2"
+            >
+              {scriptCopied ? (
+                <>
+                  <Check className="w-4 h-4 text-text-on-accent" />
+                  <span>Copied to clipboard</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span>Copy script</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadScript}
+              className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download script</span>
+            </button>
+
+            <a
+              href="https://code.earthengine.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[44px] px-4 py-2 text-sm font-semibold border border-hairline bg-surface-2 text-ink hover:border-accent hover:text-accent rounded-[2px] transition-colors cursor-pointer flex items-center gap-2"
+            >
+              <span>Open Earth Engine Code Editor</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Collapsed Details Blocks */}
+          <div className="space-y-4">
+            {/* Details 2: How to run the script */}
+            <details className="border border-hairline rounded-[2px] bg-surface-2 group">
+              <summary className="p-3 sm:p-4 text-sm font-semibold text-ink cursor-pointer select-none flex items-center justify-between">
+                <span>How to run the script</span>
+                <ChevronDown className="w-4 h-4 text-text-secondary group-open:rotate-180 transition-transform" />
+              </summary>
+              <div className="p-4 border-t border-hairline bg-surface space-y-3 font-sans">
+                <ol className="list-decimal list-inside space-y-1.5 text-sm text-text-secondary leading-relaxed">
+                  <li>Copy the export script above and open the Google Earth Engine Code Editor.</li>
+                  <li>Paste the script into the center editor pane and click <strong>Run</strong>.</li>
+                  <li>In the <strong>Tasks</strong> tab in the upper-right pane, click <strong>Run</strong> next to <code>image_a</code> and <code>image_b</code> to export the GeoTIFFs to Google Drive.</li>
+                </ol>
+                <div className="pt-2">
+                  <Link
+                    href="/how-it-works#earth-engine-export"
+                    className="text-teal hover:underline text-sm font-medium inline-flex items-center gap-1"
+                  >
+                    <span>Full guide</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </details>
 
       {/* ── Card 3: Upload and analyse (passed as children from page) ── */}
       {children}
