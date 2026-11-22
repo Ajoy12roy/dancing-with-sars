@@ -274,11 +274,47 @@ python process_change.py \
 ```
 *Expected output: Flooded Area 37.19 km² (17.05%), identical to `data/precomputed/sylhet/result.json`.*
 
-### 5. Running the Python API Service (Optional)
-```bash
-cd python-service
-uvicorn api:app --host 127.0.0.1 --port 8000 --reload
-```
+### 5. Running the Python API Service & Live Area Analysis (Local)
+
+To enable live fetching and analysis directly from Google Earth Engine without manual export scripts or file uploads:
+
+#### Prerequisites
+1. **Install Python dependencies** (including `earthengine-api`):
+   ```bash
+   cd python-service
+   pip install -r requirements.txt
+   ```
+2. **Authenticate with Google Earth Engine**:
+   ```bash
+   earthengine authenticate
+   ```
+3. **Configure your Earth Engine Project**:
+   Set `EARTHENGINE_PROJECT` in your environment or in `python-service/.env`:
+   ```bash
+   export EARTHENGINE_PROJECT=your-google-cloud-project-id
+   ```
+
+#### Start the Services
+1. **Start the companion Python FastAPI service**:
+   ```bash
+   cd python-service
+   uvicorn api:app --host 127.0.0.1 --port 8000 --reload
+   ```
+2. **Start the Next.js frontend** (with the backend URL configured):
+   ```bash
+   NEXT_PUBLIC_PROCESSING_API_URL=http://localhost:8000 npm run dev
+   ```
+
+#### Testing Live Analysis with the Sylhet Benchmark
+1. Navigate to [http://localhost:3000/explore](http://localhost:3000/explore) and select **Upload Your Own**.
+2. The benchmark Sylhet bounding box and date windows (Before: May 2022, After: June 2022) are pre-populated.
+3. Click **Analyse this area**. The platform queries Sentinel-1 IW GRD scenes via Earth Engine, verifies a single shared orbital geometry (DESCENDING track 77), computes spatial median composites, downloads the GeoTIFF pair, runs the change-detection pipeline, and visualizes the results.
+
+#### Operational Boundaries & Methodology Notes
+- **Authentication Required**: Live area analysis requires a valid, authenticated Earth Engine account and project.
+- **Local Execution**: The live analysis pipeline runs in local environments with the companion Python service active; deployed serverless preview instances without a configured backend return a 503 service notice.
+- **Single-Orbit Constraint**: To avoid severe radiometric distortions and false-positive differences caused by opposing radar view angles, the service strictly enforces a single common orbit pass (direction and relative orbit number) across both windows.
+- **Indicative Findings**: Each temporal window is composited using a spatial median across all qualifying acquisitions. The detected changes represent indicative environmental shifts rather than real-time operational alerts.
 
 ---
 

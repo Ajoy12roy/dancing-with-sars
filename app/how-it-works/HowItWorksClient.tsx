@@ -917,17 +917,19 @@ export function HowItWorksClient() {
                   Run the analysis service locally
                 </h3>
                 <p className="text-sm text-text-secondary leading-relaxed">
-                  To analyse custom GeoTIFF pairs locally on your machine, start the FastAPI companion service from the repository:
+                  To analyse custom GeoTIFF pairs or run live Earth Engine fetching directly from the web interface, start the FastAPI companion service:
                 </p>
                 <div className="bg-surface-2 border border-hairline p-4 rounded-[2px] font-data text-xs text-ink space-y-2">
-                  <p className="text-text-secondary"># 1. Install prerequisites (Python 3.10+):</p>
+                  <p className="text-text-secondary"># 1. Install prerequisites (Python 3.10+) and authenticate with Earth Engine:</p>
                   <p className="text-teal font-semibold">cd python-service</p>
                   <p className="text-teal font-semibold">pip install -r requirements.txt</p>
-                  <p className="text-text-secondary mt-2"># 2. Start the local analysis server on port 8000:</p>
+                  <p className="text-teal font-semibold">earthengine authenticate</p>
+                  <p className="text-text-secondary mt-2"># 2. Configure project ID and start the local server on port 8000:</p>
+                  <p className="text-teal font-semibold">export EARTHENGINE_PROJECT=your-project-id</p>
                   <p className="text-teal font-semibold">uvicorn api:app --reload --port 8000</p>
                 </div>
-                <p className="text-xs text-text-secondary font-sans">
-                  The web application connects to <code className="font-data text-ink">http://localhost:8000</code> to process uploaded GeoTIFF files and stream real-time metrics.
+                <p className="text-xs text-text-secondary font-sans leading-relaxed">
+                  The web application connects to <code className="font-data text-ink">http://localhost:8000</code> to process uploaded GeoTIFF files or fetch Sentinel-1 acquisitions on demand. Automated analysis enforces single-orbit geometry and spatial median compositing; results are indicative.
                 </p>
               </div>
             </div>
