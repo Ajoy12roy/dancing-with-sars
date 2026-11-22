@@ -1,13 +1,14 @@
 import os
 import sys
 import time
+import uuid
 import base64
 import shutil
 import tempfile
 import asyncio
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 import rasterio
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
@@ -17,6 +18,17 @@ from fastapi.middleware.cors import CORSMiddleware
 # Ensure python-service directory is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from process_change import run_analysis
+from live_gee import (
+    validate_live_request,
+    initialize_ee,
+    check_ee_status,
+    select_group,
+    fetch_pair,
+    analyze_live,
+    LiveError,
+    EE_AVAILABLE,
+    ee,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("sars-api")
@@ -437,3 +449,250 @@ async def analyze_sample(
             )
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ── Live Earth Engine Analysis Jobs ─────────────────────────────────────────
+LIVE_JOB_EXPIRY_SECONDS = 1800  # 30 minutes
+live_jobs: Dict[str, dict] = {}
+live_jobs_lock = asyncio.Lock()
+
+
+async def cleanup_expired_jobs():
+    now = time.time()
+    async with live_jobs_lock:
+        expired_ids = [
+            jid for jid, job in live_jobs.items()
+            if now - job.get("created_at", now) > LIVE_JOB_EXPIRY_SECONDS
+        ]
+        for jid in expired_ids:
+            job = live_jobs.pop(jid, None)
+            if job and "tmp_dir" in job and os.path.exists(job["tmp_dir"]):
+                shutil.rmtree(job["tmp_dir"], ignore_errors=True)
+
+
+async def process_live_job(
+    job_id: str,
+    norm_box: tuple,
+    before_window: dict,
+    after_window: dict,
+    mode: str,
+    scale: int,
+    tmp_dir: str,
+):
+    try:
+        async with analysis_semaphore:
+            # Stage 1: Selecting orbit geometry
+            async with live_jobs_lock:
+                if job_id not in live_jobs:
+                    return
+                live_jobs[job_id]["status"] = "selecting_orbit"
+                live_jobs[job_id]["stage"] = "Selecting orbit geometry"
+
+            def run_ee_pipeline():
+                initialize_ee()
+                w, s, e, n = norm_box
+                aoi = ee.Geometry.Rectangle([w, s, e, n])
+                s1_collection = (
+                    ee.ImageCollection("COPERNICUS/S1_GRD")
+                    .filterBounds(aoi)
+                    .filter(ee.Filter.eq("instrumentMode", "IW"))
+                    .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
+                )
+                start_a = before_window["start"]
+                end_a = before_window["end"]
+                start_b = after_window["start"]
+                end_b = after_window["end"]
+
+                group = select_group(s1_collection, start_a, end_a, start_b, end_b)
+                return group
+
+            group = await asyncio.to_thread(run_ee_pipeline)
+
+            # Stage 2: Downloading Sentinel-1 imagery
+            async with live_jobs_lock:
+                live_jobs[job_id]["status"] = "downloading"
+                live_jobs[job_id]["stage"] = "Downloading Sentinel-1 imagery"
+                live_jobs[job_id]["group"] = group
+
+            def run_download():
+                return fetch_pair(
+                    box=norm_box,
+                    before_window=before_window,
+                    after_window=after_window,
+                    group=group,
+                    scale=scale,
+                    work_dir=tmp_dir,
+                )
+
+            out_a, out_b, provenance = await asyncio.to_thread(run_download)
+
+            # Stage 3: Analyzing radar change
+            async with live_jobs_lock:
+                live_jobs[job_id]["status"] = "analysing"
+                live_jobs[job_id]["stage"] = "Analyzing radar change"
+                live_jobs[job_id]["provenance"] = provenance
+
+            out_dir = os.path.join(tmp_dir, "out")
+            start_a = before_window["start"]
+            start_b = after_window["start"]
+
+            def run_analysis_step():
+                return analyze_live(
+                    image_a_path=out_a,
+                    image_b_path=out_b,
+                    out_dir=out_dir,
+                    mode=mode,
+                    start_date_a=start_a,
+                    start_date_b=start_b,
+                    provenance=provenance,
+                )
+
+            result_dict = await asyncio.to_thread(run_analysis_step)
+
+            change_map_url = to_png_data_url(os.path.join(out_dir, "change-map.png"))
+            before_url = to_png_data_url(os.path.join(out_dir, "before.png"))
+            after_url = to_png_data_url(os.path.join(out_dir, "after.png"))
+
+            async with live_jobs_lock:
+                live_jobs[job_id]["status"] = "done"
+                live_jobs[job_id]["stage"] = "Completed"
+                live_jobs[job_id]["result"] = result_dict
+                live_jobs[job_id]["images"] = {
+                    "before": before_url,
+                    "after": after_url,
+                    "change_map": change_map_url,
+                }
+                live_jobs[job_id]["provenance"] = provenance
+
+    except LiveError as le:
+        logger.warning(f"Live job {job_id} failed with LiveError: {le.code} - {le.message}")
+        async with live_jobs_lock:
+            if job_id in live_jobs:
+                live_jobs[job_id]["status"] = "error"
+                live_jobs[job_id]["stage"] = "Failed"
+                live_jobs[job_id]["error"] = {
+                    "code": le.code,
+                    "message": le.message,
+                    "window": le.window,
+                }
+    except Exception as exc:
+        logger.exception(f"Live job {job_id} failed unexpectedly: {exc}")
+        async with live_jobs_lock:
+            if job_id in live_jobs:
+                live_jobs[job_id]["status"] = "error"
+                live_jobs[job_id]["stage"] = "Failed"
+                live_jobs[job_id]["error"] = {
+                    "code": "internal_error",
+                    "message": f"Processing failed: {str(exc)}",
+                    "window": None,
+                }
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+@app.get("/live/status")
+async def live_status():
+    status = check_ee_status()
+    return status
+
+
+@app.post("/live/jobs")
+async def create_live_job(request: Request):
+    client_ip = get_client_ip(request)
+    if await is_rate_limited(client_ip):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": f"Rate limit exceeded. Maximum {RATE_LIMIT_PER_10MIN} requests per 10 minutes."},
+            headers={"Retry-After": "600"},
+        )
+
+    await cleanup_expired_jobs()
+
+    # Pre-check Earth Engine status
+    status = check_ee_status()
+    if not status.get("initialized"):
+        raise HTTPException(
+            status_code=503,
+            detail="Earth Engine is not set up on this computer. Run earthengine authenticate and set EARTHENGINE_PROJECT.",
+        )
+
+    # Concurrency check
+    if analysis_semaphore.locked():
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Server busy, try again in a minute"},
+            headers={"Retry-After": "60"},
+        )
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload.")
+
+    box = body.get("box")
+    before_window = body.get("beforeWindow")
+    after_window = body.get("afterWindow")
+    mode = (body.get("mode") or "flood").strip().lower()
+
+    if not box or not before_window or not after_window:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required parameters: 'box', 'beforeWindow', and 'afterWindow' are required.",
+        )
+
+    try:
+        norm_box, scale = validate_live_request(box, before_window, after_window, mode)
+    except LiveError as le:
+        raise HTTPException(status_code=400, detail=le.message)
+
+    job_id = uuid.uuid4().hex[:12]
+    tmp_dir = tempfile.mkdtemp(prefix=f"sars_live_{job_id}_")
+
+    job_data = {
+        "id": job_id,
+        "status": "queued",
+        "stage": "Queued",
+        "created_at": time.time(),
+        "error": None,
+        "result": None,
+        "images": None,
+        "provenance": None,
+        "tmp_dir": tmp_dir,
+    }
+
+    async with live_jobs_lock:
+        live_jobs[job_id] = job_data
+
+    asyncio.create_task(
+        process_live_job(
+            job_id=job_id,
+            norm_box=norm_box,
+            before_window=before_window,
+            after_window=after_window,
+            mode=mode,
+            scale=scale,
+            tmp_dir=tmp_dir,
+        )
+    )
+
+    return {"id": job_id, "status": "queued"}
+
+
+@app.get("/live/jobs/{job_id}")
+async def get_live_job(job_id: str):
+    await cleanup_expired_jobs()
+    async with live_jobs_lock:
+        job = live_jobs.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
+        return {
+            "id": job["id"],
+            "status": job["status"],
+            "stage": job["stage"],
+            "error": job.get("error"),
+            "result": job.get("result"),
+            "images": job.get("images"),
+            "provenance": job.get("provenance"),
+            "created_at": job["created_at"],
+        }
+

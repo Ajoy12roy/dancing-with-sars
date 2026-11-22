@@ -9,3 +9,4 @@ affine==3.0.1
 fastapi==0.162.0
 uvicorn==0.54.0
 python-multipart==0.0.32
+earthengine-api==1.7.53
