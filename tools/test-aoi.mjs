@@ -96,6 +96,7 @@ const {
   SENTINEL1_START_DATE,
   getDefaultBeforeAfterTargets,
   create10kmBoxFromCenter,
+  computeLiveAoiId,
 } = aoiModule;
 
 console.log('Running Area Picker (lib/aoi.ts) Test Suite...\n');
@@ -499,5 +500,35 @@ const highDims = computeBboxDimensions(highLat10);
 assert.ok(Math.abs(highDims.widthKm - 10) < 0.1, `High-latitude width should be ~10 km, got ${highDims.widthKm}`);
 assert.ok(Math.abs(highDims.heightKm - 10) < 0.1, `High-latitude height should be ~10 km, got ${highDims.heightKm}`);
 console.log('✓ create10kmBoxFromCenter verified across equator, mid-latitudes (Cox\'s Bazar, Bandarban), and high-latitudes');
+
+console.log('Test 9: Unique identity per live run (computeLiveAoiId)...');
+assert.equal(typeof computeLiveAoiId, 'function', 'computeLiveAoiId must be exported as a function');
+
+const bboxA = { west: 91.8, south: 24.85, east: 91.95, north: 24.98 }; // Sylhet
+const bboxB = { west: 91.0, south: 25.1, east: 91.2, north: 25.25 };  // Tanguar
+const winA = { start: '2022-05-01', end: '2022-05-10' };
+const winB = { start: '2022-06-18', end: '2022-06-22' };
+
+const id1 = computeLiveAoiId(bboxA, winA, winB, 'flood');
+const id2 = computeLiveAoiId(bboxA, winA, winB, 'flood');
+const idDifferentBbox = computeLiveAoiId(bboxB, winA, winB, 'flood');
+const idDifferentDate = computeLiveAoiId(bboxA, { start: '2022-05-02', end: '2022-05-10' }, winB, 'flood');
+const idDifferentMode = computeLiveAoiId(bboxA, winA, winB, 'river-erosion');
+
+// Determinism: Same inputs produce identical id
+assert.equal(id1, id2, 'Same inputs must produce identical live id');
+assert.ok(id1.startsWith('live-'), 'Live id must start with live- prefix');
+
+// Uniqueness across different bboxes, dates, modes
+assert.notEqual(id1, idDifferentBbox, 'Different bboxes must produce different ids');
+assert.notEqual(id1, idDifferentDate, 'Different date windows must produce different ids');
+assert.notEqual(id1, idDifferentMode, 'Different modes must produce different ids');
+
+// Verify isKnownCaseId is false for all live ids
+const caseStudiesModule = loadTsModule(path.resolve(rootDir, 'lib/case-studies.ts'));
+const { isKnownCaseId } = caseStudiesModule;
+assert.equal(isKnownCaseId(id1), false, 'isKnownCaseId must return false for live id');
+assert.equal(isKnownCaseId(idDifferentBbox), false, 'isKnownCaseId must return false for live id');
+console.log('✓ computeLiveAoiId determinism, uniqueness across bboxes/dates/modes, and isKnownCaseId(id) === false verified');
 
 console.log('\nAll Area Picker (lib/aoi.ts) tests passed successfully!');

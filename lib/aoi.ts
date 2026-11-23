@@ -1297,3 +1297,28 @@ export function nisarAvailabilitySummary(params: NisarAvailabilityParams): Nisar
   };
 }
 
+/**
+ * Computes a unique, deterministic identifier for a live area analysis run.
+ * Format: `live-${shortHash}` based on rounded bbox coordinates, date windows, and mode.
+ * Fully deterministic, contains no secrets, and is not a known case ID.
+ */
+export function computeLiveAoiId(
+  bbox: BoundingBox,
+  dateA: DateWindow,
+  dateB: DateWindow,
+  mode: string
+): string {
+  const normW = bbox.west.toFixed(4);
+  const normS = bbox.south.toFixed(4);
+  const normE = bbox.east.toFixed(4);
+  const normN = bbox.north.toFixed(4);
+  const str = `${normW}_${normS}_${normE}_${normN}:${dateA.start}_${dateA.end}:${dateB.start}_${dateB.end}:${(mode || 'flood').toLowerCase().trim()}`;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const hex = (hash >>> 0).toString(16).padStart(8, '0');
+  return `live-${hex}`;
+}
+

@@ -56,6 +56,7 @@ import {
   PresetAoi,
   PRESET_AOIS,
   presetForCase,
+  computeLiveAoiId,
 } from '@/lib/aoi';
 
 // Guard Leaflet default marker icons for client environments
@@ -1369,8 +1370,14 @@ export default function AoiMapPicker({
 
           const resData = pollJson.result || {};
           const resImages = pollJson.images || {};
+          const liveAoiId = computeLiveAoiId(
+            bbox,
+            dateWindowA,
+            dateWindowB,
+            resData.mode || mode || 'flood'
+          );
           const unifiedData: ChangeData = {
-            aoiId: resData.aoiId || 'live',
+            aoiId: liveAoiId,
             name: customAreaLabel || activeAreaLabel || 'Custom Area (Live GEE)',
             dateBefore: resData.dateBefore || resData.dates?.a || dateWindowA.start,
             dateAfter: resData.dateAfter || resData.dates?.b || dateWindowB.start,
