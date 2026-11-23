@@ -22,6 +22,7 @@ import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
 import { NisarCard } from '@/components/explore/NisarCard';
 import { SylhetExposureCard } from '@/components/explore/SylhetExposureCard';
+import { LiveResultHeader, LiveResultSummary } from '@/components/explore/LiveResultSummary';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
@@ -502,8 +503,8 @@ function ExploreContent() {
             </div>
           )}
 
-          {activeTab === 'upload' && !uploadLoading && !currentUploadData && (
-            <div className="col-span-12 space-y-6">
+          {activeTab === 'upload' && !uploadLoading && (
+            <div id="map-picker" className="col-span-12 space-y-6">
               {/* Area Picker & Earth Engine Export Script Generator (Card 1 and Card 2) */}
               <AoiMapPicker
                 onSelectCaseStudy={(caseId) => {
@@ -663,6 +664,37 @@ function ExploreContent() {
           {/* ── Results View: Rendered for both Demo and Upload Success ── */}
           {displayData && activeAoi && (activeTab === 'demo' ? !demoLoading && !demoError : !uploadLoading) && (
             <>
+              {/* ── Dedicated Live Analysis Result Header (Upload/Live only) ── */}
+              {isCustomResult && (
+                <LiveResultHeader
+                  data={displayData}
+                  onBackToMap={() => {
+                    const el = document.getElementById('map-picker');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                />
+              )}
+
+              {/* ── Dedicated "What changed in this area" Summary Card (Upload/Live only) ── */}
+              {isCustomResult && (
+                <LiveResultSummary data={displayData} />
+              )}
+
+              {/* ── Observation Provenance Block (Live Area Analysis, directly under summary) ── */}
+              {isCustomResult && displayData.provenance && (
+                <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
+                  <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
+                  <p>
+                    Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
+                    {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
+                    {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
+                    {' '}Each window is a median composite.
+                  </p>
+                </div>
+              )}
+
               {/* ── Visible Honesty Note (Steps 2b & 3b) ── */}
               {activeTab === 'demo' && (currentCaseStudy?.honestyNote || displayData.honestyNote) && (
                 <div className="col-span-12 border border-hairline bg-surface-2 p-3 text-xs text-ink flex items-start gap-2.5 rounded-[2px]">
@@ -858,19 +890,6 @@ function ExploreContent() {
               {!isCustomResult && (
                 <div className="col-span-12">
                   <NisarCard />
-                </div>
-              )}
-
-              {/* ── Observation Provenance Block (Live Area Analysis) ── */}
-              {displayData?.provenance && (
-                <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
-                  <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
-                  <p>
-                    Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
-                    {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
-                    {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
-                    {' '}Each window is a median composite.
-                  </p>
                 </div>
               )}
             </>
