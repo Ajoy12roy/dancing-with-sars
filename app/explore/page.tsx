@@ -340,6 +340,7 @@ function ExploreContent() {
 
   const displayData = activeTab === 'demo' ? demoData : currentUploadData;
   const activeAoi = activeTab === 'demo' ? activeDemoAoi : uploadAoi;
+  const isCustomResult = activeTab === 'upload';
 
   // Wrap items passed to CategoryBreakdownChart in useMemo keyed on the underlying result
   const chartItems = useMemo(() => {
@@ -682,13 +683,17 @@ function ExploreContent() {
                   >
                     Map
                   </a>
-                  <span className="text-hairline">/</span>
-                  <a
-                    href="#sensitivity"
-                    className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                  >
-                    Sensitivity
-                  </a>
+                  {!isCustomResult && (
+                    <>
+                      <span className="text-hairline">/</span>
+                      <a
+                        href="#sensitivity"
+                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                      >
+                        Sensitivity
+                      </a>
+                    </>
+                  )}
                   <span className="text-hairline">/</span>
                   <a
                     href="#ai-insight"
@@ -696,7 +701,7 @@ function ExploreContent() {
                   >
                     AI insight
                   </a>
-                  {activeTab === 'demo' && selectedAoi === 'sylhet' && (
+                  {!isCustomResult && selectedAoi === 'sylhet' && (
                     <>
                       <span className="text-hairline">/</span>
                       <a
@@ -707,7 +712,7 @@ function ExploreContent() {
                       </a>
                     </>
                   )}
-                  {activeTab === 'demo' && (
+                  {!isCustomResult && (
                     <>
                       <span className="text-hairline">|</span>
                       <span className="font-mono text-[10px] uppercase text-amber-700 dark:text-amber-400">NISAR:</span>
@@ -737,16 +742,19 @@ function ExploreContent() {
                   changeMapImage={displayData.changeMapImage}
                   dateBefore={displayData.dateBefore}
                   dateAfter={displayData.dateAfter}
-                  beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
-                  afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
+                  beforeRange={isCustomResult ? displayData.beforeRange : (displayData.beforeRange || currentCaseStudy?.beforeRange)}
+                  afterRange={isCustomResult ? displayData.afterRange : (displayData.afterRange || currentCaseStudy?.afterRange)}
                 />
               </div>
 
               <div className="col-span-12 lg:col-span-5 flex" role="region" aria-label="Geospatial Classification Map Viewport">
-                {mode === 'deforestation' ? (
-                  <ChangeMap data={displayData} aoi={activeAoi} />
+                {(isCustomResult ? (displayData.mode || activeAoi?.mode || mode) : mode) === 'deforestation' ? (
+                  <ChangeMap data={displayData} aoi={activeAoi || undefined} />
                 ) : (
-                  <ShorelineShiftCard data={displayData} mode={mode} />
+                  <ShorelineShiftCard
+                    data={displayData}
+                    mode={isCustomResult ? (displayData.mode || activeAoi?.mode || mode) : mode}
+                  />
                 )}
               </div>
 
@@ -755,7 +763,7 @@ function ExploreContent() {
                 <MapTextSummary
                   data={displayData}
                   aoi={activeAoi}
-                  caseStudy={currentCaseStudy}
+                  caseStudy={isCustomResult ? null : currentCaseStudy}
                 />
               </div>
 
@@ -847,9 +855,11 @@ function ExploreContent() {
               )}
 
               {/* ── Row 4: NASA NISAR L-band Analysis Card ── */}
-              <div className="col-span-12">
-                <NisarCard />
-              </div>
+              {!isCustomResult && (
+                <div className="col-span-12">
+                  <NisarCard />
+                </div>
+              )}
 
               {/* ── Observation Provenance Block (Live Area Analysis) ── */}
               {displayData?.provenance && (

@@ -14,7 +14,7 @@ interface MapTextSummaryProps {
 
 export function MapTextSummary({ data, aoi, caseStudy }: MapTextSummaryProps) {
   const { emitEvent } = useAccessibility();
-  const caseTitle = caseStudy?.title || aoi?.name || data.aoiId || 'Active Case';
+  const caseTitle = caseStudy?.title || aoi?.name || data.name || data.aoiId || 'Active Case';
   const modeLabel = caseStudy?.modeLabel || aoi?.mode || data.mode || 'SAR change';
 
   // Format dates / date ranges
