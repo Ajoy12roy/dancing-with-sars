@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useChangeData, useUploadChangeData } from '@/hooks/useChangeData';
@@ -23,6 +23,7 @@ import { MapTextSummary } from '@/components/visualization/MapTextSummary';
 import { NisarCard } from '@/components/explore/NisarCard';
 import { SylhetExposureCard } from '@/components/explore/SylhetExposureCard';
 import { LiveResultHeader, LiveResultSummary } from '@/components/explore/LiveResultSummary';
+import { LIVE_RESULT_COPY } from '@/lib/live-result-copy';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
   getReadyDemoAois,
@@ -58,7 +59,7 @@ function modeToParam(m: AnalysisMode): string {
 function ExploreContent() {
   const [activeTab, setActiveTab] = useState<'demo' | 'upload'>('demo');
   const { mode, setMode, selectedAoi, setSelectedAoi } = useAnalysisMode();
-  const { emitEvent } = useAccessibility();
+  const { announce, emitEvent } = useAccessibility();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -117,6 +118,25 @@ function ExploreContent() {
   } = useUploadChangeData();
 
   const currentUploadData = liveData || uploadData;
+
+  // Auto-scroll to #live-result when a live or upload result newly arrives
+  const prevUploadDataRef = useRef<ChangeData | null>(currentUploadData);
+  useEffect(() => {
+    const prev = prevUploadDataRef.current;
+    prevUploadDataRef.current = currentUploadData;
+    if (activeTab === 'upload' && currentUploadData && currentUploadData !== prev) {
+      requestAnimationFrame(() => {
+        const el = document.getElementById('live-result');
+        if (el) {
+          const prefersReduced =
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+        }
+        announce('Analysis results are ready below.');
+      });
+    }
+  }, [activeTab, currentUploadData, announce]);
 
   const handleLiveAnalysisComplete = useCallback(
     (data: ChangeData) => {
@@ -377,6 +397,241 @@ function ExploreContent() {
       ? currentCaseStudy?.description || currentCaseStudy?.summary || activeDemoAoi?.description || 'Sentinel-1 radar backscatter variation analysis'
       : 'Pick an area on the map to generate an Earth Engine export script, or upload your own co-registered GeoTIFFs to run change detection.';
 
+  const resultsView =
+    displayData && activeAoi && (activeTab === 'demo' ? !demoLoading && !demoError : !uploadLoading) ? (
+      <>
+        {/* ── Dedicated Live Analysis Result Header (Upload/Live only) ── */}
+        {isCustomResult && (
+          <LiveResultHeader
+            data={displayData}
+            onBackToMap={() => {
+              const el = document.getElementById('map-picker');
+              if (el) {
+                const prefersReduced =
+                  typeof window !== 'undefined' &&
+                  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+              }
+            }}
+          />
+        )}
+
+        {/* ── Dedicated "What changed in this area" Summary Card (Upload/Live only) ── */}
+        {isCustomResult && <LiveResultSummary data={displayData} />}
+
+        {/* ── Observation Provenance Block (Live Area Analysis, directly under summary) ── */}
+        {isCustomResult && displayData.provenance && (
+          <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
+            <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
+            <p>
+              Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
+              {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
+              {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
+              {' '}Each window is a median composite.
+            </p>
+          </div>
+        )}
+
+        {/* ── Visible Honesty Note (Steps 2b & 3b) ── */}
+        {activeTab === 'demo' && (currentCaseStudy?.honestyNote || displayData.honestyNote) && (
+          <div className="col-span-12 border border-hairline bg-surface-2 p-3 text-xs text-ink flex items-start gap-2.5 rounded-[2px]">
+            <span className="text-teal font-semibold font-data uppercase tracking-wider shrink-0 mt-0.5">Note:</span>
+            <span className="font-sans leading-relaxed">
+              {currentCaseStudy?.honestyNote || displayData.honestyNote}
+            </span>
+          </div>
+        )}
+
+        {/* ── Compact In-Page Jump Anchor Bar (No layout shift) ── */}
+        <div className="col-span-12 py-1.5 px-3 border border-hairline bg-surface rounded-[2px] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+          <div className="flex flex-wrap items-center gap-1.5 text-text-secondary">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-text-caption">Jump to:</span>
+            <a
+              href="#map"
+              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+            >
+              Map
+            </a>
+            {!isCustomResult && (
+              <>
+                <span className="text-hairline">/</span>
+                <a
+                  href="#sensitivity"
+                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                >
+                  Sensitivity
+                </a>
+              </>
+            )}
+            <span className="text-hairline">/</span>
+            <a
+              href="#ai-insight"
+              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+            >
+              AI insight
+            </a>
+            {!isCustomResult && selectedAoi === 'sylhet' && (
+              <>
+                <span className="text-hairline">/</span>
+                <a
+                  href="#exposure"
+                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                >
+                  Exposure
+                </a>
+              </>
+            )}
+            {!isCustomResult && (
+              <>
+                <span className="text-hairline">|</span>
+                <span className="font-mono text-[10px] uppercase text-amber-700 dark:text-amber-400">NISAR:</span>
+                <a
+                  href="#nisar-threshold-grid"
+                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                >
+                  Threshold grid
+                </a>
+                <span className="text-hairline">/</span>
+                <a
+                  href="#nisar-limitations"
+                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+                >
+                  Limitations
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
+        <div id="map" className="col-span-12 lg:col-span-7 flex scroll-mt-6" role="region" aria-label="SAR Imagery Comparison Viewport">
+          <BeforeAfterViewer
+            beforeImage={displayData.beforeImage}
+            afterImage={displayData.afterImage}
+            changeMapImage={displayData.changeMapImage}
+            dateBefore={displayData.dateBefore}
+            dateAfter={displayData.dateAfter}
+            beforeRange={isCustomResult ? displayData.beforeRange : (displayData.beforeRange || currentCaseStudy?.beforeRange)}
+            afterRange={isCustomResult ? displayData.afterRange : (displayData.afterRange || currentCaseStudy?.afterRange)}
+          />
+        </div>
+
+        <div className="col-span-12 lg:col-span-5 flex" role="region" aria-label="Geospatial Classification Map Viewport">
+          {(isCustomResult ? (displayData.mode || activeAoi?.mode || mode) : mode) === 'deforestation' ? (
+            <ChangeMap data={displayData} aoi={activeAoi || undefined} />
+          ) : (
+            <ShorelineShiftCard
+              data={displayData}
+              mode={isCustomResult ? (displayData.mode || activeAoi?.mode || mode) : mode}
+            />
+          )}
+        </div>
+
+        {/* ── Accessible Text Summary of Visualizations (WCAG 2.2 AA) ── */}
+        <div className="col-span-12">
+          <MapTextSummary
+            data={displayData}
+            aoi={activeAoi}
+            caseStudy={isCustomResult ? null : currentCaseStudy}
+          />
+        </div>
+
+        {/* ── Case Study Card (under the viewer for the selected demo) ── */}
+        {activeTab === 'demo' && currentCaseStudy && (
+          <div id="sensitivity" className="col-span-12 scroll-mt-6">
+            <CaseStudyCard
+              caseStudy={currentCaseStudy}
+              dateBefore={displayData.dateBefore}
+              dateAfter={displayData.dateAfter}
+              beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
+              afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
+              sensitivity={displayData.sensitivity || currentCaseStudy?.sensitivity}
+            />
+          </div>
+        )}
+
+        {/* ── Row 2: Left = Category Breakdown (7 cols), Right = Radar Interpretation (5 cols) ── */}
+        <div className="col-span-12 lg:col-span-7 flex">
+          <DataPanel
+            title="Category Breakdown"
+            rightSlot={
+              <span className="font-data text-xs text-text-secondary">Area (km²)</span>
+            }
+            className="h-full w-full"
+            bodyClassName="justify-between"
+          >
+            <div className="h-56 w-full">
+              <CategoryBreakdownChart
+                categories={displayData.categories}
+                items={chartItems}
+              />
+            </div>
+
+            {displayData.categories && displayData.categories.length > 0 && (
+              <div className="pt-3 border-t border-hairline flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                {displayData.categories.map((cat) => (
+                  <div key={cat.id} className="flex items-center gap-1.5 font-data text-text-secondary">
+                    <span
+                      className="w-2.5 h-2.5 rounded-sm border border-hairline shrink-0"
+                      style={{
+                        backgroundColor:
+                          cat.kind === 'loss' || cat.id.includes('loss') || cat.id.includes('erosion') || cat.id.includes('flooded')
+                            ? 'var(--color-rust)'
+                            : cat.kind === 'gain' || cat.id.includes('accretion')
+                            ? 'var(--color-teal)'
+                            : 'var(--color-ink-muted)',
+                      }}
+                    />
+                    <span className="text-ink font-sans">{cat.label}:</span>
+                    <span className="font-medium text-teal">{cat.areaKm2.toFixed(2)} km²</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DataPanel>
+        </div>
+
+        <div id="ai-insight" className="col-span-12 lg:col-span-5 flex scroll-mt-6">
+          <AIInsightPanel
+            data={displayData}
+            percentChanged={displayData.percentChanged}
+            affectedAreaKm2={displayData.affectedAreaKm2}
+            confidence={displayData.confidence}
+            totalAreaKm2={displayData.totalAreaKm2}
+            metrics={displayData.metrics}
+            categories={displayData.categories}
+            dates={displayData.dates}
+            warnings={displayData.warnings}
+            aoiName={activeAoi.name}
+            aoiId={activeAoi.id}
+            mode={displayData.mode || activeAoi.mode || mode}
+          />
+        </div>
+
+        {/* ── Row 3: Metric Cards Row (12 cols, equal width/height, same padding) ── */}
+        <div className="col-span-12">
+          <StatsPanel
+            data={displayData}
+            mode={displayData.mode || activeAoi.mode || mode}
+          />
+        </div>
+
+        {/* ── Row 3.5: Sylhet Flood Exposure Analytics Card ── */}
+        {activeTab === 'demo' && selectedAoi === 'sylhet' && (
+          <div className="col-span-12">
+            <SylhetExposureCard />
+          </div>
+        )}
+
+        {/* ── Row 4: NASA NISAR L-band Analysis Card ── */}
+        {!isCustomResult && (
+          <div className="col-span-12">
+            <NisarCard />
+          </div>
+        )}
+      </>
+    ) : null;
+
   return (
     <div className="min-h-screen bg-paper text-ink p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -517,7 +772,13 @@ function ExploreContent() {
                 }}
                 mode={mode}
                 onLiveAnalysisComplete={handleLiveAnalysisComplete}
+                resultSlot={isCustomResult ? resultsView : undefined}
               >
+                {currentUploadData && (
+                  <p className="text-xs font-sans text-text-secondary">
+                    {LIVE_RESULT_COPY.uploadBelowHint}
+                  </p>
+                )}
                 {/* ── Card 3: Upload and analyse ── */}
                 <section className="border border-hairline bg-surface p-5 sm:p-6 rounded-[2px] space-y-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -661,239 +922,8 @@ function ExploreContent() {
             </div>
           )}
 
-          {/* ── Results View: Rendered for both Demo and Upload Success ── */}
-          {displayData && activeAoi && (activeTab === 'demo' ? !demoLoading && !demoError : !uploadLoading) && (
-            <>
-              {/* ── Dedicated Live Analysis Result Header (Upload/Live only) ── */}
-              {isCustomResult && (
-                <LiveResultHeader
-                  data={displayData}
-                  onBackToMap={() => {
-                    const el = document.getElementById('map-picker');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                />
-              )}
-
-              {/* ── Dedicated "What changed in this area" Summary Card (Upload/Live only) ── */}
-              {isCustomResult && (
-                <LiveResultSummary data={displayData} />
-              )}
-
-              {/* ── Observation Provenance Block (Live Area Analysis, directly under summary) ── */}
-              {isCustomResult && displayData.provenance && (
-                <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
-                  <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
-                  <p>
-                    Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
-                    {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
-                    {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
-                    {' '}Each window is a median composite.
-                  </p>
-                </div>
-              )}
-
-              {/* ── Visible Honesty Note (Steps 2b & 3b) ── */}
-              {activeTab === 'demo' && (currentCaseStudy?.honestyNote || displayData.honestyNote) && (
-                <div className="col-span-12 border border-hairline bg-surface-2 p-3 text-xs text-ink flex items-start gap-2.5 rounded-[2px]">
-                  <span className="text-teal font-semibold font-data uppercase tracking-wider shrink-0 mt-0.5">Note:</span>
-                  <span className="font-sans leading-relaxed">
-                    {currentCaseStudy?.honestyNote || displayData.honestyNote}
-                  </span>
-                </div>
-              )}
-
-              {/* ── Compact In-Page Jump Anchor Bar (No layout shift) ── */}
-              <div className="col-span-12 py-1.5 px-3 border border-hairline bg-surface rounded-[2px] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
-                <div className="flex flex-wrap items-center gap-1.5 text-text-secondary">
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-text-caption">Jump to:</span>
-                  <a
-                    href="#map"
-                    className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                  >
-                    Map
-                  </a>
-                  {!isCustomResult && (
-                    <>
-                      <span className="text-hairline">/</span>
-                      <a
-                        href="#sensitivity"
-                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                      >
-                        Sensitivity
-                      </a>
-                    </>
-                  )}
-                  <span className="text-hairline">/</span>
-                  <a
-                    href="#ai-insight"
-                    className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                  >
-                    AI insight
-                  </a>
-                  {!isCustomResult && selectedAoi === 'sylhet' && (
-                    <>
-                      <span className="text-hairline">/</span>
-                      <a
-                        href="#exposure"
-                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                      >
-                        Exposure
-                      </a>
-                    </>
-                  )}
-                  {!isCustomResult && (
-                    <>
-                      <span className="text-hairline">|</span>
-                      <span className="font-mono text-[10px] uppercase text-amber-700 dark:text-amber-400">NISAR:</span>
-                      <a
-                        href="#nisar-threshold-grid"
-                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                      >
-                        Threshold grid
-                      </a>
-                      <span className="text-hairline">/</span>
-                      <a
-                        href="#nisar-limitations"
-                        className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                      >
-                        Limitations
-                      </a>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
-              <div id="map" className="col-span-12 lg:col-span-7 flex scroll-mt-6" role="region" aria-label="SAR Imagery Comparison Viewport">
-                <BeforeAfterViewer
-                  beforeImage={displayData.beforeImage}
-                  afterImage={displayData.afterImage}
-                  changeMapImage={displayData.changeMapImage}
-                  dateBefore={displayData.dateBefore}
-                  dateAfter={displayData.dateAfter}
-                  beforeRange={isCustomResult ? displayData.beforeRange : (displayData.beforeRange || currentCaseStudy?.beforeRange)}
-                  afterRange={isCustomResult ? displayData.afterRange : (displayData.afterRange || currentCaseStudy?.afterRange)}
-                />
-              </div>
-
-              <div className="col-span-12 lg:col-span-5 flex" role="region" aria-label="Geospatial Classification Map Viewport">
-                {(isCustomResult ? (displayData.mode || activeAoi?.mode || mode) : mode) === 'deforestation' ? (
-                  <ChangeMap data={displayData} aoi={activeAoi || undefined} />
-                ) : (
-                  <ShorelineShiftCard
-                    data={displayData}
-                    mode={isCustomResult ? (displayData.mode || activeAoi?.mode || mode) : mode}
-                  />
-                )}
-              </div>
-
-              {/* ── Accessible Text Summary of Visualizations (WCAG 2.2 AA) ── */}
-              <div className="col-span-12">
-                <MapTextSummary
-                  data={displayData}
-                  aoi={activeAoi}
-                  caseStudy={isCustomResult ? null : currentCaseStudy}
-                />
-              </div>
-
-              {/* ── Case Study Card (under the viewer for the selected demo) ── */}
-              {activeTab === 'demo' && currentCaseStudy && (
-                <div id="sensitivity" className="col-span-12 scroll-mt-6">
-                  <CaseStudyCard
-                    caseStudy={currentCaseStudy}
-                    dateBefore={displayData.dateBefore}
-                    dateAfter={displayData.dateAfter}
-                    beforeRange={displayData.beforeRange || currentCaseStudy?.beforeRange}
-                    afterRange={displayData.afterRange || currentCaseStudy?.afterRange}
-                    sensitivity={displayData.sensitivity || currentCaseStudy?.sensitivity}
-                  />
-                </div>
-              )}
-
-              {/* ── Row 2: Left = Category Breakdown (7 cols), Right = Radar Interpretation (5 cols) ── */}
-              <div className="col-span-12 lg:col-span-7 flex">
-                <DataPanel
-                  title="Category Breakdown"
-                  rightSlot={
-                    <span className="font-data text-xs text-text-secondary">Area (km²)</span>
-                  }
-                  className="h-full w-full"
-                  bodyClassName="justify-between"
-                >
-                  <div className="h-56 w-full">
-                    <CategoryBreakdownChart
-                      categories={displayData.categories}
-                      items={chartItems}
-                    />
-                  </div>
-
-                  {displayData.categories && displayData.categories.length > 0 && (
-                    <div className="pt-3 border-t border-hairline flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-                      {displayData.categories.map((cat) => (
-                        <div key={cat.id} className="flex items-center gap-1.5 font-data text-text-secondary">
-                          <span
-                            className="w-2.5 h-2.5 rounded-sm border border-hairline shrink-0"
-                            style={{
-                              backgroundColor:
-                                cat.kind === 'loss' || cat.id.includes('loss') || cat.id.includes('erosion') || cat.id.includes('flooded')
-                                  ? 'var(--color-rust)'
-                                  : cat.kind === 'gain' || cat.id.includes('accretion')
-                                  ? 'var(--color-teal)'
-                                  : 'var(--color-ink-muted)',
-                            }}
-                          />
-                          <span className="text-ink font-sans">{cat.label}:</span>
-                          <span className="font-medium text-teal">{cat.areaKm2.toFixed(2)} km²</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </DataPanel>
-              </div>
-
-              <div id="ai-insight" className="col-span-12 lg:col-span-5 flex scroll-mt-6">
-                <AIInsightPanel
-                  data={displayData}
-                  percentChanged={displayData.percentChanged}
-                  affectedAreaKm2={displayData.affectedAreaKm2}
-                  confidence={displayData.confidence}
-                  totalAreaKm2={displayData.totalAreaKm2}
-                  metrics={displayData.metrics}
-                  categories={displayData.categories}
-                  dates={displayData.dates}
-                  warnings={displayData.warnings}
-                  aoiName={activeAoi.name}
-                  aoiId={activeAoi.id}
-                  mode={displayData.mode || activeAoi.mode || mode}
-                />
-              </div>
-
-              {/* ── Row 3: Metric Cards Row (12 cols, equal width/height, same padding) ── */}
-              <div className="col-span-12">
-                <StatsPanel
-                  data={displayData}
-                  mode={displayData.mode || activeAoi.mode || mode}
-                />
-              </div>
-
-              {/* ── Row 3.5: Sylhet Flood Exposure Analytics Card ── */}
-              {activeTab === 'demo' && selectedAoi === 'sylhet' && (
-                <div className="col-span-12">
-                  <SylhetExposureCard />
-                </div>
-              )}
-
-              {/* ── Row 4: NASA NISAR L-band Analysis Card ── */}
-              {!isCustomResult && (
-                <div className="col-span-12">
-                  <NisarCard />
-                </div>
-              )}
-            </>
-          )}
+          {/* ── Results View: Rendered below only for Demo tab (Upload renders via AoiMapPicker resultSlot) ── */}
+          {!isCustomResult && resultsView}
         </div>
       </div>
     </div>

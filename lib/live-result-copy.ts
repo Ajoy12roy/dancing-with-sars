@@ -49,6 +49,7 @@ export const LIVE_RESULT_COPY = {
   bankErosionLabel: 'Bank erosion (land to water):',
   bankAccretionLabel: 'Sediment accretion (water to land):',
   noticePrefix: 'Notice:',
+  uploadBelowHint: 'Prefer your own files? Upload GeoTIFFs below.',
 } as const;
 
 export type LiveResultCopyKey = keyof typeof LIVE_RESULT_COPY;

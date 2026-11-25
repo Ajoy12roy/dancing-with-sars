@@ -578,6 +578,7 @@ export interface AoiMapPickerProps {
   onPresetChange?: (presetId: string) => void;
   onLiveAnalysisComplete?: (data: ChangeData) => void;
   mode?: string;
+  resultSlot?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -586,6 +587,7 @@ export default function AoiMapPicker({
   onPresetChange,
   onLiveAnalysisComplete,
   mode = 'flood',
+  resultSlot,
   children,
 }: AoiMapPickerProps = {}) {
   const { effectiveOffline } = useNetworkMode();
@@ -2143,6 +2145,13 @@ export default function AoiMapPicker({
           </div>
         )}
       </section>
+
+      {/* ── Live/Upload Results Slot (directly under Card 2) ── */}
+      {resultSlot && (
+        <div id="live-result" className="grid grid-cols-12 gap-6 scroll-mt-6">
+          {resultSlot}
+        </div>
+      )}
 
       {/* ── Collapsed Manual Export Script Section ── */}
       <details className="border border-hairline bg-surface rounded-[2px] p-5 sm:p-6 group">
