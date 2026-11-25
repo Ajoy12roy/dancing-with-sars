@@ -1,7 +1,37 @@
 'use client';
 
+import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { GraticuleFrame } from '@/components/layout/GraticuleFrame';
+import { SpecimenSheet } from '@/components/ui/Card';
+import { OverviewVideo } from '@/components/how-it-works/OverviewVideo';
+
+const FOUR_STEPS = [
+  {
+    number: '01',
+    title: 'Choose a case or an area',
+    description:
+      'Open one of ten ready-made cases, such as the Sylhet flood or Jamuna riverbank erosion, or select your own area on the map.',
+  },
+  {
+    number: '02',
+    title: 'Radar sees through clouds',
+    description:
+      'Sentinel-1 radar images and provisional NASA-ISRO NISAR data work through monsoon clouds and at night. TerraPulse compares two dates.',
+  },
+  {
+    number: '03',
+    title: 'See what changed',
+    description:
+      'Move the before and after slider to see changed land and water in square kilometres, with a range that shows how much the result depends on our settings.',
+  },
+  {
+    number: '04',
+    title: 'Read, listen and prepare your own data',
+    description:
+      'Read a plain-language summary or listen to the Chiku voice guide. To analyse your own images, export them with the generated Earth Engine script and run the project locally.',
+  },
+];
 
 export function HowItWorksClient() {
   const shouldReduceMotion = useReducedMotion();
@@ -44,21 +74,81 @@ export function HowItWorksClient() {
           variants={itemVariants}
           className="text-3xl md:text-4xl font-headline font-semibold text-text-primary"
         >
-          How It Works
+          How TerraPulse works
         </motion.h1>
         <motion.p
           variants={itemVariants}
           className="mt-3 text-base md:text-lg text-text-secondary max-w-3xl leading-relaxed"
         >
-          The physical principles, algorithmic steps, calibrated thresholds, and mathematical formulas
-          implemented in our Python SAR processing pipeline.
+          A 30-second overview, then the process in four plain steps.
         </motion.p>
       </motion.div>
 
+      {/* 30-second Overview Video */}
+      <section className="mb-14">
+        <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary mb-4">
+          Watch the overview
+        </h2>
+        <OverviewVideo videoId="KXagoM8xsFo" title="TerraPulse overview, 30 seconds" />
+      </section>
+
+      {/* Four Simple Steps */}
+      <section className="mb-14">
+        <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary mb-6">
+          How it works in four steps
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          {FOUR_STEPS.map((step) => (
+            <SpecimenSheet
+              key={step.number}
+              identifier={step.number}
+              className="border border-hairline bg-surface p-5 rounded-[2px] flex flex-col justify-between h-full"
+            >
+              <div>
+                <h3 className="font-headline font-semibold text-base text-text-primary mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-xs text-text-secondary leading-relaxed font-sans">
+                  {step.description}
+                </p>
+              </div>
+            </SpecimenSheet>
+          ))}
+        </div>
+        <p className="text-xs text-text-secondary leading-relaxed font-sans mt-4">
+          TerraPulse shows observations, not forecasts. It does not give relief or evacuation advice.
+        </p>
+        <div className="flex flex-wrap items-center gap-3 mt-6">
+          <Link
+            href="/explore"
+            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-[2px] bg-accent text-text-on-accent hover:bg-accent-hover transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Open the explorer
+          </Link>
+          <a
+            href="#technical-details"
+            className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-[2px] bg-transparent text-accent border border-hairline hover:border-accent hover:bg-surface-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Technical details
+          </a>
+        </div>
+      </section>
+
+      {/* Technical details anchor & heading */}
+      <div className="border-t border-hairline pt-10 mb-8">
+        <h2
+          id="technical-details"
+          className="text-2xl md:text-3xl font-headline font-semibold text-text-primary scroll-mt-8"
+        >
+          Technical details
+        </h2>
+      </div>
+
       <div className="space-y-12">
         {/* Core Processing Foundation */}
-        <GraticuleFrame>
-          <div className="p-6 md:p-8 bg-surface rounded-[2px]">
+        <section id="radar-fundamentals" className="scroll-mt-8">
+          <GraticuleFrame>
+            <div className="p-6 md:p-8 bg-surface rounded-[2px]">
             <div className="flex items-center gap-2 mb-3">
               <span className="inline-block w-2 h-2 rounded-none bg-teal" />
               <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
@@ -552,9 +642,10 @@ export function HowItWorksClient() {
             </div>
           </div>
         </GraticuleFrame>
+        </section>
 
         {/* Limitations Section */}
-        <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
+        <div id="physical-mechanisms" className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8 scroll-mt-8">
           <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">
             <span className="inline-block w-2.5 h-2.5 bg-rust" />
             <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
@@ -628,7 +719,7 @@ export function HowItWorksClient() {
         </div>
 
         {/* Accessibility Section */}
-        <div className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8">
+        <div id="accessibility" className="border border-hairline rounded-[2px] bg-surface p-6 md:p-8 scroll-mt-8">
           <div className="flex items-center gap-2 mb-4 border-b border-hairline pb-3">
             <span className="inline-block w-2.5 h-2.5 bg-teal" />
             <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary">
