@@ -19,6 +19,13 @@ import {
 import { DataPanel } from '@/components/ui/DataPanel';
 import { useAccessibility } from '@/context';
 import type { DateRange } from '@/types';
+import {
+  CHANGE_DENSITY_BUCKETS,
+  buildChangeDensityFromBuckets,
+  computeLineMetrics,
+  isChangedPixel,
+  type ChangeDensityData,
+} from '@/lib/change-density';
 
 interface BeforeAfterViewerProps {
   beforeImage: string;
@@ -28,6 +35,7 @@ interface BeforeAfterViewerProps {
   dateAfter?: string;
   beforeRange?: DateRange;
   afterRange?: DateRange;
+  emphasizeDetections?: boolean;
 }
 
 const SWEEP_DURATION_SECONDS = 8;
@@ -40,6 +48,7 @@ export default function BeforeAfterViewer({
   dateAfter,
   beforeRange,
   afterRange,
+  emphasizeDetections = false,
 }: BeforeAfterViewerProps) {
   const shouldReduceMotion = useReducedMotion();
   const [isPlaying, setIsPlaying] = useState(!shouldReduceMotion);
@@ -72,6 +81,7 @@ export default function BeforeAfterViewer({
 
   // Recolor changeMapImage at render time via canvas to #D7301F (light) or #FF5A47 (dark)
   const [recoloredChangeMapUrl, setRecoloredChangeMapUrl] = useState<string | null>(null);
+  const [changeDensity, setChangeDensity] = useState<ChangeDensityData | null>(null);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
   useEffect(() => {
@@ -92,6 +102,7 @@ export default function BeforeAfterViewer({
     setPrevChangeMapForRecolor(changeMapImage);
     if (!changeMapImage) {
       setRecoloredChangeMapUrl(null);
+      setChangeDensity(null);
     }
   }
 
@@ -121,7 +132,17 @@ export default function BeforeAfterViewer({
         const targetG = isDarkTheme ? 90 : 48;
         const targetB = isDarkTheme ? 71 : 31;
 
+        const bucketsChanged = emphasizeDetections ? new Array<number>(CHANGE_DENSITY_BUCKETS).fill(0) : null;
+        const bucketsTotal = emphasizeDetections ? new Array<number>(CHANGE_DENSITY_BUCKETS).fill(0) : null;
+        const imgW = canvas.width;
+
         for (let i = 0; i < data.length; i += 4) {
+          if (bucketsTotal && imgW > 0) {
+            const x = (i >> 2) % imgW;
+            const bucket = Math.min(CHANGE_DENSITY_BUCKETS - 1, Math.floor((x / imgW) * CHANGE_DENSITY_BUCKETS));
+            bucketsTotal[bucket] = (bucketsTotal[bucket] ?? 0) + 1;
+          }
+
           const a = data[i + 3];
           if (a === undefined || a === 0) continue;
           const r = data[i];
@@ -130,8 +151,13 @@ export default function BeforeAfterViewer({
           if (r === undefined || g === undefined || b === undefined) continue;
 
           // Check if this pixel is marked as changed: reddish hazard hue (#A8462E in python-service)
-          const isChanged = r > 130 && r > g * 1.3 && r > b * 1.3;
+          const isChanged = isChangedPixel(r, g, b, a);
           if (isChanged) {
+            if (bucketsChanged && imgW > 0) {
+              const x = (i >> 2) % imgW;
+              const bucket = Math.min(CHANGE_DENSITY_BUCKETS - 1, Math.floor((x / imgW) * CHANGE_DENSITY_BUCKETS));
+              bucketsChanged[bucket] = (bucketsChanged[bucket] ?? 0) + 1;
+            }
             data[i] = targetR;
             data[i + 1] = targetG;
             data[i + 2] = targetB;
@@ -146,10 +172,16 @@ export default function BeforeAfterViewer({
         const dataUrl = canvas.toDataURL('image/png');
         if (!isCancelled) {
           setRecoloredChangeMapUrl(dataUrl);
+          if (emphasizeDetections && bucketsChanged && bucketsTotal) {
+            setChangeDensity(buildChangeDensityFromBuckets(bucketsChanged, bucketsTotal));
+          } else {
+            setChangeDensity(null);
+          }
         }
       } catch {
         if (!isCancelled) {
           setRecoloredChangeMapUrl(changeMapImage);
+          setChangeDensity(null);
         }
       }
     };
@@ -157,13 +189,14 @@ export default function BeforeAfterViewer({
     img.onerror = () => {
       if (!isCancelled) {
         setRecoloredChangeMapUrl(changeMapImage);
+        setChangeDensity(null);
       }
     };
 
     return () => {
       isCancelled = true;
     };
-  }, [changeMapImage, isDarkTheme]);
+  }, [changeMapImage, isDarkTheme, emphasizeDetections]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const progress = useMotionValue(50);
@@ -298,6 +331,11 @@ export default function BeforeAfterViewer({
     setIsPlaying((prev) => !prev);
   };
 
+  const lineMetrics =
+    emphasizeDetections && showChangeMap && changeDensity
+      ? computeLineMetrics(changeDensity, displayPosition)
+      : null;
+
   return (
     <DataPanel
       title="SAR Imagery Comparison"
@@ -336,56 +374,71 @@ export default function BeforeAfterViewer({
       className="h-130 xl:h-145 w-full select-none"
       noPadding
       footer={
-        <div className="px-4 sm:px-5 py-2 sm:py-2.5 border-t border-hairline bg-surface shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          {/* Date captions: 14px, solid colors */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-[14px] font-data">
-            <div className="flex items-center gap-1.5">
-              {beforeRange?.start && beforeRange?.end ? (
-                <span className="text-text-secondary">Before:</span>
-              ) : null}
-              <span className="text-ink font-semibold">
-                {beforeRange?.start && beforeRange?.end
-                  ? `median of Sentinel-1 scenes, ${beforeRange.start} to ${beforeRange.end}`
-                  : dateBefore
-                  ? `Reference date: ${dateBefore} (image is a median composite of scenes around this date; full range not recorded)`
-                  : 'Scene A'}
-              </span>
+        <div className="px-4 sm:px-5 py-2 sm:py-2.5 border-t border-hairline bg-surface shrink-0 flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            {/* Date captions: 14px, solid colors */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-[14px] font-data">
+              <div className="flex items-center gap-1.5">
+                {beforeRange?.start && beforeRange?.end ? (
+                  <span className="text-text-secondary">Before:</span>
+                ) : null}
+                <span className="text-ink font-semibold">
+                  {beforeRange?.start && beforeRange?.end
+                    ? `median of Sentinel-1 scenes, ${beforeRange.start} to ${beforeRange.end}`
+                    : dateBefore
+                    ? `Reference date: ${dateBefore} (image is a median composite of scenes around this date; full range not recorded)`
+                    : 'Scene A'}
+                </span>
+              </div>
+              <span className="text-hairline hidden sm:inline" aria-hidden="true">|</span>
+              <div className="flex items-center gap-1.5">
+                {afterRange?.start && afterRange?.end ? (
+                  <span className="text-text-secondary">After:</span>
+                ) : null}
+                <span className="text-ink font-semibold">
+                  {afterRange?.start && afterRange?.end
+                    ? `median of Sentinel-1 scenes, ${afterRange.start} to ${afterRange.end}`
+                    : dateAfter
+                    ? `Reference date: ${dateAfter} (image is a median composite of scenes around this date; full range not recorded)`
+                    : 'Scene B'}
+                </span>
+              </div>
             </div>
-            <span className="text-hairline hidden sm:inline" aria-hidden="true">|</span>
-            <div className="flex items-center gap-1.5">
-              {afterRange?.start && afterRange?.end ? (
-                <span className="text-text-secondary">After:</span>
-              ) : null}
-              <span className="text-ink font-semibold">
-                {afterRange?.start && afterRange?.end
-                  ? `median of Sentinel-1 scenes, ${afterRange.start} to ${afterRange.end}`
-                  : dateAfter
-                  ? `Reference date: ${dateAfter} (image is a median composite of scenes around this date; full range not recorded)`
-                  : 'Scene B'}
-              </span>
+
+            {/* Legend: change red swatch labelled "Detected change" and blue line sample labelled "Comparison line" */}
+            <div className="flex items-center gap-4 text-xs font-sans shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-3.5 h-3.5 rounded-[2px] shrink-0 border border-hairline"
+                  style={{ backgroundColor: 'var(--color-change-red)' }}
+                  aria-hidden="true"
+                />
+                <span className="text-ink font-medium text-xs">Detected change</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center w-3.5 h-3.5 shrink-0" aria-hidden="true">
+                  <span
+                    className="h-full w-0.75 border-x border-white"
+                    style={{ boxSizing: 'content-box', backgroundColor: 'var(--color-comparison-line)' }}
+                  />
+                </span>
+                <span className="text-ink font-medium text-xs">Comparison line</span>
+              </div>
             </div>
           </div>
 
-          {/* Legend: change red swatch labelled "Detected change" and blue line sample labelled "Comparison line" */}
-          <div className="flex items-center gap-4 text-xs font-sans shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-3.5 h-3.5 rounded-[2px] shrink-0 border border-hairline"
-                style={{ backgroundColor: 'var(--color-change-red)' }}
-                aria-hidden="true"
-              />
-              <span className="text-ink font-medium text-xs">Detected change</span>
+          {emphasizeDetections && (
+            <div className="pt-1.5 border-t border-hairline/60 flex flex-col gap-0.5 text-[11px] font-sans text-text-secondary">
+              {showChangeMap && changeDensity?.concentration && (
+                <p>
+                  Detected change is concentrated toward the {changeDensity.concentration} of the area.
+                </p>
+              )}
+              <p>
+                Percentages show the share of pixels marked as changed in this change map. They are not an accuracy measure.
+              </p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center justify-center w-3.5 h-3.5 shrink-0" aria-hidden="true">
-                <span
-                  className="h-full w-0.75 border-x border-white"
-                  style={{ boxSizing: 'content-box', backgroundColor: 'var(--color-comparison-line)' }}
-                />
-              </span>
-              <span className="text-ink font-medium text-xs">Comparison line</span>
-            </div>
-          </div>
+          )}
         </div>
       }
     >
@@ -451,11 +504,14 @@ export default function BeforeAfterViewer({
             />
           )}
 
-          {/* Detected Change Overlay (recolored to #D7301F at ~0.75 opacity) */}
+          {/* Detected Change Overlay (recolored to #D7301F at ~0.75 opacity, or ~0.95 with outline when emphasized) */}
           {showChangeMap && !changeMapError && (recoloredChangeMapUrl || changeMapImage) && (
             <div
               className="absolute inset-0 pointer-events-none"
-              style={{ opacity: 0.75 }}
+              style={{
+                opacity: emphasizeDetections ? 0.95 : 0.75,
+                filter: emphasizeDetections ? 'drop-shadow(0 0 1px var(--color-change-red))' : undefined,
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -542,7 +598,49 @@ export default function BeforeAfterViewer({
               />
             </div>
           </div>
+
+          {/* Live Detection Marker Chip attached next to handle (opt-in via emphasizeDetections) */}
+          {emphasizeDetections && showChangeMap && lineMetrics && (
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 pointer-events-none bg-surface-2 text-ink border border-hairline rounded-[2px] px-2 py-1 text-[11px] font-data leading-tight whitespace-nowrap ${
+                displayPosition > 65 ? 'right-11' : 'left-11'
+              }`}
+              aria-hidden="true"
+            >
+              <div>Near line: {lineMetrics.nearLinePercent.toFixed(1)}% changed</div>
+              <div>Left of line: {lineMetrics.leftOfLinePercent.toFixed(1)}% changed</div>
+            </div>
+          )}
         </motion.div>
+
+        {/* Thin Change Density Bar along bottom edge (opt-in via emphasizeDetections) */}
+        {emphasizeDetections &&
+          showChangeMap &&
+          changeDensity &&
+          changeDensity.totalChangedPixels > 0 &&
+          changeDensity.maxBucketDensity > 0 && (
+            <div
+              className="absolute bottom-0 left-0 right-0 h-3 flex items-end pointer-events-none z-10"
+              aria-hidden="true"
+            >
+              {changeDensity.bucketsChanged.map((changedCount, idx) => {
+                const totalCount = changeDensity.bucketsTotal[idx] ?? 0;
+                const density = totalCount > 0 ? changedCount / totalCount : 0;
+                const heightPct = Math.round((density / changeDensity.maxBucketDensity) * 100);
+                return (
+                  <div
+                    key={idx}
+                    className="flex-1"
+                    style={{
+                      height: `${heightPct}%`,
+                      backgroundColor: 'var(--color-change-red)',
+                      opacity: heightPct > 0 ? 0.9 : 0,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
 
         {/* Floating Viewport Labels (Public Sans 14px weight 600, solid ink text, solid surface-2 chip, 1px hairline border) */}
         <div

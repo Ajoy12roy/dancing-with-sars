@@ -513,6 +513,7 @@ function ExploreContent() {
             dateAfter={displayData.dateAfter}
             beforeRange={isCustomResult ? displayData.beforeRange : (displayData.beforeRange || currentCaseStudy?.beforeRange)}
             afterRange={isCustomResult ? displayData.afterRange : (displayData.afterRange || currentCaseStudy?.afterRange)}
+            emphasizeDetections={isCustomResult}
           />
         </div>
 
