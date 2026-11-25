@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts';
 import type { ResultCategory } from '@/types';
+import { getCategoryTooltipStyles } from '@/lib/chart-tooltip';
 
 export interface ChartItem {
   name: string;
@@ -108,9 +109,7 @@ export default function CategoryBreakdownChart({
   const tickText = isDark ? '#8F99A3' : '#4A4E52';
   const yTickText = isDark ? '#E8EDF2' : '#1D2023';
   const gridStroke = isDark ? '#1F2A38' : '#C7C4BC';
-  const tooltipBg = isDark ? '#0E131B' : '#F1F0EC';
-  const tooltipBorder = isDark ? '#1F2A38' : '#C7C4BC';
-  const tooltipText = isDark ? '#E8EDF2' : '#1D2023';
+  const tooltipStyles = getCategoryTooltipStyles();
 
   return (
     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
@@ -146,16 +145,11 @@ export default function CategoryBreakdownChart({
           width={130}
         />
         <Tooltip
-          cursor={{ fill: axisStroke, opacity: 0.2 }}
-          contentStyle={{
-            backgroundColor: tooltipBg,
-            border: `1px solid ${tooltipBorder}`,
-            borderRadius: '2px',
-            fontFamily: 'var(--font-data)',
-            fontSize: '12px',
-            color: tooltipText,
-            boxShadow: 'none',
-          }}
+          cursor={{ fill: 'var(--color-hairline)', opacity: 0.2 }}
+          contentStyle={tooltipStyles.contentStyle}
+          itemStyle={tooltipStyles.itemStyle}
+          labelStyle={tooltipStyles.labelStyle}
+          wrapperStyle={tooltipStyles.wrapperStyle}
           formatter={(val: unknown) => [`${Number(val).toFixed(2)} km²`, 'Area']}
         />
         <Bar dataKey="areaKm2" radius={[0, 2, 2, 0]}>
