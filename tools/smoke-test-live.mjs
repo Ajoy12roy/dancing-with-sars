@@ -89,6 +89,15 @@ async function runTests() {
     assert.equal(h1Matches.length, 1, `/explore must contain exactly ONE <h1> tag, found ${h1Matches.length}`);
     console.log(`✓ /explore returned 200 with exactly ${h1Matches.length} <h1> tag.`);
 
+    // 4. /how-it-works returns HTTP 200 with exactly one <h1>
+    console.log('Testing /how-it-works route and <h1> count...');
+    const hiwRes = await fetch('http://localhost:3009/how-it-works');
+    assert.equal(hiwRes.status, 200, '/how-it-works must return HTTP 200');
+    const hiwHtml = await hiwRes.text();
+    const hiwH1Matches = hiwHtml.match(/<h1\b[^>]*>/gi) || [];
+    assert.equal(hiwH1Matches.length, 1, `/how-it-works must contain exactly ONE <h1> tag, found ${hiwH1Matches.length}`);
+    console.log(`✓ /how-it-works returned 200 with exactly ${hiwH1Matches.length} <h1> tag.`);
+
     console.log('\nAll smoke test checks passed successfully!');
   } finally {
     cleanup();
