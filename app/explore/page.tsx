@@ -22,7 +22,7 @@ import { HairlineProgress } from '@/components/upload/HairlineProgress';
 import { MapTextSummary } from '@/components/visualization/MapTextSummary';
 import { NisarCard } from '@/components/explore/NisarCard';
 import { SylhetExposureCard } from '@/components/explore/SylhetExposureCard';
-import { LiveResultHeader, LiveResultSummary } from '@/components/explore/LiveResultSummary';
+import { LiveResultHeader } from '@/components/explore/LiveResultSummary';
 import { LIVE_RESULT_COPY } from '@/lib/live-result-copy';
 import { useAnalysisMode, useAccessibility, MODE_INFO_MAP } from '@/context';
 import {
@@ -397,10 +397,72 @@ function ExploreContent() {
       ? currentCaseStudy?.description || currentCaseStudy?.summary || activeDemoAoi?.description || 'Sentinel-1 radar backscatter variation analysis'
       : 'Pick an area on the map to generate an Earth Engine export script, or upload your own co-registered GeoTIFFs to run change detection.';
 
+  const jumpBar = (
+    <div className="col-span-12 py-1.5 px-3 border border-hairline bg-surface rounded-[2px] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+      <div className="flex flex-wrap items-center gap-1.5 text-text-secondary">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-text-caption">Jump to:</span>
+        <a
+          href="#map"
+          className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+        >
+          Map
+        </a>
+        {!isCustomResult && (
+          <>
+            <span className="text-hairline">/</span>
+            <a
+              href="#sensitivity"
+              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+            >
+              Sensitivity
+            </a>
+          </>
+        )}
+        <span className="text-hairline">/</span>
+        <a
+          href="#ai-insight"
+          className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+        >
+          AI insight
+        </a>
+        {!isCustomResult && selectedAoi === 'sylhet' && (
+          <>
+            <span className="text-hairline">/</span>
+            <a
+              href="#exposure"
+              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+            >
+              Exposure
+            </a>
+          </>
+        )}
+        {!isCustomResult && (
+          <>
+            <span className="text-hairline">|</span>
+            <span className="font-mono text-[10px] uppercase text-amber-700 dark:text-amber-400">NISAR:</span>
+            <a
+              href="#nisar-threshold-grid"
+              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+            >
+              Threshold grid
+            </a>
+            <span className="text-hairline">/</span>
+            <a
+              href="#nisar-limitations"
+              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
+            >
+              Limitations
+            </a>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   const resultsView =
     displayData && activeAoi && (activeTab === 'demo' ? !demoLoading && !demoError : !uploadLoading) ? (
       <>
-        {/* ── Dedicated Live Analysis Result Header (Upload/Live only) ── */}
+        {/* ── Slim One-Line Title Row (Upload/Live only) ── */}
         {isCustomResult && (
           <LiveResultHeader
             data={displayData}
@@ -416,23 +478,7 @@ function ExploreContent() {
           />
         )}
 
-        {/* ── Dedicated "What changed in this area" Summary Card (Upload/Live only) ── */}
-        {isCustomResult && <LiveResultSummary data={displayData} />}
-
-        {/* ── Observation Provenance Block (Live Area Analysis, directly under summary) ── */}
-        {isCustomResult && displayData.provenance && (
-          <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
-            <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
-            <p>
-              Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
-              {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
-              {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
-              {' '}Each window is a median composite.
-            </p>
-          </div>
-        )}
-
-        {/* ── Visible Honesty Note (Steps 2b & 3b) ── */}
+        {/* ── Visible Honesty Note (Demo only) ── */}
         {activeTab === 'demo' && (currentCaseStudy?.honestyNote || displayData.honestyNote) && (
           <div className="col-span-12 border border-hairline bg-surface-2 p-3 text-xs text-ink flex items-start gap-2.5 rounded-[2px]">
             <span className="text-teal font-semibold font-data uppercase tracking-wider shrink-0 mt-0.5">Note:</span>
@@ -442,66 +488,8 @@ function ExploreContent() {
           </div>
         )}
 
-        {/* ── Compact In-Page Jump Anchor Bar (No layout shift) ── */}
-        <div className="col-span-12 py-1.5 px-3 border border-hairline bg-surface rounded-[2px] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
-          <div className="flex flex-wrap items-center gap-1.5 text-text-secondary">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-text-caption">Jump to:</span>
-            <a
-              href="#map"
-              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-            >
-              Map
-            </a>
-            {!isCustomResult && (
-              <>
-                <span className="text-hairline">/</span>
-                <a
-                  href="#sensitivity"
-                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                >
-                  Sensitivity
-                </a>
-              </>
-            )}
-            <span className="text-hairline">/</span>
-            <a
-              href="#ai-insight"
-              className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-            >
-              AI insight
-            </a>
-            {!isCustomResult && selectedAoi === 'sylhet' && (
-              <>
-                <span className="text-hairline">/</span>
-                <a
-                  href="#exposure"
-                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                >
-                  Exposure
-                </a>
-              </>
-            )}
-            {!isCustomResult && (
-              <>
-                <span className="text-hairline">|</span>
-                <span className="font-mono text-[10px] uppercase text-amber-700 dark:text-amber-400">NISAR:</span>
-                <a
-                  href="#nisar-threshold-grid"
-                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                >
-                  Threshold grid
-                </a>
-                <span className="text-hairline">/</span>
-                <a
-                  href="#nisar-limitations"
-                  className="px-2 py-0.5 rounded-[2px] text-ink hover:text-teal hover:bg-surface-2 border border-transparent hover:border-hairline transition-colors"
-                >
-                  Limitations
-                </a>
-              </>
-            )}
-          </div>
-        </div>
+        {/* ── Jump Bar (Before comparison row for Demo; after comparison row for Upload/Live) ── */}
+        {!isCustomResult && jumpBar}
 
         {/* ── Row 1: Left = SAR Imagery Comparison (7 cols), Right = Geospatial Classification (5 cols) ── */}
         <div id="map" className="col-span-12 lg:col-span-7 flex scroll-mt-6" role="region" aria-label="SAR Imagery Comparison Viewport">
@@ -527,6 +515,8 @@ function ExploreContent() {
             />
           )}
         </div>
+
+        {isCustomResult && jumpBar}
 
         {/* ── Accessible Text Summary of Visualizations (WCAG 2.2 AA) ── */}
         <div className="col-span-12">
@@ -616,6 +606,19 @@ function ExploreContent() {
             mode={displayData.mode || activeAoi.mode || mode}
           />
         </div>
+
+        {/* ── Observation Provenance Block (Live Area Analysis, directly under StatsPanel) ── */}
+        {isCustomResult && displayData.provenance && (
+          <div className="col-span-12 border border-hairline bg-surface p-4 rounded-[2px] font-sans text-xs text-text-secondary space-y-1">
+            <div className="text-sm font-semibold text-ink font-headline">Observation provenance</div>
+            <p>
+              Source: Copernicus Sentinel-1 GRD via Google Earth Engine. Orbit: {displayData.provenance.orbitDirection} track {displayData.provenance.orbitNumber}.
+              {' '}Before window: {displayData.provenance.beforeDates?.[0]} to {displayData.provenance.beforeDates?.[1]}, {displayData.provenance.beforeCount} {displayData.provenance.beforeCount === 1 ? 'image' : 'images'}.
+              {' '}After window: {displayData.provenance.afterDates?.[0]} to {displayData.provenance.afterDates?.[1]}, {displayData.provenance.afterCount} {displayData.provenance.afterCount === 1 ? 'image' : 'images'}.
+              {' '}Each window is a median composite.
+            </p>
+          </div>
+        )}
 
         {/* ── Row 3.5: Sylhet Flood Exposure Analytics Card ── */}
         {activeTab === 'demo' && selectedAoi === 'sylhet' && (

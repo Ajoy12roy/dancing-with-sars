@@ -299,4 +299,18 @@ assert.equal(effectiveAfterRange, undefined, 'isCustomResult must not fall back 
 
 console.log('✓ isCustomResult isolation contract verified.');
 
+// ── Test 8: Verify explore/page.tsx layout order for isCustomResult ──
+console.log('Test 8: Verify explore/page.tsx custom result layout order...');
+const exploreSrc = fs.readFileSync(path.resolve(rootDir, 'app/explore/page.tsx'), 'utf8');
+assert.ok(!exploreSrc.includes('<LiveResultSummary'), 'Must not render LiveResultSummary in explore/page.tsx');
+const idxHeader = exploreSrc.indexOf('<LiveResultHeader');
+const idxViewer = exploreSrc.indexOf('<BeforeAfterViewer');
+const idxStats = exploreSrc.indexOf('<StatsPanel');
+const idxProv = exploreSrc.indexOf('Observation provenance');
+assert.ok(idxHeader !== -1 && idxViewer !== -1 && idxStats !== -1 && idxProv !== -1, 'All custom result sections must exist');
+assert.ok(idxHeader < idxViewer, 'LiveResultHeader must come before BeforeAfterViewer');
+assert.ok(idxViewer < idxStats, 'BeforeAfterViewer must come before StatsPanel');
+assert.ok(idxStats < idxProv, 'Observation provenance must come directly after StatsPanel');
+console.log('✓ Custom result layout order verified.');
+
 console.log('\nAll Live Result Isolation & Copy Helper tests passed successfully!');

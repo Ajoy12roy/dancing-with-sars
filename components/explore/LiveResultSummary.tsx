@@ -16,60 +16,25 @@ export function LiveResultHeader({ data, onBackToMap }: LiveResultHeaderProps) {
   const title = data.name || 'Custom Area Analysis';
   const modeLabel = getLiveModeLabel(data.mode);
 
-  // Before & After window dates: prioritize provenance, then dates, then dateBefore/dateAfter
-  const beforeStart = data.provenance?.beforeDates?.[0] || data.dates?.a || data.dateBefore;
-  const beforeEnd = data.provenance?.beforeDates?.[1] || data.dates?.a || data.dateBefore;
-  const beforeText = beforeStart && beforeEnd && beforeStart !== beforeEnd
-    ? `${beforeStart} to ${beforeEnd}`
-    : beforeStart || 'Not specified';
-
-  const afterStart = data.provenance?.afterDates?.[0] || data.dates?.b || data.dateAfter;
-  const afterEnd = data.provenance?.afterDates?.[1] || data.dates?.b || data.dateAfter;
-  const afterText = afterStart && afterEnd && afterStart !== afterEnd
-    ? `${afterStart} to ${afterEnd}`
-    : afterStart || 'Not specified';
-
   return (
-    <div className="col-span-12 border border-hairline bg-surface p-4 sm:p-5 rounded-[2px]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-hairline">
-        <div>
-          <span className="text-[11px] font-data uppercase tracking-wider text-teal block mb-1">
-            Live Analysis Result
-          </span>
-          <h2 className="text-xl sm:text-2xl font-headline font-semibold text-text-primary">
-            {title}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onBackToMap}
-          className="self-start sm:self-center px-3.5 py-2 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface-2 shrink-0 flex items-center gap-1.5"
-        >
-          <span>&uarr;</span>
-          <span>{LIVE_RESULT_COPY.backToMap}</span>
-        </button>
+    <div className="col-span-12 border border-hairline bg-surface px-4 py-2.5 rounded-[2px] flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+        <h2 className="text-base sm:text-lg font-headline font-semibold text-text-primary truncate">
+          {title}
+        </h2>
+        <span className="text-hairline" aria-hidden="true">|</span>
+        <span className="text-xs font-data text-teal font-medium shrink-0">
+          {modeLabel}
+        </span>
       </div>
-
-      <div className="pt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-sans text-text-secondary">
-        <div>
-          <span className="text-text-caption font-medium">{LIVE_RESULT_COPY.analysisModePrefix}</span>{' '}
-          <span className="text-text-primary font-medium">{modeLabel}</span>
-        </div>
-        <div>
-          <span className="text-text-caption font-medium">{LIVE_RESULT_COPY.beforeWindowPrefix}</span>{' '}
-          <span className="font-data text-text-primary">{beforeText}</span>
-        </div>
-        <div>
-          <span className="text-text-caption font-medium">{LIVE_RESULT_COPY.afterWindowPrefix}</span>{' '}
-          <span className="font-data text-text-primary">{afterText}</span>
-        </div>
-        {typeof data.totalAreaKm2 === 'number' && (
-          <div>
-            <span className="text-text-caption font-medium">{LIVE_RESULT_COPY.areaFootprintPrefix}</span>{' '}
-            <span className="font-data text-text-primary">{data.totalAreaKm2.toFixed(2)} km²</span>
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={onBackToMap}
+        className="px-3 py-1.5 text-xs font-medium border border-hairline text-ink hover:border-ink rounded-[2px] transition-colors cursor-pointer bg-surface-2 shrink-0 flex items-center gap-1.5"
+      >
+        <span aria-hidden="true">&uarr;</span>
+        <span>{LIVE_RESULT_COPY.backToMap}</span>
+      </button>
     </div>
   );
 }
