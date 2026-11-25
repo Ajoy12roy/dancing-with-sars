@@ -5,6 +5,9 @@ import { Play, ExternalLink } from 'lucide-react';
 import { useNetworkMode } from '@/context';
 import { buildYouTubeEmbedUrl } from '@/lib/video';
 
+export const AUTOPLAY_MUTED_NOTICE =
+  'Sound is off. Use the speaker icon in the player to turn it on.';
+
 export const VIDEO_CREDIT_LINE =
   'Contains modified Copernicus Sentinel data (ESA). NASA-ISRO NISAR data via ASF DAAC. River erosion estimate: UNDP Bangladesh. Some background footage is an AI-generated illustration.';
 
@@ -36,29 +39,69 @@ interface OverviewVideoProps {
 
 export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAutoplayMuted, setIsAutoplayMuted] = useState(false);
   const [posterError, setPosterError] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const hasAttemptedAutoplayRef = useRef(false);
   const { effectiveOffline } = useNetworkMode();
   const isBrowserOnline = useSyncExternalStore(subscribeOnline, getOnlineSnapshot, getOnlineServerSnapshot);
 
   const isOffline = effectiveOffline || !isBrowserOnline;
-  const embedUrl = buildYouTubeEmbedUrl(videoId);
+  const embedUrl = isAutoplayMuted
+    ? buildYouTubeEmbedUrl(videoId, { autoplay: true, mute: true })
+    : buildYouTubeEmbedUrl(videoId);
 
   const handlePlay = () => {
     if (isOffline) return;
+    setIsAutoplayMuted(false);
     setIsPlaying(true);
   };
 
   useEffect(() => {
-    if (isPlaying && iframeRef.current) {
+    if (isPlaying && !isAutoplayMuted && iframeRef.current) {
       iframeRef.current.focus();
     }
-  }, [isPlaying]);
+  }, [isPlaying, isAutoplayMuted]);
+
+  // Autoplay muted once when at least 50% visible, online, and reduced motion is not set
+  useEffect(() => {
+    if (isPlaying || isOffline || hasAttemptedAutoplayRef.current) return;
+    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry || !entry.isIntersecting || entry.intersectionRatio < 0.5) return;
+
+        hasAttemptedAutoplayRef.current = true;
+        observer.disconnect();
+
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          setIsAutoplayMuted(true);
+          setIsPlaying(true);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isPlaying, isOffline]);
 
   return (
     <div className="w-full max-w-[960px] space-y-4">
       {/* 16:9 Video Box */}
-      <div className="aspect-video w-full border border-hairline rounded-[2px] bg-surface-2 relative overflow-hidden flex items-center justify-center">
+      <div
+        ref={containerRef}
+        className="aspect-video w-full border border-hairline rounded-[2px] bg-surface-2 relative overflow-hidden flex items-center justify-center"
+      >
         {isPlaying ? (
           <iframe
             ref={iframeRef}
@@ -123,6 +166,11 @@ export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
 
       {/* Video Details & Transcript below player */}
       <div className="space-y-3">
+        {isPlaying && isAutoplayMuted && (
+          <p className="text-xs font-sans text-text-secondary">
+            {AUTOPLAY_MUTED_NOTICE}
+          </p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <a
             href={`https://youtu.be/${videoId}`}

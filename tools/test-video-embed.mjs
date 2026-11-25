@@ -39,4 +39,21 @@ for (const id of invalidIds) {
 }
 console.log(`✓ All ${invalidIds.length} invalid ID test cases threw an exception as expected`);
 
+// 4. Optional autoplay and mute flags
+const mutedAutoplayUrl = buildYouTubeEmbedUrl(validId, { autoplay: true, mute: true });
+assert.ok(mutedAutoplayUrl.includes('autoplay=1'), 'Muted autoplay URL must include autoplay=1');
+assert.ok(mutedAutoplayUrl.includes('mute=1'), 'Muted autoplay URL must include mute=1');
+assert.ok(mutedAutoplayUrl.includes('cc_load_policy=1'), 'Muted autoplay URL must preserve cc_load_policy=1');
+
+const noAutoplayUrl = buildYouTubeEmbedUrl(validId, { autoplay: false });
+assert.ok(noAutoplayUrl.includes('autoplay=0'), 'autoplay: false must set autoplay=0');
+assert.ok(!noAutoplayUrl.includes('mute=1'), 'No mute option must not include mute=1');
+
+assert.throws(
+  () => buildYouTubeEmbedUrl('bad-id', { autoplay: true, mute: true }),
+  /Invalid YouTube video ID/,
+  'Invalid ID with options must still throw'
+);
+console.log('✓ Optional autoplay/mute flags and invalid ID checks passed');
+
 console.log('All YouTube Embed tests passed successfully!');

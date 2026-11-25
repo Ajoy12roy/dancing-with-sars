@@ -6,6 +6,8 @@ import { GraticuleFrame } from '@/components/layout/GraticuleFrame';
 import { SpecimenSheet } from '@/components/ui/Card';
 import { OverviewVideo } from '@/components/how-it-works/OverviewVideo';
 
+const OVERVIEW_VIDEO_ID = 'KXagoM8xsFo';
+
 const FOUR_STEPS = [
   {
     number: '01',
@@ -89,7 +91,7 @@ export function HowItWorksClient() {
         <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary mb-4">
           Watch the overview
         </h2>
-        <OverviewVideo videoId="KXagoM8xsFo" title="TerraPulse overview, 30 seconds" />
+        <OverviewVideo videoId={OVERVIEW_VIDEO_ID} title="TerraPulse project overview video" />
       </section>
 
       {/* Four Simple Steps */}
