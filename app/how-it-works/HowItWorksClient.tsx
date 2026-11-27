@@ -7,6 +7,7 @@ import { SpecimenSheet } from '@/components/ui/Card';
 import { OverviewVideo } from '@/components/how-it-works/OverviewVideo';
 
 const OVERVIEW_VIDEO_ID = 'KXagoM8xsFo';
+const HOOK_TITLE = 'See what changed on Earth, even through the clouds';
 
 const FOUR_STEPS = [
   {
@@ -56,41 +57,23 @@ export function HowItWorksClient() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-12 sm:py-16">
       <motion.div
         initial={shouldReduceMotion ? 'visible' : 'hidden'}
         animate="visible"
         variants={containerVariants}
-        className="mb-14"
+        className="mb-8 sm:mb-10"
       >
-        <motion.div variants={itemVariants} className="flex items-center gap-3 mb-2">
-          <span className="text-xs font-data uppercase tracking-wider text-teal">
-            Deterministic SAR Pipeline
-          </span>
-          <span className="text-xs text-hairline">/</span>
-          <span className="text-xs font-data text-text-secondary">
-            python-service/process_change.py
-          </span>
-        </motion.div>
         <motion.h1
           variants={itemVariants}
           className="text-3xl md:text-4xl font-headline font-semibold text-text-primary"
         >
-          How TerraPulse works
+          {HOOK_TITLE}
         </motion.h1>
-        <motion.p
-          variants={itemVariants}
-          className="mt-3 text-base md:text-lg text-text-secondary max-w-3xl leading-relaxed"
-        >
-          A 30-second overview, then the process in four plain steps.
-        </motion.p>
       </motion.div>
 
-      {/* 30-second Overview Video */}
+      {/* Project Overview Video */}
       <section className="mb-14">
-        <h2 className="text-xl md:text-2xl font-headline font-semibold text-text-primary mb-4">
-          Watch the overview
-        </h2>
         <OverviewVideo videoId={OVERVIEW_VIDEO_ID} title="TerraPulse project overview video" />
       </section>
 

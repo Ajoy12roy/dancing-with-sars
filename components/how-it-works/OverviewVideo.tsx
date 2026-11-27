@@ -152,7 +152,7 @@ export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
                       handlePlay();
                     }
                   }}
-                  aria-label="Play the 30-second overview video"
+                  aria-label="Play the project video"
                   className="min-h-[44px] min-w-[44px] px-5 py-2.5 bg-accent text-text-on-accent hover:bg-accent-hover font-medium text-sm rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <Play className="w-4 h-4 fill-current shrink-0" aria-hidden="true" />
