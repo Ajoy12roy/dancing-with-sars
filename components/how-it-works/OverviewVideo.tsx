@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Play, ExternalLink } from 'lucide-react';
 import { useNetworkMode } from '@/context';
 import { buildYouTubeEmbedUrl } from '@/lib/video';
+import { VideoStage } from '@/components/how-it-works/VideoStage';
 
 export const AUTOPLAY_MUTED_NOTICE =
   'Sound is off. Use the speaker icon in the player to turn it on.';
@@ -35,9 +36,10 @@ function getOnlineServerSnapshot() {
 interface OverviewVideoProps {
   videoId: string;
   title: string;
+  aspectRatio?: string;
 }
 
-export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
+export function OverviewVideo({ videoId, title, aspectRatio = '16 / 9' }: OverviewVideoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAutoplayMuted, setIsAutoplayMuted] = useState(false);
   const [posterError, setPosterError] = useState(false);
@@ -96,13 +98,11 @@ export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
   }, [isPlaying, isOffline]);
 
   return (
-    <div className="w-full max-w-[960px] space-y-4">
-      {/* 16:9 Video Box */}
-      <div
-        ref={containerRef}
-        className="aspect-video w-full border border-hairline rounded-[2px] bg-surface-2 relative overflow-hidden flex items-center justify-center"
-      >
-        {isPlaying ? (
+    <div className="w-full max-w-5xl space-y-4">
+      {/* Video Stage */}
+      <div ref={containerRef}>
+        <VideoStage aspectRatio={aspectRatio}>
+          {isPlaying ? (
           <iframe
             ref={iframeRef}
             src={embedUrl}
@@ -162,6 +162,7 @@ export function OverviewVideo({ videoId, title }: OverviewVideoProps) {
             </div>
           </div>
         )}
+        </VideoStage>
       </div>
 
       {/* Video Details & Transcript below player */}

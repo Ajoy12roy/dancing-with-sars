@@ -8,6 +8,7 @@ import { OverviewVideo } from '@/components/how-it-works/OverviewVideo';
 
 const OVERVIEW_VIDEO_ID = 'KXagoM8xsFo';
 const HOOK_TITLE = 'See what changed on Earth, even through the clouds';
+const VIDEO_ASPECT = '16 / 9';
 
 const FOUR_STEPS = [
   {
@@ -74,7 +75,11 @@ export function HowItWorksClient() {
 
       {/* Project Overview Video */}
       <section className="mb-14">
-        <OverviewVideo videoId={OVERVIEW_VIDEO_ID} title="TerraPulse project overview video" />
+        <OverviewVideo
+          videoId={OVERVIEW_VIDEO_ID}
+          title="TerraPulse project overview video"
+          aspectRatio={VIDEO_ASPECT}
+        />
       </section>
 
       {/* Four Simple Steps */}
