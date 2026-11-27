@@ -101,7 +101,7 @@ export function OverviewVideo({ videoId, title, aspectRatio = '16 / 9' }: Overvi
     <div className="w-full max-w-5xl space-y-4">
       {/* Video Stage */}
       <div ref={containerRef}>
-        <VideoStage aspectRatio={aspectRatio}>
+        <VideoStage aspectRatio={aspectRatio} isPlaying={isPlaying}>
           {isPlaying ? (
           <iframe
             ref={iframeRef}
