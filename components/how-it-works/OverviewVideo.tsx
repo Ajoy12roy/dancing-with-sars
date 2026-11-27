@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, useId, useSyncExternalStore } from 'react';
 import { Play, ExternalLink } from 'lucide-react';
-import { useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useNetworkMode } from '@/context';
 import {
   YOUTUBE_PRIVACY_HOST,
@@ -159,6 +159,10 @@ export function OverviewVideo({ videoId, title, aspectRatio = '16 / 9' }: Overvi
   const [apiReady, setApiReady] = useState(false);
   const [apiFailed, setApiFailed] = useState(false);
   const [fallbackPlaying, setFallbackPlaying] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+
+  const transcriptBtnId = useId();
+  const transcriptPanelId = useId();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playerHostRef = useRef<HTMLDivElement | null>(null);
@@ -441,14 +445,39 @@ export function OverviewVideo({ videoId, title, aspectRatio = '16 / 9' }: Overvi
           {VIDEO_CREDIT_LINE}
         </p>
 
-        <details className="border border-hairline rounded-[2px] bg-surface p-3 text-xs text-text-secondary group">
-          <summary className="cursor-pointer font-medium text-text-primary hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent select-none">
-            Read the transcript
-          </summary>
-          <p className="mt-2 text-xs text-text-secondary leading-relaxed font-sans pt-2 border-t border-hairline">
-            {VIDEO_TRANSCRIPT}
-          </p>
-        </details>
+        <div>
+          <button
+            id={transcriptBtnId}
+            type="button"
+            aria-expanded={showTranscript}
+            aria-controls={transcriptPanelId}
+            onClick={() => setShowTranscript((v) => !v)}
+            className="min-h-[44px] px-4 py-2 text-xs font-medium border border-hairline bg-surface hover:bg-surface-2 hover:border-accent text-text-primary rounded-[2px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent inline-flex items-center"
+          >
+            {showTranscript ? 'Hide transcript' : 'Read transcript'}
+          </button>
+
+          <AnimatePresence initial={false}>
+            {showTranscript && (
+              <motion.div
+                id={transcriptPanelId}
+                role="region"
+                aria-labelledby={transcriptBtnId}
+                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                transition={
+                  shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: 'easeOut' }
+                }
+                className="overflow-hidden"
+              >
+                <div className="mt-2 border border-hairline rounded-[2px] bg-surface p-3.5 text-xs text-text-secondary leading-relaxed font-sans">
+                  {VIDEO_TRANSCRIPT}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
